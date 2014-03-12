@@ -1,5 +1,5 @@
 Lycancoin (LYC)
-
+verison 1.0.2
 
 http://www.lycancoin.org
 

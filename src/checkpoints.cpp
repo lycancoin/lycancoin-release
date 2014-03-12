@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2012 The Bitcoin developers
 // Copyright (c) 2011-2012 Litecoin Developers
+// Copyright (c) 2014 Lycancoin Developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -23,8 +24,9 @@ namespace Checkpoints
     // + Contains no strange transactions
     //
     static MapCheckpoints mapCheckpoints =
-        boost::assign::map_list_of // Yo dawg, this is the secret. Checkpoint 0 hash == Genesis block hash.
+        boost::assign::map_list_of // Checkpoint 0 hash == Genesis block hash.
         (         0, uint256("0x50f80e3dea383a355eb15e4be1f122acbc4144bceaa86604555953c5b8a0c9e4"))
+        (	  12000, uint256("0x96c6c3ad38d5f7102d5e14ed730befe4c0865777caac2392ae658dc1b7acc20f"))
         ;
 
     bool CheckBlock(int nHeight, const uint256& hash)
