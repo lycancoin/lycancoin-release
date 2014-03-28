@@ -1,5 +1,6 @@
 Lycancoin (LYC)
-verison 1.0.2
+Version 1.1.2
+Added Kimoto Gravity Well
 
 http://www.lycancoin.org
 
@@ -9,26 +10,16 @@ Copyright (c) 2014 Lycancoin Developers
 
 What is Lycancoin?
 ----------------
-Lycancoin is a fun educational experiment to test the long term adoption preferences of Vampirecoin, Lycancoin & Lycancoin given initial block generation ratios of 1:17:495, respectively. The initial per-block generation rates are 6 Vampirecoins, 102 Lycancoins & 2970 Lycancoins.
+Lycancoin is a cryptocurrency for lycanthropy & werewolf enthusiasts. It was designed as part of a 3 coin set which includes Vampirecoin and Zombiecoin.
 
-Lycancoin is a fork from Litecoin. <== I'm really standing on the shoulders of giants so thank you!
+Lycancoin software is freeware based on open source code providing fast transactions, a scrypt-based mining algorithm and an incredible pre-existing support network of mining technology; compatible with most scrypt-based mining hardware and software.
 
 2.5 minute block targets
-
-
 Subsidy halves in 800k blocks (3.8 years)
-
-
 4,950,000,000 Lycancoins total
-
-
 2970 coins per block
-
-
 2 hours to retarget difficulty
-
 For more information see 
-
 http://www.vampirecoin.org.
 http://www.zombie-coin.org.
 http://www.lycancoin.org.
