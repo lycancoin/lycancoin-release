@@ -901,7 +901,7 @@ unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBloc
 
 //KGW patch
 		  if (LatestBlockTime < BlockReading->GetBlockTime()) {
-            if (BlockReading->nHeight > 27000) {
+            if (BlockReading->nHeight > 29000) {
                 LatestBlockTime = BlockReading->GetBlockTime();
             }
         }
@@ -912,7 +912,7 @@ unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBloc
         PastRateAdjustmentRatio			= double(1);
         
 //KGW patch       
- 		  if (BlockReading->nHeight > 27000) {
+ 		  if (BlockReading->nHeight > 29000) {
             if (PastRateActualSeconds < 1) {
                 PastRateActualSeconds = 1;
             }
