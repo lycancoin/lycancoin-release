@@ -572,7 +572,7 @@ bool AppInit2()
         CTxDB txdb("r");
         txdb.LoadBlockIndex();
         PrintBlockTree();
-        return false;
+        return InitError(_("Not listening on any port"));
     }
 
     uiInterface.InitMessage(_("Loading block index..."));

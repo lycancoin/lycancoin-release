@@ -17,8 +17,8 @@
 #include <QLocale>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QRegExp>
-#include <QRegExpValidator>
+// #include <QRegExp>
+// #include <QRegExpValidator>
 #include <QTabWidget>
 #include <QWidget>
 

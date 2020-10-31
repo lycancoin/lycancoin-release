@@ -3,7 +3,6 @@
 
 #include <QString>
 #include <QObject>
-#include <string>
 
 class CWallet;
 class CWalletTx;

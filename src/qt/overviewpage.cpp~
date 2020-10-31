@@ -9,6 +9,7 @@
 #include "guiutil.h"
 #include "guiconstants.h"
 
+
 #include <QAbstractItemDelegate>
 #include <QPainter>
 
@@ -45,9 +46,10 @@ public:
         bool confirmed = index.data(TransactionTableModel::ConfirmedRole).toBool();
         QVariant value = index.data(Qt::ForegroundRole);
         QColor foreground = option.palette.color(QPalette::Text);
-        if(qVariantCanConvert<QColor>(value))
+        if(value.canConvert<QBrush>())
         {
-            foreground = qvariant_cast<QColor>(value);
+            QBrush brush = qvariant_cast<QBrush>(value);
+            foreground = brush.color();
         }
 
         painter->setPen(foreground);
@@ -175,7 +177,7 @@ void OverviewPage::setModel(WalletModel *model)
         connect(model->getOptionsModel(), SIGNAL(displayUnitChanged(int)), this, SLOT(updateDisplayUnit()));
     }
 
-    // update the display unit, to not use the default ("ZMB")
+    // update the display unit, to not use the default ("LYC")
     updateDisplayUnit();
 }
 

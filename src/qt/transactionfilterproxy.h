@@ -43,10 +43,6 @@ private:
     qint64 minAmount;
     int limitRows;
 
-signals:
-
-public slots:
-
 };
 
 #endif // TRANSACTIONFILTERPROXY_H

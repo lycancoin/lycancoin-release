@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2012 The Bitcoin developers
 // Distributed under the MIT/X11 software license, see the accompanying
-// file license.txt or http://www.opensource.org/licenses/mit-license.php.
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "qtipcserver.h"
 #include "guiconstants.h"
@@ -56,7 +56,7 @@ static void ipcThread2(void* pArg)
     size_t nSize = 0;
     unsigned int nPriority = 0;
 
-    loop
+    while (true)
     {
         ptime d = boost::posix_time::microsec_clock::universal_time() + millisec(100);
         if (mq->timed_receive(&buffer, sizeof(buffer), nSize, nPriority, d))

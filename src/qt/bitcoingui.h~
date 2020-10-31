@@ -9,7 +9,7 @@ class ClientModel;
 class WalletModel;
 class TransactionView;
 class OverviewPage;
-class MiningPage;
+// class MiningPage;
 class AddressBookPage;
 class SendCoinsDialog;
 class SignVerifyMessageDialog;
@@ -18,13 +18,9 @@ class RPCConsole;
 
 QT_BEGIN_NAMESPACE
 class QLabel;
-class QLineEdit;
-class QTableView;
-class QAbstractItemModel;
 class QModelIndex;
-class QProgressSkl;
+class QProgressBar;
 class QStackedWidget;
-class QUrl;
 QT_END_NAMESPACE
 
 /**
@@ -34,6 +30,7 @@ QT_END_NAMESPACE
 class BitcoinGUI : public QMainWindow
 {
     Q_OBJECT
+ 
 public:
     explicit BitcoinGUI(QWidget *parent = 0);
     ~BitcoinGUI();
@@ -61,7 +58,7 @@ private:
     QStackedWidget *centralWidget;
 
     OverviewPage *overviewPage;
-    MiningPage *miningPage;
+//    MiningPage *miningPage;
     QWidget *transactionsPage;
     AddressBookPage *addressBookPage;
     AddressBookPage *receiveCoinsPage;
@@ -72,10 +69,10 @@ private:
     QLabel *labelMiningIcon;
     QLabel *labelConnectionsIcon;
     QLabel *labelBlocksIcon;
-    QLabel *progressSklLabel;
-    QProgressSkl *progressSkl;
+    QLabel *progressBarLabel;
+    QProgressBar *progressBar;
 
-    QMenuSkl *appMenuSkl;
+    QMenuBar *appMenuBar;
     QAction *overviewAction;
     QAction *miningAction;
     QAction *historyAction;
@@ -83,8 +80,8 @@ private:
     QAction *sendCoinsAction;
     QAction *addressBookAction;
     QAction *signMessageAction;
-    QAction *verifyMessageAction;
     QAction *firstClassMessagingAction;
+    QAction *verifyMessageAction;
     QAction *aboutAction;
     QAction *receiveCoinsAction;
     QAction *optionsAction;
@@ -105,10 +102,10 @@ private:
 
     /** Create the main UI actions. */
     void createActions();
-    /** Create the menu skl and submenus. */
-    void createMenuSkl();
-    /** Create the toolskls */
-    void createToolSkls();
+    /** Create the menu bar and submenus. */
+    void createMenuBar();
+    /** Create the toolbars */
+    void createToolBars();
     /** Create system tray (notification) icon */
     void createTrayIcon();
 
@@ -142,7 +139,7 @@ private slots:
     /** Switch to overview (home) page */
     void gotoOverviewPage();
     /** Switch to mining page */
-    void gotoMiningPage();
+//    void gotoMiningPage();
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
     /** Switch to address book page */
@@ -176,6 +173,8 @@ private slots:
     void backupWallet();
     /** Change encrypted wallet passphrase */
     void changePassphrase();
+    /** Verify a message signature */
+    void verifyMessage();
     /** Ask for pass phrase to unlock wallet temporarily */
     void unlockWallet();
 

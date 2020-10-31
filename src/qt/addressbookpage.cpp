@@ -8,14 +8,15 @@
 #include "csvmodelwriter.h"
 #include "guiutil.h"
 
+#ifdef USE_QRCODE
+#include "qrcodedialog.h"
+#endif
+
 #include <QSortFilterProxyModel>
 #include <QClipboard>
 #include <QMessageBox>
 #include <QMenu>
 
-#ifdef USE_QRCODE
-#include "qrcodedialog.h"
-#endif
 
 AddressBookPage::AddressBookPage(Mode mode, Tabs tab, QWidget *parent) :
     QDialog(parent),
@@ -27,10 +28,13 @@ AddressBookPage::AddressBookPage(Mode mode, Tabs tab, QWidget *parent) :
 {
     ui->setupUi(this);
 
-#ifdef Q_WS_MAC // Icons on push buttons are very uncommon on Mac
-    ui->newAddressButton->setIcon(QIcon());
-    ui->copyToClipboard->setIcon(QIcon());
-    ui->deleteButton->setIcon(QIcon());
+#ifdef Q_OS_MAC // Icons on push buttons are very uncommon on Mac
+    ui->newAddress->setIcon(QIcon());
+    ui->copyAddress->setIcon(QIcon());
+    ui->deleteAddress->setIcon(QIcon());
+    ui->verifyMessage->setIcon(QIcon());
+    ui->signMessage->setIcon(QIcon());
+    ui->exportButton->setIcon(QIcon());
 #endif
 
 #ifndef USE_QRCODE
@@ -51,9 +55,9 @@ AddressBookPage::AddressBookPage(Mode mode, Tabs tab, QWidget *parent) :
     switch(tab)
     {
     case SendingTab:
-        ui->labelExplanation->setVisible(false);
-        ui->deleteButton->setVisible(true);
-        ui->signMessage->setVisible(false);
+       ui->labelExplanation->setVisible(false);
+       ui->deleteButton->setVisible(true);
+       ui->signMessage->setVisible(false);
         break;
     case ReceivingTab:
         ui->deleteButton->setVisible(false);
@@ -132,10 +136,13 @@ void AddressBookPage::setModel(AddressTableModel *model)
     ui->tableView->sortByColumn(0, Qt::AscendingOrder);
 
     // Set column widths
-    ui->tableView->horizontalHeader()->resizeSection(
-            AddressTableModel::Address, 320);
-    ui->tableView->horizontalHeader()->setResizeMode(
-            AddressTableModel::Label, QHeaderView::Stretch);
+#if QT_VERSION < 0x050000
+    ui->tableView->horizontalHeader()->resizeSection(AddressTableModel::Address, 320);
+    ui->tableView->horizontalHeader()->setResizeMode(AddressTableModel::Label, QHeaderView::Stretch);
+#else
+    ui->tableView->horizontalHeader()->setSectionResizeMode(AddressTableModel::Label, QHeaderView::Stretch);
+    ui->tableView->horizontalHeader()->setSectionResizeMode(AddressTableModel::Address, QHeaderView::ResizeToContents);
+#endif
 
     connect(ui->tableView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)),
             this, SLOT(selectionChanged()));

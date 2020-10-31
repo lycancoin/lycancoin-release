@@ -37,10 +37,6 @@ private:
     };
     QList<Column> columns;
 
-signals:
-
-public slots:
-
 };
 
 #endif // CSVMODELWRITER_H
