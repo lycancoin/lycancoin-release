@@ -1,6 +1,6 @@
 TEMPLATE = app
 TARGET = lycancoin-qt
-VERSION = 1.0.0
+VERSION = 1.1.7
 INCLUDEPATH += src src/json src/qt
 QT += core gui network
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
