@@ -101,7 +101,7 @@ Section -post SEC0001
     WriteRegStr HKCR "litceoin" "URL Protocol" ""
     WriteRegStr HKCR "lycancoin" "" "URL:Bitcoin"
     WriteRegStr HKCR "lycancoin\DefaultIcon" "" $INSTDIR\lycancoin-qt.exe
-    WriteRegStr HKCR "lycancoin\shell\open\command" "" '"$INSTDIR\lycancoin-qt.exe" "$$1"'
+    WriteRegStr HKCR "lycancoin\shell\open\command" "" '"$INSTDIR\lycancoin-qt.exe" "%1"'
 SectionEnd
 
 # Macro for selecting uninstaller sections

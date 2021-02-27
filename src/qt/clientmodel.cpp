@@ -4,6 +4,7 @@
 #include "addresstablemodel.h"
 #include "transactiontablemodel.h"
 
+#include "alert.h"
 #include "main.h"
 #include "init.h" // for pwalletMain
 #include "ui_interface.h"
@@ -203,10 +204,12 @@ void ClientModel::updateTimer()
     int newNumBlocksOfPeers = getNumBlocksOfPeers();
 
     if(cachedNumBlocks != newNumBlocks || cachedNumBlocksOfPeers != newNumBlocksOfPeers)
-        emit numBlocksChanged(newNumBlocks, newNumBlocksOfPeers);
+    {
+        cachedNumBlocks = newNumBlocks;
+        cachedNumBlocksOfPeers = newNumBlocksOfPeers;
 
-    cachedNumBlocks = newNumBlocks;
-    cachedNumBlocksOfPeers = newNumBlocksOfPeers;
+        emit numBlocksChanged(newNumBlocks, newNumBlocksOfPeers);
+    }
 
     // Only need to update if solo mining. When pool mining, stats are pushed.
     if (miningType == SoloMining)

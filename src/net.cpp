@@ -226,8 +226,8 @@ bool AddLocal(const CService& addr, int nScore)
         bool fAlready = mapLocalHost.count(addr) > 0;
         LocalServiceInfo &info = mapLocalHost[addr];
         if (!fAlready || nScore >= info.nScore) {
-            info.nScore = nScore;
-            info.nPort = addr.GetPort() + (fAlready ? 1 : 0);
+            info.nScore = nScore + (fAlready ? 1 : 0);
+            info.nPort = addr.GetPort();
         }
         SetReachable(addr.GetNetwork());
     }
@@ -582,7 +582,7 @@ bool CNode::Misbehaving(int howmuch)
 {
     if (addr.IsLocal())
     {
-        printf("Warning: local node %s misbehaving\n", addrName.c_str());
+        printf("Warning: Local node %s misbehaving (delta: %d)!\n", addrName.c_str(), howmuch);
         return false;
     }
 
@@ -590,15 +590,16 @@ bool CNode::Misbehaving(int howmuch)
     if (nMisbehavior >= GetArg("-banscore", 100))
     {
         int64 banTime = GetTime()+GetArg("-bantime", 60*60*24);  // Default 24-hour ban
+        printf("Misbehaving: %s (%d -> %d) DISCONNECTING\n", addr.ToString().c_str(), nMisbehavior-howmuch, nMisbehavior);
         {
             LOCK(cs_setBanned);
             if (setBanned[addr] < banTime)
                 setBanned[addr] = banTime;
         }
         CloseSocketDisconnect();
-        printf("Disconnected %s for misbehavior (score=%d)\n", addrName.c_str(), nMisbehavior);
         return true;
-    }
+   } else
+        printf("Misbehaving: %s (%d -> %d)\n", addr.ToString().c_str(), nMisbehavior-howmuch, nMisbehavior);
     return false;
 }
 
@@ -631,8 +632,6 @@ void CNode::copyStats(CNodeStats &stats)
 
 void ThreadSocketHandler(void* parg)
 {
-    IMPLEMENT_RANDOMIZE_STACK(ThreadSocketHandler(parg));
-
     // Make this thread recognisable as the networking thread
     RenameThread("bitcoin-net");
 
@@ -744,10 +743,12 @@ void ThreadSocketHandler2(void* parg)
         FD_ZERO(&fdsetSend);
         FD_ZERO(&fdsetError);
         SOCKET hSocketMax = 0;
+        bool have_fds = false;
 
         BOOST_FOREACH(SOCKET hListenSocket, vhListenSocket) {
             FD_SET(hListenSocket, &fdsetRecv);
             hSocketMax = max(hSocketMax, hListenSocket);
+            have_fds = true;
         }
         {
             LOCK(cs_vNodes);
@@ -758,6 +759,7 @@ void ThreadSocketHandler2(void* parg)
                 FD_SET(pnode->hSocket, &fdsetRecv);
                 FD_SET(pnode->hSocket, &fdsetError);
                 hSocketMax = max(hSocketMax, pnode->hSocket);
+                have_fds = true;
                 {
                     TRY_LOCK(pnode->cs_vSend, lockSend);
                     if (lockSend && !pnode->vSend.empty())
@@ -767,15 +769,16 @@ void ThreadSocketHandler2(void* parg)
         }
 
         vnThreadsRunning[THREAD_SOCKETHANDLER]--;
-        int nSelect = select(hSocketMax + 1, &fdsetRecv, &fdsetSend, &fdsetError, &timeout);
+        int nSelect = select(have_fds ? hSocketMax + 1 : 0,
+                             &fdsetRecv, &fdsetSend, &fdsetError, &timeout);
         vnThreadsRunning[THREAD_SOCKETHANDLER]++;
         if (fShutdown)
             return;
         if (nSelect == SOCKET_ERROR)
         {
-            int nErr = WSAGetLastError();
-            if (hSocketMax != INVALID_SOCKET)
+            if (have_fds)
             {
+            	 int nErr = WSAGetLastError();
                 printf("socket select error %d\n", nErr);
                 for (unsigned int i = 0; i <= hSocketMax; i++)
                     FD_SET(i, &fdsetRecv);
@@ -804,7 +807,7 @@ void ThreadSocketHandler2(void* parg)
 
             if (hSocket != INVALID_SOCKET)
                 if (!addr.SetSockAddr((const struct sockaddr*)&sockaddr))
-                    printf("warning: unknown socket family\n");
+                    printf("Warning: Unknown socket family\n");
 
             {
                 LOCK(cs_vNodes);
@@ -815,8 +818,9 @@ void ThreadSocketHandler2(void* parg)
 
             if (hSocket == INVALID_SOCKET)
             {
-                if (WSAGetLastError() != WSAEWOULDBLOCK)
-                    printf("socket error accept failed: %d\n", WSAGetLastError());
+                int nErr = WSAGetLastError();
+                if (nErr != WSAEWOULDBLOCK)
+                    printf("socket error accept failed: %d\n", nErr);
             }
             else if (nInbound >= GetArg("-maxconnections", 125) - MAX_OUTBOUND_CONNECTIONS)
             {
@@ -874,7 +878,7 @@ void ThreadSocketHandler2(void* parg)
 
                     if (nPos > ReceiveBufferSize()) {
                         if (!pnode->fDisconnect)
-                            printf("socket recv flood control disconnect (%d bytes)\n", vRecv.size());
+                            printf("socket recv flood control disconnect (%"PRIszu" bytes)\n", vRecv.size());
                         pnode->CloseSocketDisconnect();
                     }
                     else {
@@ -989,9 +993,6 @@ void ThreadSocketHandler2(void* parg)
 
 
 
-
-
-
 // DNS seeds
 // Each pair gives a source name and a seed name.
 // The first name is used as information source for addrman.
@@ -1004,8 +1005,6 @@ static const char *strDNSSeed[][2] = {
 
 void ThreadDNSAddressSeed(void* parg)
 {
-    IMPLEMENT_RANDOMIZE_STACK(ThreadDNSAddressSeed(parg));
-
     // Make this thread recognisable as the DNS seeding thread
     RenameThread("bitcoin-dnsseed");
 
@@ -1035,7 +1034,7 @@ void ThreadDNSAddressSeed2(void* parg)
         printf("Loading addresses from DNS seeds (could take a while)\n");
 
         for (unsigned int seed_idx = 0; seed_idx < ARRAYLEN(strDNSSeed); seed_idx++) {
-            if (GetNameProxy()) {
+            if (HaveNameProxy()) {
                 AddOneShot(strDNSSeed[seed_idx][1]);
             } else {
                 vector<CNetAddr> vaddr;
@@ -1101,8 +1100,6 @@ void ThreadDumpAddress2(void* parg)
 
 void ThreadDumpAddress(void* parg)
 {
-    IMPLEMENT_RANDOMIZE_STACK(ThreadDumpAddress(parg));
-
     // Make this thread recognisable as the address dumping thread
     RenameThread("bitcoin-adrdump");
 
@@ -1118,8 +1115,6 @@ void ThreadDumpAddress(void* parg)
 
 void ThreadOpenConnections(void* parg)
 {
-    IMPLEMENT_RANDOMIZE_STACK(ThreadOpenConnections(parg));
-
     // Make this thread recognisable as the connection opening thread
     RenameThread("bitcoin-opencon");
 
@@ -1162,7 +1157,7 @@ void ThreadOpenConnections2(void* parg)
     printf("ThreadOpenConnections started\n");
 
     // Connect to specific addresses
-    if (mapArgs.count("-connect"))
+    if (mapArgs.count("-connect") && mapMultiArgs["-connect"].size() > 0)
     {
         for (int64 nLoop = 0;; nLoop++)
         {
@@ -1178,6 +1173,7 @@ void ThreadOpenConnections2(void* parg)
                         return;
                 }
             }
+            Sleep(500);
         }
     }
 
@@ -1250,8 +1246,13 @@ void ThreadOpenConnections2(void* parg)
             // if we selected an invalid address, restart
             if (!addr.IsValid() || setConnected.count(addr.GetGroup()) || IsLocal(addr))
                 break;
-
+                
+            // If we didn't find an appropriate destination after trying 100 addresses fetched from addrman,
+            // stop this loop, and let the outer loop run again (which sleeps, adds seed nodes, recalculates
+            // already-connected network ranges, ...) before trying new addrman addresses.
             nTries++;
+            if (nTries > 100)
+                break;
 
             if (IsLimited(addr))
                 continue;
@@ -1275,8 +1276,6 @@ void ThreadOpenConnections2(void* parg)
 
 void ThreadOpenAddedConnections(void* parg)
 {
-    IMPLEMENT_RANDOMIZE_STACK(ThreadOpenAddedConnections(parg));
-
     // Make this thread recognisable as the connection opening thread
     RenameThread("bitcoin-opencon");
 
@@ -1303,7 +1302,7 @@ void ThreadOpenAddedConnections2(void* parg)
     if (mapArgs.count("-addnode") == 0)
         return;
 
-    if (GetNameProxy()) {
+    if (HaveNameProxy()) {
         while(!fShutdown) {
             BOOST_FOREACH(string& strAddNode, mapMultiArgs["-addnode"]) {
                 CAddress addr;
@@ -1408,8 +1407,6 @@ bool OpenNetworkConnection(const CAddress& addrConnect, CSemaphoreGrant *grantOu
 
 void ThreadMessageHandler(void* parg)
 {
-    IMPLEMENT_RANDOMIZE_STACK(ThreadMessageHandler(parg));
-
     // Make this thread recognisable as the message handling thread
     RenameThread("bitcoin-msghand");
 
@@ -1652,7 +1649,9 @@ void static Discover()
 
     // Don't use external IPv4 discovery, when -onlynet="IPv6"
     if (!IsLimited(NET_IPV4))
-        CreateThread(ThreadGetMyExternalIP, NULL);
+    // Don't use external IPv4 discovery, when -onlynet="IPv6"
+    if (!IsLimited(NET_IPV4))
+        NewThread(ThreadGetMyExternalIP, NULL);
 }
 
 void StartNode(void* parg)
@@ -1678,33 +1677,33 @@ void StartNode(void* parg)
     if (!GetBoolArg("-dnsseed", true))
         printf("DNS seeding disabled\n");
     else
-        if (!CreateThread(ThreadDNSAddressSeed, NULL))
-            printf("Error: CreateThread(ThreadDNSAddressSeed) failed\n");
+        if (!NewThread(ThreadDNSAddressSeed, NULL))
+            printf("Error: NewThread(ThreadDNSAddressSeed) failed\n");
 
 
     // Get addresses from IRC and advertise ours
-    if (!CreateThread(ThreadIRCSeed, NULL))
-        printf("Error: CreateThread(ThreadIRCSeed) failed\n");
+    if (!NewThread(ThreadIRCSeed, NULL))
+        printf("Error: NewThread(ThreadIRCSeed) failed\n");
 
     // Send and receive from sockets, accept connections
-    if (!CreateThread(ThreadSocketHandler, NULL))
-        printf("Error: CreateThread(ThreadSocketHandler) failed\n");
+    if (!NewThread(ThreadSocketHandler, NULL))
+        printf("Error: NewThread(ThreadSocketHandler) failed\n");
 
     // Initiate outbound connections from -addnode
-    if (!CreateThread(ThreadOpenAddedConnections, NULL))
-        printf("Error: CreateThread(ThreadOpenAddedConnections) failed\n");
+    if (!NewThread(ThreadOpenAddedConnections, NULL))
+        printf("Error: NewThread(ThreadOpenAddedConnections) failed\n");
 
     // Initiate outbound connections
-    if (!CreateThread(ThreadOpenConnections, NULL))
-        printf("Error: CreateThread(ThreadOpenConnections) failed\n");
+    if (!NewThread(ThreadOpenConnections, NULL))
+        printf("Error: NewThread(ThreadOpenConnections) failed\n");
 
     // Process messages
-    if (!CreateThread(ThreadMessageHandler, NULL))
-        printf("Error: CreateThread(ThreadMessageHandler) failed\n");
+    if (!NewThread(ThreadMessageHandler, NULL))
+        printf("Error: NewThread(ThreadMessageHandler) failed\n");
 
     // Dump network addresses
-    if (!CreateThread(ThreadDumpAddress, NULL))
-        printf("Error; CreateThread(ThreadDumpAddress) failed\n");
+    if (!NewThread(ThreadDumpAddress, NULL))
+        printf("Error; NewThread(ThreadDumpAddress) failed\n");
 
     // Generate coins in the background
     GenerateBitcoins(GetBoolArg("-gen", false), pwalletMain);

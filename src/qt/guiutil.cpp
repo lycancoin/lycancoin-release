@@ -8,7 +8,6 @@
 
 #include "util.h"
 #include "init.h"
-#include "base58.h"
 
 #include <QDateTime>
 #include <QDoubleValidator>
@@ -85,11 +84,6 @@ void setupAmountWidget(QLineEdit *widget, QWidget *parent)
 bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out)
 {
     if(uri.scheme() != QString("Lycancoin"))
-        return false;
-
-    // check if the address is valid
-    CBitcoinAddress addressFromUri(uri.path().toStdString());
-    if (!addressFromUri.IsValid())
         return false;
 
     SendCoinsRecipient rv;
@@ -464,13 +458,13 @@ void HelpMessageBox::printToConsole()
 {
     // On other operating systems, the expected action is to print the message to the console.
     QString strUsage = header + "\n" + coreOptions + "\n" + uiOptions;
-    fprintf(stderr, "%s", strUsage.toStdString().c_str());
+    fprintf(stdout, "%s", strUsage.toStdString().c_str());
 }
 
 void HelpMessageBox::showOrPrint()
 {
 #if defined(WIN32)
-        // On windows, show a message box, as there is no stderr/stdout in windowed applications
+        // On Windows, show a message box, as there is no stderr/stdout in windowed applications
         exec();
 #else
         // On other operating systems, print help text to console

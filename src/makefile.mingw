@@ -37,6 +37,7 @@ LIBS += -l kernel32 -l user32 -l gdi32 -l comdlg32 -l winspool -l winmm -l shell
 HEADERS = $(wildcard *.h)
 
 OBJS= \
+    obj/alert.o \
     obj/version.o \
     obj/checkpoints.o \
     obj/netbase.o \
@@ -53,6 +54,9 @@ OBJS= \
     obj/bitcoinrpc.o \
     obj/rpcdump.o \
     obj/rpcnet.o \
+    obj/rpcmining.o \
+    obj/rpcwallet.o \
+    obj/rpcblockchain.o \
     obj/rpcrawtransaction.o \
     obj/script.o \
     obj/scrypt.o \
@@ -72,7 +76,7 @@ obj/%.o: %.cpp $(HEADERS)
 	g++ -c $(CFLAGS) -o $@ $<
 
 lycancoin.exe: $(OBJS:obj/%=obj/%)
-	g++ $(CFLAGS) -o $@ $(LIBPATHS) $^ $(LIBS)
+	g++ $(CFLAGS) $(LDFLAGS) -o $@ $(LIBPATHS) $^ $(LIBS)
 
 TESTOBJS := $(patsubst test/%.cpp,obj-test/%.o,$(wildcard test/*.cpp))
 
@@ -80,7 +84,7 @@ obj-test/%.o: test/%.cpp $(HEADERS)
 	g++ -c $(TESTDEFS) $(CFLAGS) -o $@ $<
 
 test_lycancoin.exe: $(TESTOBJS) $(filter-out obj/init.o,$(OBJS:obj/%=obj/%))
-	g++ $(CFLAGS) -o $@ $(LIBPATHS) $^ -lboost_unit_test_framework $(LIBS)
+ 	g++ $(CFLAGS) $(LDFLAGS) -o $@ $(LIBPATHS) $^ -lboost_unit_test_framework $(LIBS)
 
 clean:
 	-del /Q lycancoin test_lycancoin

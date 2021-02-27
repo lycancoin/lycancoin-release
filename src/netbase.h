@@ -67,7 +67,7 @@ class CNetAddr
         enum Network GetNetwork() const;
         std::string ToString() const;
         std::string ToStringIP() const;
-        int GetByte(int n) const;
+        unsigned int GetByte(int n) const;
         uint64 GetHash() const;
         bool GetInAddr(struct in_addr* pipv4Addr) const;
         std::vector<unsigned char> GetGroup() const;
@@ -134,13 +134,15 @@ class CService : public CNetAddr
             )
 };
 
+typedef std::pair<CService, int> proxyType;
+
 enum Network ParseNetwork(std::string net);
 void SplitHostPort(std::string in, int &portOut, std::string &hostOut);
 bool SetProxy(enum Network net, CService addrProxy, int nSocksVersion = 5);
-bool GetProxy(enum Network net, CService &addrProxy);
+bool GetProxy(enum Network net, proxyType &proxyInfoOut);
 bool IsProxy(const CNetAddr &addr);
 bool SetNameProxy(CService addrProxy, int nSocksVersion = 5);
-bool GetNameProxy();
+bool HaveNameProxy();
 bool LookupHost(const char *pszName, std::vector<CNetAddr>& vIP, unsigned int nMaxSolutions = 0, bool fAllowLookup = true);
 bool LookupHostNumeric(const char *pszName, std::vector<CNetAddr>& vIP, unsigned int nMaxSolutions = 0);
 bool Lookup(const char *pszName, CService& addr, int portDefault = 0, bool fAllowLookup = true);

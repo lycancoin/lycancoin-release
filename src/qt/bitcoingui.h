@@ -58,7 +58,6 @@ private:
     QStackedWidget *centralWidget;
 
     OverviewPage *overviewPage;
-//    MiningPage *miningPage;
     QWidget *transactionsPage;
     AddressBookPage *addressBookPage;
     AddressBookPage *receiveCoinsPage;
@@ -66,7 +65,6 @@ private:
     SignVerifyMessageDialog *signVerifyMessageDialog;
 
     QLabel *labelEncryptionIcon;
-    QLabel *labelMiningIcon;
     QLabel *labelConnectionsIcon;
     QLabel *labelBlocksIcon;
     QLabel *progressBarLabel;
@@ -74,13 +72,11 @@ private:
 
     QMenuBar *appMenuBar;
     QAction *overviewAction;
-    QAction *miningAction;
     QAction *historyAction;
     QAction *quitAction;
     QAction *sendCoinsAction;
     QAction *addressBookAction;
     QAction *signMessageAction;
-    QAction *firstClassMessagingAction;
     QAction *verifyMessageAction;
     QAction *aboutAction;
     QAction *receiveCoinsAction;
@@ -113,9 +109,7 @@ public slots:
     /** Set number of connections shown in the UI */
     void setNumConnections(int count);
     /** Set number of blocks shown in the UI */
-    void setNumBlocks(int count, int countOfPeers);
-    /** Set mining status and hashrate in the UI */
-    void setMining(bool mining, int hashrate);
+    void setNumBlocks(int count, int nTotalBlocks);
     /** Set the encryption status as shown in the UI.
        @param[in] status            current encryption status
        @see WalletModel::EncryptionStatus
@@ -158,7 +152,7 @@ private slots:
     void optionsClicked();
     /** Show about dialog */
     void aboutClicked();
-#ifndef Q_WS_MAC
+#ifndef Q_OS_MAC
     /** Handle tray icon clicked */
     void trayIconActivated(QSystemTrayIcon::ActivationReason reason);
 #endif

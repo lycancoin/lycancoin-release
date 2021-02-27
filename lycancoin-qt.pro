@@ -6,6 +6,7 @@ QT += core gui network
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 DEFINES += QT_GUI BOOST_THREAD_USE_LIB BOOST_SPIRIT_THREADSAFE BOOST_THREAD_PROVIDES_GENERIC_SHARED_MUTEX_ON_WIN __NO_SYSTEM_INCLUDES
 CONFIG += no_include_pwd
+CONFIG += thread
 
 # UNCOMMENT THIS SECTION TO BUILD ON WINDOWS
 # Change paths if needed, these use the lyccoin/deps.git repository locations
@@ -40,6 +41,18 @@ contains(RELEASE, 1) {
     }
 }
 
+!win32 {
+# for extra security against potential buffer overflows: enable GCCs Stack Smashing Protection
+QMAKE_CXXFLAGS *= -fstack-protector-all --param ssp-buffer-size=1
+QMAKE_LFLAGS *= -fstack-protector-all --param ssp-buffer-size=1
+# We need to exclude this for Windows cross compile with MinGW 4.2.x, as it will result in a non-working executable!
+# This can be enabled for Windows, when we switch to MinGW >= 4.4.x.
+}
+
+# for extra security on Windows: enable ASLR and DEP via GCC linker flags
+win32:QMAKE_LFLAGS *= -Wl,--dynamicbase -Wl,--nxcompat
+
+
 # qmake "USE_UPNP=-" (not supported)
 contains(USE_UPNP, -) {
     message(Building without UPNP support)
@@ -60,23 +73,11 @@ contains(USE_DBUS, 1) {
     QT += dbus
 }
 
-# use: qmake "FIRST_CLASS_MESSAGING=1"
-contains(FIRST_CLASS_MESSAGING, 1) {
-    message(Building with first-class messaging)
-    DEFINES += FIRST_CLASS_MESSAGING
-}
-
 contains(BITCOIN_NEED_QT_PLUGINS, 1) {
     DEFINES += BITCOIN_NEED_QT_PLUGINS
     QTPLUGIN += qcncodecs qjpcodecs qtwcodecs qkrcodecs qtaccessiblewidgets
 }
 
-!windows {
-    # for extra security against potential buffer overflows
-    QMAKE_CXXFLAGS += -fstack-protector
-    QMAKE_LFLAGS += -fstack-protector
-    # do not enable this on windows, as it will result in a non-working executable!
-}
 
 # regenerate src/build.h
 !windows|contains(USE_BUILD_INFO, 1) {
@@ -88,7 +89,7 @@ contains(BITCOIN_NEED_QT_PLUGINS, 1) {
     DEFINES += HAVE_BUILD_INFO
 }
 
-QMAKE_CXXFLAGS_WARN_ON = -fdiagnostics-show-option -Wall -Wextra -Wformat -Wformat-security -Wno-unused-parameter
+QMAKE_CXXFLAGS_WARN_ON = -fdiagnostics-show-option -Wall -Wextra -Wformat -Wformat-security -Wno-unused-parameter -Wstack-protector
 
 # Input
 DEPENDPATH += src src/json src/qt
@@ -102,6 +103,7 @@ HEADERS += src/qt/bitcoingui.h \
     src/qt/aboutdialog.h \
     src/qt/editaddressdialog.h \
     src/qt/bitcoinaddressvalidator.h \
+    src/alert.h \
     src/addrman.h \
     src/base58.h \
     src/bignum.h \
@@ -160,9 +162,11 @@ HEADERS += src/qt/bitcoingui.h \
     src/ui_interface.h \
     src/scrypt.h \
     src/version.h \
+    src/netbase.h \
     src/qt/rpcconsole.h \
     src/qt/verifymessagedialog.h \
-    src/qt/macnotificationhandler.h
+    src/qt/macnotificationhandler.h\
+	 src/clientversion.h
 
 SOURCES += src/qt/bitcoin.cpp src/qt/bitcoingui.cpp \
     src/qt/transactiontablemodel.cpp \
@@ -174,6 +178,7 @@ SOURCES += src/qt/bitcoin.cpp src/qt/bitcoingui.cpp \
     src/qt/aboutdialog.cpp \
     src/qt/editaddressdialog.cpp \
     src/qt/bitcoinaddressvalidator.cpp \
+    src/alert.cpp \
     src/version.cpp \
     src/sync.cpp \
     src/util.cpp \
@@ -188,9 +193,6 @@ SOURCES += src/qt/bitcoin.cpp src/qt/bitcoingui.cpp \
     src/addrman.cpp \
     src/db.cpp \
     src/walletdb.cpp \
-    src/json/json_spirit_writer.cpp \
-    src/json/json_spirit_value.cpp \
-    src/json/json_spirit_reader.cpp \
     src/qt/clientmodel.cpp \
     src/qt/guiutil.cpp \
     src/qt/transactionrecord.cpp \
@@ -208,6 +210,9 @@ SOURCES += src/qt/bitcoin.cpp src/qt/bitcoingui.cpp \
     src/bitcoinrpc.cpp \
     src/rpcdump.cpp \
     src/rpcnet.cpp \
+    src/rpcmining.cpp \
+    src/rpcwallet.cpp \
+    src/rpcblockchain.cpp \
     src/rpcrawtransaction.cpp \
     src/qt/overviewpage.cpp \
     src/qt/csvmodelwriter.cpp \
@@ -281,7 +286,7 @@ QMAKE_EXTRA_COMPILERS += TSQM
 # "Other files" to show in Qt Creator
 OTHER_FILES += \
     doc/*.md \
-    contrib/gitian-descriptors/* doc/*.rst doc/*.txt doc/README README.md res/bitcoin-qt.rc \
+    contrib/gitian-descriptors/* doc/*.rst doc/*.txt doc/README README.md res/bitcoin-qt.rc src/test/*.cpp src/test/*.h src/qt/test/*.cpp src/qt/test/*.h
     share/setup.nsi
 
 # platform specific defaults, if not overridden on command line
@@ -329,7 +334,7 @@ windows:!contains(MINGW_THREAD_BUGFIX, 0) {
     QMAKE_LIBS_QT_ENTRY = -lmingwthrd $$QMAKE_LIBS_QT_ENTRY
 }
 
-!windows:!mac {
+!windows:!macx {
     DEFINES += LINUX
     LIBS += -lrt
 }
@@ -340,6 +345,9 @@ macx:LIBS += -framework Foundation -framework ApplicationServices -framework App
 macx:DEFINES += MAC_OSX MSG_NOSIGNAL=0
 macx:ICON = src/qt/res/icons/bitcoin.icns
 macx:TARGET = "Lycancoin-qt"
+macx:QMAKE_CFLAGS_THREAD += -pthread
+macx:QMAKE_LFLAGS_THREAD += -pthread
+macx:QMAKE_CXXFLAGS_THREAD += -pthread
 
 # Set libraries and includes at end, to use platform-defined defaults if not overridden
 INCLUDEPATH += $$BOOST_INCLUDE_PATH $$BDB_INCLUDE_PATH $$OPENSSL_INCLUDE_PATH $$QRENCODE_INCLUDE_PATH
