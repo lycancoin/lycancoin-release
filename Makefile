@@ -597,88 +597,88 @@ compiler_rcc_make_all: qrc_bitcoin.cpp
 compiler_rcc_clean:
 	-$(DEL_FILE) qrc_bitcoin.cpp
 qrc_bitcoin.cpp: src/qt/bitcoin.qrc \
-		src/qt/res/movies/update_spinner.mng \
-		src/qt/res/images/about.png \
-		src/qt/res/images/splash2.jpg \
-		src/qt/res/images/lycancoin.png \
-		src/qt/locale/bitcoin_cs.qm \
-		src/qt/locale/bitcoin_es_CL.qm \
-		src/qt/locale/bitcoin_fa.qm \
-		src/qt/locale/bitcoin_nl.qm \
-		src/qt/locale/bitcoin_it.qm \
-		src/qt/locale/bitcoin_hr.qm \
-		src/qt/locale/bitcoin_sk.qm \
-		src/qt/locale/bitcoin_eu_ES.qm \
-		src/qt/locale/bitcoin_tr.qm \
-		src/qt/locale/bitcoin_fi.qm \
-		src/qt/locale/bitcoin_hu.qm \
-		src/qt/locale/bitcoin_fa_IR.qm \
-		src/qt/locale/bitcoin_da.qm \
-		src/qt/locale/bitcoin_zh_TW.qm \
-		src/qt/locale/bitcoin_ro_RO.qm \
 		src/qt/locale/bitcoin_sr.qm \
-		src/qt/locale/bitcoin_el_GR.qm \
 		src/qt/locale/bitcoin_de.qm \
 		src/qt/locale/bitcoin_fr.qm \
 		src/qt/locale/bitcoin_sv.qm \
 		src/qt/locale/bitcoin_en.qm \
 		src/qt/locale/bitcoin_lt.qm \
-		src/qt/locale/bitcoin_fr_CA.qm \
-		src/qt/locale/bitcoin_pt_PT.qm \
+		src/qt/locale/bitcoin_pt_BR.qm \
 		src/qt/locale/bitcoin_ru.qm \
+		src/qt/locale/bitcoin_zh_CN.qm \
 		src/qt/locale/bitcoin_es.qm \
+		src/qt/locale/bitcoin_ca_ES.qm \
 		src/qt/locale/bitcoin_et.qm \
 		src/qt/locale/bitcoin_pl.qm \
 		src/qt/locale/bitcoin_nb.qm \
+		src/qt/locale/bitcoin_es_CL.qm \
 		src/qt/locale/bitcoin_he.qm \
-		src/qt/locale/bitcoin_pt_BR.qm \
 		src/qt/locale/bitcoin_bg.qm \
 		src/qt/locale/bitcoin_uk.qm \
-		src/qt/locale/bitcoin_zh_CN.qm \
-		src/qt/locale/bitcoin_ca_ES.qm \
-		src/qt/res/icons/tx_output.png \
-		src/qt/res/icons/toolbar_testnet.png \
-		src/qt/res/icons/address-book.png \
-		src/qt/res/icons/edit.png \
-		src/qt/res/icons/editcopy.png \
-		src/qt/res/icons/remove.png \
-		src/qt/res/icons/debugwindow.png \
-		src/qt/res/icons/mining_inactive.png \
-		src/qt/res/icons/editpaste.png \
-		src/qt/res/icons/transaction2.png \
-		src/qt/res/icons/transaction0.png \
-		src/qt/res/icons/tx_inout.png \
-		src/qt/res/icons/clock1.png \
-		src/qt/res/icons/qrcode.png \
-		src/qt/res/icons/clock2.png \
-		src/qt/res/icons/configure.png \
-		src/qt/res/icons/clock3.png \
-		src/qt/res/icons/clock4.png \
-		src/qt/res/icons/clock5.png \
+		src/qt/locale/bitcoin_eu_ES.qm \
+		src/qt/locale/bitcoin_cs.qm \
+		src/qt/locale/bitcoin_fa.qm \
+		src/qt/locale/bitcoin_nl.qm \
+		src/qt/locale/bitcoin_it.qm \
+		src/qt/locale/bitcoin_fa_IR.qm \
+		src/qt/locale/bitcoin_zh_TW.qm \
+		src/qt/locale/bitcoin_ro_RO.qm \
+		src/qt/locale/bitcoin_el_GR.qm \
+		src/qt/locale/bitcoin_hr.qm \
+		src/qt/locale/bitcoin_sk.qm \
+		src/qt/locale/bitcoin_tr.qm \
+		src/qt/locale/bitcoin_fi.qm \
+		src/qt/locale/bitcoin_hu.qm \
+		src/qt/locale/bitcoin_da.qm \
+		src/qt/locale/bitcoin_fr_CA.qm \
+		src/qt/locale/bitcoin_pt_PT.qm \
+		src/qt/res/movies/update_spinner.mng \
+		src/qt/res/images/splash2.jpg \
+		src/qt/res/images/about.png \
+		src/qt/res/images/lycancoin.png \
 		src/qt/res/icons/bitcoin.png \
-		src/qt/res/icons/bitcoin_testnet.png \
 		src/qt/res/icons/synced.png \
-		src/qt/res/icons/filesave.png \
+		src/qt/res/icons/add.png \
 		src/qt/res/icons/send.png \
+		src/qt/res/icons/editpaste.png \
 		src/qt/res/icons/export.png \
-		src/qt/res/icons/connect0_16.png \
-		src/qt/res/icons/tx_input.png \
-		src/qt/res/icons/connect1_16.png \
-		src/qt/res/icons/connect2_16.png \
-		src/qt/res/icons/connect3_16.png \
+		src/qt/res/icons/editcopy.png \
 		src/qt/res/icons/overview.png \
 		src/qt/res/icons/quit.png \
-		src/qt/res/icons/connect4_16.png \
-		src/qt/res/icons/tx_mined.png \
-		src/qt/res/icons/add.png \
+		src/qt/res/icons/address-book.png \
 		src/qt/res/icons/lock_closed.png \
-		src/qt/res/icons/receive.png \
-		src/qt/res/icons/lock_open.png \
-		src/qt/res/icons/mining.png \
+		src/qt/res/icons/transaction2.png \
 		src/qt/res/icons/key.png \
+		src/qt/res/icons/tx_inout.png \
+		src/qt/res/icons/configure.png \
+		src/qt/res/icons/mining.png \
+		src/qt/res/icons/transaction0.png \
+		src/qt/res/icons/clock1.png \
+		src/qt/res/icons/clock2.png \
 		src/qt/res/icons/history.png \
+		src/qt/res/icons/clock3.png \
+		src/qt/res/icons/clock4.png \
+		src/qt/res/icons/connect0_16.png \
+		src/qt/res/icons/clock5.png \
+		src/qt/res/icons/connect1_16.png \
+		src/qt/res/icons/toolbar_testnet.png \
+		src/qt/res/icons/connect2_16.png \
+		src/qt/res/icons/connect3_16.png \
+		src/qt/res/icons/connect4_16.png \
+		src/qt/res/icons/receive.png \
+		src/qt/res/icons/toolbar.png \
 		src/qt/res/icons/mining_active.png \
-		src/qt/res/icons/toolbar.png
+		src/qt/res/icons/mining_inactive.png \
+		src/qt/res/icons/tx_input.png \
+		src/qt/res/icons/tx_mined.png \
+		src/qt/res/icons/edit.png \
+		src/qt/res/icons/lock_open.png \
+		src/qt/res/icons/remove.png \
+		src/qt/res/icons/debugwindow.png \
+		src/qt/res/icons/bitcoin_testnet.png \
+		src/qt/res/icons/qrcode.png \
+		src/qt/res/icons/tx_output.png \
+		src/qt/res/icons/filesave.png
 	/usr/lib/x86_64-linux-gnu/qt5/bin/rcc -name bitcoin src/qt/bitcoin.qrc -o qrc_bitcoin.cpp
 
 compiler_moc_header_make_all: build/moc_bitcoingui.cpp build/moc_transactiontablemodel.cpp build/moc_addresstablemodel.cpp build/moc_optionsdialog.cpp build/moc_sendcoinsdialog.cpp build/moc_addressbookpage.cpp build/moc_signverifymessagedialog.cpp build/moc_aboutdialog.cpp build/moc_editaddressdialog.cpp build/moc_bitcoinaddressvalidator.cpp build/moc_clientmodel.cpp build/moc_guiutil.cpp build/moc_optionsmodel.cpp build/moc_monitoreddatamapper.cpp build/moc_transactiondesc.cpp build/moc_transactiondescdialog.cpp build/moc_bitcoinamountfield.cpp build/moc_transactionfilterproxy.cpp build/moc_transactionview.cpp build/moc_walletmodel.cpp build/moc_overviewpage.cpp build/moc_csvmodelwriter.cpp build/moc_sendcoinsentry.cpp build/moc_qvalidatedlineedit.cpp build/moc_bitcoinunits.cpp build/moc_qvaluecombobox.cpp build/moc_askpassphrasedialog.cpp build/moc_notificator.cpp build/moc_rpcconsole.cpp build/moc_verifymessagedialog.cpp build/moc_macnotificationhandler.cpp
