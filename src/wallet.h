@@ -17,11 +17,11 @@
 #include "script.h"
 #include "ui_interface.h"
 #include "util.h"
+#include "walletdb.h"
 
 class CAccountingEntry;
 class CWalletTx;
 class CReserveKey;
-class CWalletDB;
 class COutput;
 
 /** (client) version numbers for particular wallet features */
@@ -259,7 +259,7 @@ public:
     }
     void SetBestChain(const CBlockLocator& loc);
 
-    int LoadWallet(bool& fFirstRunRet);
+    DBErrors LoadWallet(bool& fFirstRunRet);
 
     bool SetAddressBookName(const CTxDestination& address, const std::string& strName);
 

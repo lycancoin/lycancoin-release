@@ -193,7 +193,7 @@ void OptionsDialog::on_cancelButton_clicked()
 void OptionsDialog::on_applyButton_clicked()
 {
     mapper->submit();
-    ui->applyButton->setEnabled(false);
+    disableApplyButton();
 }
 
 void OptionsDialog::showRestartWarning_Proxy()
