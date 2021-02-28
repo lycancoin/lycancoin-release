@@ -13,7 +13,6 @@ src/build.h
 
 # Compilation and Qt preprocessor part
 *.qm
-Makefile
 lycancoin-qt
 
 # Resources cpp
