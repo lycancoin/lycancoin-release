@@ -1,8 +1,8 @@
 * update translations (ping tcatm on IRC for now)
 
 * update (commit) version in sources
-  bitcoin-qt.pro
-  src/version.h
+  lycancoin-qt.pro
+  src/clientversion.h (change CLIENT_VERSION_IS_RELEASE to true)
   share/setup.nsi
   doc/README*
 

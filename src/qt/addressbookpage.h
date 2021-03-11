@@ -54,7 +54,7 @@ private:
     QString returnValue;
     QSortFilterProxyModel *proxyModel;
     QMenu *contextMenu;
-    QAction *deleteAction;
+    QAction *deleteAction; // to be able to explicitly disable it
     QString newAddressToSelect;
 
 private slots:
@@ -64,22 +64,24 @@ private slots:
     void on_copyToClipboard_clicked();
     void on_signMessage_clicked();
     void on_verifyMessage_clicked();
-    void selectionChanged();
+    /** Generate a QR Code from the currently selected address */
     void on_showQRCode_clicked();
+     /** Copy label of currently selected address entry to clipboard (no button) */
+    void onCopyLabelAction();
+    /** Edit currently selected address entry (no button) */
+    void onEditAction();
+    
+    /** Set button states based on selected tab and selection */
+    void selectionChanged();
     /** Spawn contextual menu (right mouse menu) for address book entry */
     void contextualMenu(const QPoint &point);
 
-    /** Copy label of currently selected address entry to clipboard */
-    void onCopyLabelAction();
-    /** Edit currently selected address entry */
-    void onEditAction();
-
     /** New entry/entries were added to address table */
-    void selectNewAddress(const QModelIndex &parent, int begin, int end);
+    void selectNewAddress(const QModelIndex &parent, int begin, int /*end*/);
 
 signals:
     void signMessage(QString addr);
     void verifyMessage(QString addr);
 };
 
-#endif // ADDRESSBOOKDIALOG_H
+#endif // ADDRESSBOOKPAGE_H

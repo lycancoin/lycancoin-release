@@ -12,12 +12,12 @@ MAKEFILE      = Makefile
 
 CC            = gcc
 CXX           = g++
-DEFINES       = -DQT_GUI -DBOOST_THREAD_USE_LIB -DBOOST_SPIRIT_THREADSAFE -DBOOST_THREAD_PROVIDES_GENERIC_SHARED_MUTEX_ON_WIN -D__NO_SYSTEM_INCLUDES -DUSE_LEVELDB -DHAVE_BUILD_INFO -DLINUX -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_NETWORK_LIB -DQT_GUI_LIB -DQT_CORE_LIB
+DEFINES       = -DQT_GUI -DBOOST_THREAD_USE_LIB -DBOOST_SPIRIT_THREADSAFE -DBOOST_THREAD_PROVIDES_GENERIC_SHARED_MUTEX_ON_WIN -D__NO_SYSTEM_INCLUDES -DHAVE_BUILD_INFO -DLINUX -D_FILE_OFFSET_BITS=64 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_NETWORK_LIB -DQT_GUI_LIB -DQT_CORE_LIB
 CFLAGS        = -m64 -pipe -O2 -D_REENTRANT -Wall -W -fPIE $(DEFINES)
-CXXFLAGS      = -m64 -pipe -fstack-protector-all --param ssp-buffer-size=1 -O2 -D_REENTRANT -fdiagnostics-show-option -Wall -Wextra -Wformat -Wformat-security -Wno-unused-parameter -Wstack-protector -fPIE $(DEFINES)
+CXXFLAGS      = -m64 -pipe -fstack-protector-all -D_FORTIFY_SOURCE=2 -Wl,-z,relro -Wl,-z,now -O2 -D_REENTRANT -fdiagnostics-show-option -Wall -Wextra -Wformat -Wformat-security -Wno-unused-parameter -Wstack-protector -fPIE $(DEFINES)
 INCPATH       = -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64 -Isrc -Isrc/json -Isrc/qt -Isrc/leveldb/include -Isrc/leveldb/helpers -I/usr/include/qt5 -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtCore -Ibuild -Ibuild
 LINK          = g++
-LFLAGS        = -m64 -fstack-protector-all --param ssp-buffer-size=1 -Wl,-O1
+LFLAGS        = -m64 -fstack-protector-all -Wl,-O1
 LIBS          = $(SUBLIBS) -L/usr/X11R6/lib64 /home/lycan/lycancoin-release/src/leveldb/libleveldb.a /home/lycan/lycancoin-release/src/leveldb/libmemenv.a -lrt -lssl -lcrypto -ldb_cxx -lboost_system -lboost_filesystem -lboost_program_options -lboost_thread -lQt5Widgets -L/usr/lib/x86_64-linux-gnu -lQt5Network -lQt5Gui -lQt5Core -lpthread -lGL 
 AR            = ar cqs
 RANLIB        = 
@@ -45,8 +45,7 @@ OBJECTS_DIR   = build/
 
 ####### Files
 
-SOURCES       = src/leveldb.cpp \
-		src/qt/bitcoin.cpp \
+SOURCES       = src/qt/bitcoin.cpp \
 		src/qt/bitcoingui.cpp \
 		src/qt/transactiontablemodel.cpp \
 		src/qt/addresstablemodel.cpp \
@@ -61,6 +60,7 @@ SOURCES       = src/leveldb.cpp \
 		src/version.cpp \
 		src/sync.cpp \
 		src/util.cpp \
+		src/hash.cpp \
 		src/netbase.cpp \
 		src/key.cpp \
 		src/script.cpp \
@@ -68,6 +68,7 @@ SOURCES       = src/leveldb.cpp \
 		src/init.cpp \
 		src/net.cpp \
 		src/irc.cpp \
+		src/bloom.cpp \
 		src/checkpoints.cpp \
 		src/addrman.cpp \
 		src/db.cpp \
@@ -107,7 +108,9 @@ SOURCES       = src/leveldb.cpp \
 		src/qt/rpcconsole.cpp \
 		src/qt/verifymessagedialog.cpp \
 		src/scrypt.c \
-		src/noui.cpp qrc_bitcoin.cpp \
+		src/noui.cpp \
+		src/leveldb.cpp \
+		src/txdb.cpp qrc_bitcoin.cpp \
 		build/moc_bitcoingui.cpp \
 		build/moc_transactiontablemodel.cpp \
 		build/moc_addresstablemodel.cpp \
@@ -139,8 +142,7 @@ SOURCES       = src/leveldb.cpp \
 		build/moc_rpcconsole.cpp \
 		build/moc_verifymessagedialog.cpp \
 		build/moc_macnotificationhandler.cpp
-OBJECTS       = build/leveldb.o \
-		build/bitcoin.o \
+OBJECTS       = build/bitcoin.o \
 		build/bitcoingui.o \
 		build/transactiontablemodel.o \
 		build/addresstablemodel.o \
@@ -155,6 +157,7 @@ OBJECTS       = build/leveldb.o \
 		build/version.o \
 		build/sync.o \
 		build/util.o \
+		build/hash.o \
 		build/netbase.o \
 		build/key.o \
 		build/script.o \
@@ -162,6 +165,7 @@ OBJECTS       = build/leveldb.o \
 		build/init.o \
 		build/net.o \
 		build/irc.o \
+		build/bloom.o \
 		build/checkpoints.o \
 		build/addrman.o \
 		build/db.o \
@@ -202,6 +206,8 @@ OBJECTS       = build/leveldb.o \
 		build/verifymessagedialog.o \
 		build/scrypt.o \
 		build/noui.o \
+		build/leveldb.o \
+		build/txdb.o \
 		build/qrc_bitcoin.o \
 		build/moc_bitcoingui.o \
 		build/moc_transactiontablemodel.o \
@@ -462,8 +468,8 @@ qmake: FORCE
 qmake_all: FORCE
 
 dist: 
-	@test -d build/lycancoin-qt1.1.7 || mkdir -p build/lycancoin-qt1.1.7
-	$(COPY_FILE) --parents $(SOURCES) $(DIST) build/lycancoin-qt1.1.7/ && $(COPY_FILE) --parents src/qt/locale/bitcoin_bg.ts src/qt/locale/bitcoin_ca_ES.ts src/qt/locale/bitcoin_cs.ts src/qt/locale/bitcoin_da.ts src/qt/locale/bitcoin_de.ts src/qt/locale/bitcoin_el_GR.ts src/qt/locale/bitcoin_en.ts src/qt/locale/bitcoin_es.ts src/qt/locale/bitcoin_es_CL.ts src/qt/locale/bitcoin_et.ts src/qt/locale/bitcoin_eu_ES.ts src/qt/locale/bitcoin_fa.ts src/qt/locale/bitcoin_fa_IR.ts src/qt/locale/bitcoin_fi.ts src/qt/locale/bitcoin_fr.ts src/qt/locale/bitcoin_fr_CA.ts src/qt/locale/bitcoin_he.ts src/qt/locale/bitcoin_hr.ts src/qt/locale/bitcoin_hu.ts src/qt/locale/bitcoin_it.ts src/qt/locale/bitcoin_lt.ts src/qt/locale/bitcoin_nb.ts src/qt/locale/bitcoin_nl.ts src/qt/locale/bitcoin_pl.ts src/qt/locale/bitcoin_pt_BR.ts src/qt/locale/bitcoin_pt_PT.ts src/qt/locale/bitcoin_ro_RO.ts src/qt/locale/bitcoin_ru.ts src/qt/locale/bitcoin_sk.ts src/qt/locale/bitcoin_sr.ts src/qt/locale/bitcoin_sv.ts src/qt/locale/bitcoin_tr.ts src/qt/locale/bitcoin_uk.ts src/qt/locale/bitcoin_zh_CN.ts src/qt/locale/bitcoin_zh_TW.ts build/lycancoin-qt1.1.7/ && $(COPY_FILE) --parents src/qt/bitcoin.qrc build/lycancoin-qt1.1.7/ && $(COPY_FILE) --parents src/qt/bitcoingui.h src/qt/transactiontablemodel.h src/qt/addresstablemodel.h src/qt/optionsdialog.h src/qt/sendcoinsdialog.h src/qt/addressbookpage.h src/qt/signverifymessagedialog.h src/qt/aboutdialog.h src/qt/editaddressdialog.h src/qt/bitcoinaddressvalidator.h src/alert.h src/addrman.h src/base58.h src/bignum.h src/checkpoints.h src/compat.h src/sync.h src/util.h src/uint256.h src/serialize.h src/main.h src/net.h src/key.h src/db.h src/walletdb.h src/script.h src/init.h src/irc.h src/mruset.h src/json/json_spirit_writer_template.h src/json/json_spirit_writer.h src/json/json_spirit_value.h src/json/json_spirit_utils.h src/json/json_spirit_stream_reader.h src/json/json_spirit_reader_template.h src/json/json_spirit_reader.h src/json/json_spirit_error_position.h src/json/json_spirit.h src/qt/clientmodel.h src/qt/guiutil.h src/qt/transactionrecord.h src/qt/guiconstants.h src/qt/optionsmodel.h src/qt/monitoreddatamapper.h src/qt/transactiondesc.h src/qt/transactiondescdialog.h src/qt/bitcoinamountfield.h src/wallet.h src/keystore.h src/qt/transactionfilterproxy.h src/qt/transactionview.h src/qt/walletmodel.h src/bitcoinrpc.h src/qt/overviewpage.h src/qt/csvmodelwriter.h src/crypter.h src/qt/sendcoinsentry.h src/qt/qvalidatedlineedit.h src/qt/bitcoinunits.h src/qt/qvaluecombobox.h src/qt/askpassphrasedialog.h src/protocol.h src/qt/notificator.h src/qt/qtipcserver.h src/allocators.h src/ui_interface.h src/scrypt.h src/version.h src/netbase.h src/qt/rpcconsole.h src/qt/verifymessagedialog.h src/qt/macnotificationhandler.h src/clientversion.h build/lycancoin-qt1.1.7/ && $(COPY_FILE) --parents src/leveldb.cpp src/qt/bitcoin.cpp src/qt/bitcoingui.cpp src/qt/transactiontablemodel.cpp src/qt/addresstablemodel.cpp src/qt/optionsdialog.cpp src/qt/sendcoinsdialog.cpp src/qt/addressbookpage.cpp src/qt/signverifymessagedialog.cpp src/qt/aboutdialog.cpp src/qt/editaddressdialog.cpp src/qt/bitcoinaddressvalidator.cpp src/alert.cpp src/version.cpp src/sync.cpp src/util.cpp src/netbase.cpp src/key.cpp src/script.cpp src/main.cpp src/init.cpp src/net.cpp src/irc.cpp src/checkpoints.cpp src/addrman.cpp src/db.cpp src/walletdb.cpp src/qt/clientmodel.cpp src/qt/guiutil.cpp src/qt/transactionrecord.cpp src/qt/optionsmodel.cpp src/qt/monitoreddatamapper.cpp src/qt/transactiondesc.cpp src/qt/transactiondescdialog.cpp src/qt/bitcoinstrings.cpp src/qt/bitcoinamountfield.cpp src/wallet.cpp src/keystore.cpp src/qt/transactionfilterproxy.cpp src/qt/transactionview.cpp src/qt/walletmodel.cpp src/bitcoinrpc.cpp src/rpcdump.cpp src/rpcnet.cpp src/rpcmining.cpp src/rpcwallet.cpp src/rpcblockchain.cpp src/rpcrawtransaction.cpp src/qt/overviewpage.cpp src/qt/csvmodelwriter.cpp src/crypter.cpp src/qt/sendcoinsentry.cpp src/qt/qvalidatedlineedit.cpp src/qt/bitcoinunits.cpp src/qt/qvaluecombobox.cpp src/qt/askpassphrasedialog.cpp src/protocol.cpp src/qt/notificator.cpp src/qt/qtipcserver.cpp src/qt/rpcconsole.cpp src/qt/verifymessagedialog.cpp src/scrypt.c src/noui.cpp build/lycancoin-qt1.1.7/ && $(COPY_FILE) --parents src/qt/forms/sendcoinsdialog.ui src/qt/forms/addressbookpage.ui src/qt/forms/signverifymessagedialog.ui src/qt/forms/aboutdialog.ui src/qt/forms/editaddressdialog.ui src/qt/forms/transactiondescdialog.ui src/qt/forms/overviewpage.ui src/qt/forms/sendcoinsentry.ui src/qt/forms/askpassphrasedialog.ui src/qt/forms/rpcconsole.ui src/qt/forms/verifymessagedialog.ui src/qt/forms/optionsdialog.ui build/lycancoin-qt1.1.7/ && $(COPY_FILE) --parents src/qt/locale/bitcoin_bg.ts src/qt/locale/bitcoin_ca_ES.ts src/qt/locale/bitcoin_cs.ts src/qt/locale/bitcoin_da.ts src/qt/locale/bitcoin_de.ts src/qt/locale/bitcoin_el_GR.ts src/qt/locale/bitcoin_en.ts src/qt/locale/bitcoin_es.ts src/qt/locale/bitcoin_es_CL.ts src/qt/locale/bitcoin_et.ts src/qt/locale/bitcoin_eu_ES.ts src/qt/locale/bitcoin_fa.ts src/qt/locale/bitcoin_fa_IR.ts src/qt/locale/bitcoin_fi.ts src/qt/locale/bitcoin_fr.ts src/qt/locale/bitcoin_fr_CA.ts src/qt/locale/bitcoin_he.ts src/qt/locale/bitcoin_hr.ts src/qt/locale/bitcoin_hu.ts src/qt/locale/bitcoin_it.ts src/qt/locale/bitcoin_lt.ts src/qt/locale/bitcoin_nb.ts src/qt/locale/bitcoin_nl.ts src/qt/locale/bitcoin_pl.ts src/qt/locale/bitcoin_pt_BR.ts src/qt/locale/bitcoin_pt_PT.ts src/qt/locale/bitcoin_ro_RO.ts src/qt/locale/bitcoin_ru.ts src/qt/locale/bitcoin_sk.ts src/qt/locale/bitcoin_sr.ts src/qt/locale/bitcoin_sv.ts src/qt/locale/bitcoin_tr.ts src/qt/locale/bitcoin_uk.ts src/qt/locale/bitcoin_zh_CN.ts src/qt/locale/bitcoin_zh_TW.ts build/lycancoin-qt1.1.7/ && (cd `dirname build/lycancoin-qt1.1.7` && $(TAR) lycancoin-qt1.1.7.tar lycancoin-qt1.1.7 && $(COMPRESS) lycancoin-qt1.1.7.tar) && $(MOVE) `dirname build/lycancoin-qt1.1.7`/lycancoin-qt1.1.7.tar.gz . && $(DEL_FILE) -r build/lycancoin-qt1.1.7
+	@test -d build/lycancoin-qt1.2.0 || mkdir -p build/lycancoin-qt1.2.0
+	$(COPY_FILE) --parents $(SOURCES) $(DIST) build/lycancoin-qt1.2.0/ && $(COPY_FILE) --parents src/qt/locale/bitcoin_bg.ts src/qt/locale/bitcoin_ca_ES.ts src/qt/locale/bitcoin_cs.ts src/qt/locale/bitcoin_da.ts src/qt/locale/bitcoin_de.ts src/qt/locale/bitcoin_el_GR.ts src/qt/locale/bitcoin_en.ts src/qt/locale/bitcoin_es.ts src/qt/locale/bitcoin_es_CL.ts src/qt/locale/bitcoin_et.ts src/qt/locale/bitcoin_eu_ES.ts src/qt/locale/bitcoin_fa.ts src/qt/locale/bitcoin_fa_IR.ts src/qt/locale/bitcoin_fi.ts src/qt/locale/bitcoin_fr.ts src/qt/locale/bitcoin_fr_CA.ts src/qt/locale/bitcoin_he.ts src/qt/locale/bitcoin_hr.ts src/qt/locale/bitcoin_hu.ts src/qt/locale/bitcoin_it.ts src/qt/locale/bitcoin_lt.ts src/qt/locale/bitcoin_nb.ts src/qt/locale/bitcoin_nl.ts src/qt/locale/bitcoin_pl.ts src/qt/locale/bitcoin_pt_BR.ts src/qt/locale/bitcoin_pt_PT.ts src/qt/locale/bitcoin_ro_RO.ts src/qt/locale/bitcoin_ru.ts src/qt/locale/bitcoin_sk.ts src/qt/locale/bitcoin_sr.ts src/qt/locale/bitcoin_sv.ts src/qt/locale/bitcoin_tr.ts src/qt/locale/bitcoin_uk.ts src/qt/locale/bitcoin_zh_CN.ts src/qt/locale/bitcoin_zh_TW.ts build/lycancoin-qt1.2.0/ && $(COPY_FILE) --parents src/qt/bitcoin.qrc build/lycancoin-qt1.2.0/ && $(COPY_FILE) --parents src/qt/bitcoingui.h src/qt/transactiontablemodel.h src/qt/addresstablemodel.h src/qt/optionsdialog.h src/qt/sendcoinsdialog.h src/qt/addressbookpage.h src/qt/signverifymessagedialog.h src/qt/aboutdialog.h src/qt/editaddressdialog.h src/qt/bitcoinaddressvalidator.h src/alert.h src/addrman.h src/base58.h src/bignum.h src/checkpoints.h src/compat.h src/sync.h src/util.h src/hash.h src/uint256.h src/serialize.h src/main.h src/net.h src/key.h src/db.h src/walletdb.h src/script.h src/init.h src/irc.h src/bloom.h src/mruset.h src/checkqueue.h src/json/json_spirit_writer_template.h src/json/json_spirit_writer.h src/json/json_spirit_value.h src/json/json_spirit_utils.h src/json/json_spirit_stream_reader.h src/json/json_spirit_reader_template.h src/json/json_spirit_reader.h src/json/json_spirit_error_position.h src/json/json_spirit.h src/qt/clientmodel.h src/qt/guiutil.h src/qt/transactionrecord.h src/qt/guiconstants.h src/qt/optionsmodel.h src/qt/monitoreddatamapper.h src/qt/transactiondesc.h src/qt/transactiondescdialog.h src/qt/bitcoinamountfield.h src/wallet.h src/keystore.h src/qt/transactionfilterproxy.h src/qt/transactionview.h src/qt/walletmodel.h src/bitcoinrpc.h src/qt/overviewpage.h src/qt/csvmodelwriter.h src/crypter.h src/qt/sendcoinsentry.h src/qt/qvalidatedlineedit.h src/qt/bitcoinunits.h src/qt/qvaluecombobox.h src/qt/askpassphrasedialog.h src/protocol.h src/qt/notificator.h src/qt/qtipcserver.h src/allocators.h src/ui_interface.h src/scrypt.h src/version.h src/netbase.h src/qt/rpcconsole.h src/qt/verifymessagedialog.h src/qt/macnotificationhandler.h src/clientversion.h src/txdb.h src/leveldb.h src/threadsafety.h build/lycancoin-qt1.2.0/ && $(COPY_FILE) --parents src/qt/bitcoin.cpp src/qt/bitcoingui.cpp src/qt/transactiontablemodel.cpp src/qt/addresstablemodel.cpp src/qt/optionsdialog.cpp src/qt/sendcoinsdialog.cpp src/qt/addressbookpage.cpp src/qt/signverifymessagedialog.cpp src/qt/aboutdialog.cpp src/qt/editaddressdialog.cpp src/qt/bitcoinaddressvalidator.cpp src/alert.cpp src/version.cpp src/sync.cpp src/util.cpp src/hash.cpp src/netbase.cpp src/key.cpp src/script.cpp src/main.cpp src/init.cpp src/net.cpp src/irc.cpp src/bloom.cpp src/checkpoints.cpp src/addrman.cpp src/db.cpp src/walletdb.cpp src/qt/clientmodel.cpp src/qt/guiutil.cpp src/qt/transactionrecord.cpp src/qt/optionsmodel.cpp src/qt/monitoreddatamapper.cpp src/qt/transactiondesc.cpp src/qt/transactiondescdialog.cpp src/qt/bitcoinstrings.cpp src/qt/bitcoinamountfield.cpp src/wallet.cpp src/keystore.cpp src/qt/transactionfilterproxy.cpp src/qt/transactionview.cpp src/qt/walletmodel.cpp src/bitcoinrpc.cpp src/rpcdump.cpp src/rpcnet.cpp src/rpcmining.cpp src/rpcwallet.cpp src/rpcblockchain.cpp src/rpcrawtransaction.cpp src/qt/overviewpage.cpp src/qt/csvmodelwriter.cpp src/crypter.cpp src/qt/sendcoinsentry.cpp src/qt/qvalidatedlineedit.cpp src/qt/bitcoinunits.cpp src/qt/qvaluecombobox.cpp src/qt/askpassphrasedialog.cpp src/protocol.cpp src/qt/notificator.cpp src/qt/qtipcserver.cpp src/qt/rpcconsole.cpp src/qt/verifymessagedialog.cpp src/scrypt.c src/noui.cpp src/leveldb.cpp src/txdb.cpp build/lycancoin-qt1.2.0/ && $(COPY_FILE) --parents src/qt/forms/sendcoinsdialog.ui src/qt/forms/addressbookpage.ui src/qt/forms/signverifymessagedialog.ui src/qt/forms/aboutdialog.ui src/qt/forms/editaddressdialog.ui src/qt/forms/transactiondescdialog.ui src/qt/forms/overviewpage.ui src/qt/forms/sendcoinsentry.ui src/qt/forms/askpassphrasedialog.ui src/qt/forms/rpcconsole.ui src/qt/forms/verifymessagedialog.ui src/qt/forms/optionsdialog.ui build/lycancoin-qt1.2.0/ && $(COPY_FILE) --parents src/qt/locale/bitcoin_bg.ts src/qt/locale/bitcoin_ca_ES.ts src/qt/locale/bitcoin_cs.ts src/qt/locale/bitcoin_da.ts src/qt/locale/bitcoin_de.ts src/qt/locale/bitcoin_el_GR.ts src/qt/locale/bitcoin_en.ts src/qt/locale/bitcoin_es.ts src/qt/locale/bitcoin_es_CL.ts src/qt/locale/bitcoin_et.ts src/qt/locale/bitcoin_eu_ES.ts src/qt/locale/bitcoin_fa.ts src/qt/locale/bitcoin_fa_IR.ts src/qt/locale/bitcoin_fi.ts src/qt/locale/bitcoin_fr.ts src/qt/locale/bitcoin_fr_CA.ts src/qt/locale/bitcoin_he.ts src/qt/locale/bitcoin_hr.ts src/qt/locale/bitcoin_hu.ts src/qt/locale/bitcoin_it.ts src/qt/locale/bitcoin_lt.ts src/qt/locale/bitcoin_nb.ts src/qt/locale/bitcoin_nl.ts src/qt/locale/bitcoin_pl.ts src/qt/locale/bitcoin_pt_BR.ts src/qt/locale/bitcoin_pt_PT.ts src/qt/locale/bitcoin_ro_RO.ts src/qt/locale/bitcoin_ru.ts src/qt/locale/bitcoin_sk.ts src/qt/locale/bitcoin_sr.ts src/qt/locale/bitcoin_sv.ts src/qt/locale/bitcoin_tr.ts src/qt/locale/bitcoin_uk.ts src/qt/locale/bitcoin_zh_CN.ts src/qt/locale/bitcoin_zh_TW.ts build/lycancoin-qt1.2.0/ && (cd `dirname build/lycancoin-qt1.2.0` && $(TAR) lycancoin-qt1.2.0.tar lycancoin-qt1.2.0 && $(COMPRESS) lycancoin-qt1.2.0.tar) && $(MOVE) `dirname build/lycancoin-qt1.2.0`/lycancoin-qt1.2.0.tar.gz . && $(DEL_FILE) -r build/lycancoin-qt1.2.0
 
 
 clean:compiler_clean 
@@ -480,7 +486,7 @@ distclean: clean
 
 
 /home/lycan/lycancoin-release/src/leveldb/libleveldb.a: FORCE
-	cd /home/lycan/lycancoin-release/src/leveldb ; $(MAKE) libleveldb.a libmemenv.a
+	cd /home/lycan/lycancoin-release/src/leveldb && $(MAKE) libleveldb.a libmemenv.a
 
 /home/lycan/lycancoin-release/build/build.h: FORCE
 	cd /home/lycan/lycancoin-release; /bin/sh share/genbuild.sh /home/lycan/lycancoin-release/build/build.h
@@ -603,88 +609,88 @@ compiler_rcc_make_all: qrc_bitcoin.cpp
 compiler_rcc_clean:
 	-$(DEL_FILE) qrc_bitcoin.cpp
 qrc_bitcoin.cpp: src/qt/bitcoin.qrc \
-		src/qt/locale/bitcoin_de.qm \
-		src/qt/locale/bitcoin_fr.qm \
-		src/qt/locale/bitcoin_sv.qm \
-		src/qt/locale/bitcoin_en.qm \
-		src/qt/locale/bitcoin_fr_CA.qm \
-		src/qt/locale/bitcoin_lt.qm \
-		src/qt/locale/bitcoin_pt_PT.qm \
-		src/qt/locale/bitcoin_ru.qm \
-		src/qt/locale/bitcoin_es.qm \
-		src/qt/locale/bitcoin_et.qm \
-		src/qt/locale/bitcoin_pl.qm \
-		src/qt/locale/bitcoin_nb.qm \
-		src/qt/locale/bitcoin_pt_BR.qm \
+		src/qt/locale/bitcoin_fa_IR.qm \
 		src/qt/locale/bitcoin_he.qm \
 		src/qt/locale/bitcoin_bg.qm \
-		src/qt/locale/bitcoin_zh_CN.qm \
+		src/qt/locale/bitcoin_zh_TW.qm \
+		src/qt/locale/bitcoin_ro_RO.qm \
 		src/qt/locale/bitcoin_uk.qm \
-		src/qt/locale/bitcoin_ca_ES.qm \
+		src/qt/locale/bitcoin_el_GR.qm \
 		src/qt/locale/bitcoin_cs.qm \
-		src/qt/locale/bitcoin_es_CL.qm \
 		src/qt/locale/bitcoin_fa.qm \
 		src/qt/locale/bitcoin_nl.qm \
 		src/qt/locale/bitcoin_it.qm \
+		src/qt/locale/bitcoin_fr_CA.qm \
+		src/qt/locale/bitcoin_pt_PT.qm \
 		src/qt/locale/bitcoin_hr.qm \
-		src/qt/locale/bitcoin_eu_ES.qm \
 		src/qt/locale/bitcoin_sk.qm \
 		src/qt/locale/bitcoin_tr.qm \
 		src/qt/locale/bitcoin_fi.qm \
 		src/qt/locale/bitcoin_hu.qm \
-		src/qt/locale/bitcoin_fa_IR.qm \
-		src/qt/locale/bitcoin_zh_TW.qm \
+		src/qt/locale/bitcoin_pt_BR.qm \
 		src/qt/locale/bitcoin_da.qm \
-		src/qt/locale/bitcoin_ro_RO.qm \
-		src/qt/locale/bitcoin_el_GR.qm \
+		src/qt/locale/bitcoin_zh_CN.qm \
 		src/qt/locale/bitcoin_sr.qm \
+		src/qt/locale/bitcoin_ca_ES.qm \
+		src/qt/locale/bitcoin_de.qm \
+		src/qt/locale/bitcoin_fr.qm \
+		src/qt/locale/bitcoin_sv.qm \
+		src/qt/locale/bitcoin_es_CL.qm \
+		src/qt/locale/bitcoin_en.qm \
+		src/qt/locale/bitcoin_lt.qm \
+		src/qt/locale/bitcoin_ru.qm \
+		src/qt/locale/bitcoin_es.qm \
+		src/qt/locale/bitcoin_eu_ES.qm \
+		src/qt/locale/bitcoin_et.qm \
+		src/qt/locale/bitcoin_pl.qm \
+		src/qt/locale/bitcoin_nb.qm \
 		src/qt/res/movies/update_spinner.mng \
-		src/qt/res/images/splash2.jpg \
-		src/qt/res/images/about.png \
-		src/qt/res/images/lycancoin.png \
-		src/qt/res/icons/clock5.png \
-		src/qt/res/icons/synced.png \
-		src/qt/res/icons/tx_inout.png \
-		src/qt/res/icons/mining_inactive.png \
-		src/qt/res/icons/address-book.png \
-		src/qt/res/icons/export.png \
-		src/qt/res/icons/lock_closed.png \
+		src/qt/res/icons/configure.png \
+		src/qt/res/icons/lock_open.png \
 		src/qt/res/icons/debugwindow.png \
-		src/qt/res/icons/editpaste.png \
+		src/qt/res/icons/history.png \
+		src/qt/res/icons/synced.png \
 		src/qt/res/icons/bitcoin_testnet.png \
-		src/qt/res/icons/add.png \
-		src/qt/res/icons/tx_input.png \
-		src/qt/res/icons/send.png \
-		src/qt/res/icons/mining.png \
+		src/qt/res/icons/bitcoin.png \
+		src/qt/res/icons/filesave.png \
+		src/qt/res/icons/export.png \
+		src/qt/res/icons/transaction2.png \
+		src/qt/res/icons/edit.png \
 		src/qt/res/icons/overview.png \
-		src/qt/res/icons/tx_mined.png \
-		src/qt/res/icons/toolbar_testnet.png \
-		src/qt/res/icons/quit.png \
+		src/qt/res/icons/editpaste.png \
+		src/qt/res/icons/tx_inout.png \
+		src/qt/res/icons/mining.png \
+		src/qt/res/icons/add.png \
+		src/qt/res/icons/lock_closed.png \
+		src/qt/res/icons/address-book.png \
+		src/qt/res/icons/send.png \
 		src/qt/res/icons/toolbar.png \
 		src/qt/res/icons/key.png \
-		src/qt/res/icons/mining_active.png \
-		src/qt/res/icons/tx_output.png \
-		src/qt/res/icons/connect0_16.png \
-		src/qt/res/icons/connect1_16.png \
-		src/qt/res/icons/remove.png \
-		src/qt/res/icons/connect2_16.png \
-		src/qt/res/icons/connect3_16.png \
-		src/qt/res/icons/connect4_16.png \
-		src/qt/res/icons/filesave.png \
-		src/qt/res/icons/transaction2.png \
-		src/qt/res/icons/receive.png \
-		src/qt/res/icons/configure.png \
-		src/qt/res/icons/qrcode.png \
-		src/qt/res/icons/lock_open.png \
-		src/qt/res/icons/editcopy.png \
-		src/qt/res/icons/history.png \
 		src/qt/res/icons/transaction0.png \
 		src/qt/res/icons/clock1.png \
 		src/qt/res/icons/clock2.png \
+		src/qt/res/icons/receive.png \
 		src/qt/res/icons/clock3.png \
-		src/qt/res/icons/bitcoin.png \
-		src/qt/res/icons/edit.png \
-		src/qt/res/icons/clock4.png
+		src/qt/res/icons/toolbar_testnet.png \
+		src/qt/res/icons/clock4.png \
+		src/qt/res/icons/tx_output.png \
+		src/qt/res/icons/remove.png \
+		src/qt/res/icons/clock5.png \
+		src/qt/res/icons/connect0_16.png \
+		src/qt/res/icons/tx_input.png \
+		src/qt/res/icons/editcopy.png \
+		src/qt/res/icons/connect1_16.png \
+		src/qt/res/icons/quit.png \
+		src/qt/res/icons/connect2_16.png \
+		src/qt/res/icons/connect3_16.png \
+		src/qt/res/icons/tx_mined.png \
+		src/qt/res/icons/mining_inactive.png \
+		src/qt/res/icons/connect4_16.png \
+		src/qt/res/icons/mining_active.png \
+		src/qt/res/icons/qrcode.png \
+		src/qt/res/images/about.png \
+		src/qt/res/images/splash2.jpg \
+		src/qt/res/images/lycancoin.png
 	/usr/lib/x86_64-linux-gnu/qt5/bin/rcc -name bitcoin src/qt/bitcoin.qrc -o qrc_bitcoin.cpp
 
 compiler_moc_header_make_all: build/moc_bitcoingui.cpp build/moc_transactiontablemodel.cpp build/moc_addresstablemodel.cpp build/moc_optionsdialog.cpp build/moc_sendcoinsdialog.cpp build/moc_addressbookpage.cpp build/moc_signverifymessagedialog.cpp build/moc_aboutdialog.cpp build/moc_editaddressdialog.cpp build/moc_bitcoinaddressvalidator.cpp build/moc_clientmodel.cpp build/moc_guiutil.cpp build/moc_optionsmodel.cpp build/moc_monitoreddatamapper.cpp build/moc_transactiondesc.cpp build/moc_transactiondescdialog.cpp build/moc_bitcoinamountfield.cpp build/moc_transactionfilterproxy.cpp build/moc_transactionview.cpp build/moc_walletmodel.cpp build/moc_overviewpage.cpp build/moc_csvmodelwriter.cpp build/moc_sendcoinsentry.cpp build/moc_qvalidatedlineedit.cpp build/moc_bitcoinunits.cpp build/moc_qvaluecombobox.cpp build/moc_askpassphrasedialog.cpp build/moc_notificator.cpp build/moc_rpcconsole.cpp build/moc_verifymessagedialog.cpp build/moc_macnotificationhandler.cpp
@@ -3821,8 +3827,9 @@ build/overviewpage.moc: src/qt/overviewpage.h \
 		/usr/include/qt5/QtWidgets/qlistview.h \
 		/usr/include/qt5/QtWidgets/QSpacerItem \
 		/usr/include/qt5/QtWidgets/QVBoxLayout \
-		src/qt/walletmodel.h \
+		src/qt/clientmodel.h \
 		/usr/include/qt5/QtCore/QObject \
+		src/qt/walletmodel.h \
 		src/allocators.h \
 		src/qt/bitcoinunits.h \
 		/usr/include/qt5/QtCore/QString \
@@ -4902,26 +4909,6 @@ compiler_clean: compiler_TSQM_clean compiler_rcc_clean compiler_moc_header_clean
 
 ####### Compile
 
-build/leveldb.o: src/leveldb.cpp src/leveldb.h \
-		src/serialize.h \
-		src/allocators.h \
-		src/version.h \
-		src/clientversion.h \
-		src/leveldb/include/leveldb/db.h \
-		src/leveldb/include/leveldb/iterator.h \
-		src/leveldb/include/leveldb/slice.h \
-		src/leveldb/include/leveldb/status.h \
-		src/leveldb/include/leveldb/options.h \
-		src/leveldb/include/leveldb/write_batch.h \
-		src/util.h \
-		src/uint256.h \
-		src/netbase.h \
-		src/compat.h \
-		src/leveldb/include/leveldb/env.h \
-		src/leveldb/include/leveldb/cache.h \
-		src/leveldb/include/leveldb/filter_policy.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/leveldb.o src/leveldb.cpp
-
 build/bitcoin.o: src/qt/bitcoin.cpp /usr/include/qt5/QtWidgets/QApplication \
 		/usr/include/qt5/QtWidgets/qapplication.h \
 		/usr/include/qt5/QtCore/qcoreapplication.h \
@@ -5072,6 +5059,9 @@ build/bitcoin.o: src/qt/bitcoin.cpp /usr/include/qt5/QtWidgets/QApplication \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -5254,6 +5244,14 @@ build/bitcoingui.o: src/qt/bitcoingui.cpp /usr/include/qt5/QtWidgets/QApplicatio
 		/usr/include/qt5/QtWidgets/QMessageBox \
 		/usr/include/qt5/QtWidgets/qmessagebox.h \
 		src/qt/rpcconsole.h \
+		src/ui_interface.h \
+		src/util.h \
+		src/uint256.h \
+		src/netbase.h \
+		src/serialize.h \
+		src/version.h \
+		src/clientversion.h \
+		src/compat.h \
 		src/qt/macdockiconhandler.h \
 		/usr/include/qt5/QtWidgets/QMenuBar \
 		/usr/include/qt5/QtWidgets/qmenubar.h \
@@ -5475,6 +5473,9 @@ build/transactiontablemodel.o: src/qt/transactiontablemodel.cpp src/qt/transacti
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -5628,6 +5629,9 @@ build/addresstablemodel.o: src/qt/addresstablemodel.cpp src/qt/addresstablemodel
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -6016,10 +6020,12 @@ build/sendcoinsdialog.o: src/qt/sendcoinsdialog.cpp src/qt/sendcoinsdialog.h \
 		src/clientversion.h \
 		src/compat.h \
 		src/key.h \
+		src/hash.h \
 		src/script.h \
 		src/keystore.h \
 		src/crypter.h \
 		src/sync.h \
+		src/threadsafety.h \
 		/usr/include/qt5/QtGui/QTextDocument \
 		/usr/include/qt5/QtGui/qtextdocument.h \
 		/usr/include/qt5/QtWidgets/QScrollBar \
@@ -6400,10 +6406,12 @@ build/signverifymessagedialog.o: src/qt/signverifymessagedialog.cpp src/qt/signv
 		src/clientversion.h \
 		src/compat.h \
 		src/key.h \
+		src/hash.h \
 		src/script.h \
 		src/keystore.h \
 		src/crypter.h \
 		src/sync.h \
+		src/threadsafety.h \
 		src/qt/guiutil.h \
 		/usr/include/qt5/QtCore/QString \
 		/usr/include/qt5/QtCore/QObject \
@@ -6416,6 +6424,7 @@ build/signverifymessagedialog.o: src/qt/signverifymessagedialog.cpp src/qt/signv
 		src/mruset.h \
 		src/protocol.h \
 		src/addrman.h \
+		src/bloom.h \
 		src/db.h \
 		src/scrypt.h \
 		src/ui_interface.h \
@@ -6582,9 +6591,7 @@ build/aboutdialog.o: src/qt/aboutdialog.cpp src/qt/aboutdialog.h \
 		/usr/include/qt5/QtWidgets/QSpacerItem \
 		/usr/include/qt5/QtWidgets/QVBoxLayout \
 		src/qt/clientmodel.h \
-		/usr/include/qt5/QtCore/QObject \
-		src/version.h \
-		src/clientversion.h
+		/usr/include/qt5/QtCore/QObject
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/aboutdialog.o src/qt/aboutdialog.cpp
 
 build/editaddressdialog.o: src/qt/editaddressdialog.cpp src/qt/editaddressdialog.h \
@@ -6849,11 +6856,14 @@ build/alert.o: src/alert.cpp src/alert.h \
 		src/clientversion.h \
 		src/compat.h \
 		src/key.h \
+		src/hash.h \
 		src/net.h \
 		src/mruset.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/bloom.h \
 		src/ui_interface.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/alert.o src/alert.cpp
 
@@ -6863,6 +6873,7 @@ build/version.o: src/version.cpp src/version.h \
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/version.o src/version.cpp
 
 build/sync.o: src/sync.cpp src/sync.h \
+		src/threadsafety.h \
 		src/util.h \
 		src/uint256.h \
 		src/netbase.h \
@@ -6882,8 +6893,17 @@ build/util.o: src/util.cpp src/util.h \
 		src/clientversion.h \
 		src/compat.h \
 		src/sync.h \
+		src/threadsafety.h \
 		src/ui_interface.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/util.o src/util.cpp
+
+build/hash.o: src/hash.cpp src/hash.h \
+		src/uint256.h \
+		src/serialize.h \
+		src/allocators.h \
+		src/version.h \
+		src/clientversion.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/hash.o src/hash.cpp
 
 build/netbase.o: src/netbase.cpp src/netbase.h \
 		src/serialize.h \
@@ -6893,7 +6913,9 @@ build/netbase.o: src/netbase.cpp src/netbase.h \
 		src/compat.h \
 		src/util.h \
 		src/uint256.h \
-		src/sync.h
+		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/netbase.o src/netbase.cpp
 
 build/key.o: src/key.cpp src/key.h \
@@ -6902,9 +6924,7 @@ build/key.o: src/key.cpp src/key.h \
 		src/version.h \
 		src/clientversion.h \
 		src/uint256.h \
-		src/util.h \
-		src/netbase.h \
-		src/compat.h
+		src/hash.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/key.o src/key.cpp
 
 build/script.o: src/script.cpp src/script.h \
@@ -6916,16 +6936,19 @@ build/script.o: src/script.cpp src/script.h \
 		src/version.h \
 		src/clientversion.h \
 		src/uint256.h \
+		src/hash.h \
+		src/sync.h \
+		src/threadsafety.h \
+		src/bignum.h \
 		src/util.h \
 		src/netbase.h \
 		src/compat.h \
-		src/sync.h \
-		src/bignum.h \
 		src/main.h \
 		src/net.h \
 		src/mruset.h \
 		src/protocol.h \
 		src/addrman.h \
+		src/bloom.h \
 		src/db.h \
 		src/scrypt.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/script.o src/script.cpp
@@ -6948,19 +6971,31 @@ build/main.o: src/main.cpp src/alert.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
 		src/crypter.h \
 		src/scrypt.h \
+		src/txdb.h \
+		src/leveldb.h \
+		src/leveldb/include/leveldb/db.h \
+		src/leveldb/include/leveldb/iterator.h \
+		src/leveldb/include/leveldb/slice.h \
+		src/leveldb/include/leveldb/status.h \
+		src/leveldb/include/leveldb/options.h \
+		src/leveldb/include/leveldb/write_batch.h \
 		src/init.h \
 		src/wallet.h \
 		src/ui_interface.h \
 		src/walletdb.h \
-		src/base58.h
+		src/base58.h \
+		src/checkqueue.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/main.o src/main.cpp
 
-build/init.o: src/init.cpp src/db.h \
+build/init.o: src/init.cpp src/txdb.h \
 		src/main.h \
 		src/bignum.h \
 		src/util.h \
@@ -6976,11 +7011,22 @@ build/init.o: src/init.cpp src/db.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
 		src/crypter.h \
+		src/db.h \
 		src/scrypt.h \
+		src/leveldb.h \
+		src/leveldb/include/leveldb/db.h \
+		src/leveldb/include/leveldb/iterator.h \
+		src/leveldb/include/leveldb/slice.h \
+		src/leveldb/include/leveldb/status.h \
+		src/leveldb/include/leveldb/options.h \
+		src/leveldb/include/leveldb/write_batch.h \
 		src/walletdb.h \
 		src/base58.h \
 		src/bitcoinrpc.h \
@@ -7011,6 +7057,9 @@ build/net.o: src/net.cpp src/irc.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -7037,6 +7086,9 @@ build/irc.o: src/irc.cpp src/irc.h \
 		src/addrman.h \
 		src/util.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/base58.h \
 		src/bignum.h \
 		src/key.h \
@@ -7044,6 +7096,32 @@ build/irc.o: src/irc.cpp src/irc.h \
 		src/keystore.h \
 		src/crypter.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/irc.o src/irc.cpp
+
+build/bloom.o: src/bloom.cpp src/bloom.h \
+		src/uint256.h \
+		src/serialize.h \
+		src/allocators.h \
+		src/version.h \
+		src/clientversion.h \
+		src/main.h \
+		src/bignum.h \
+		src/util.h \
+		src/netbase.h \
+		src/compat.h \
+		src/net.h \
+		src/mruset.h \
+		src/protocol.h \
+		src/addrman.h \
+		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/key.h \
+		src/script.h \
+		src/keystore.h \
+		src/crypter.h \
+		src/db.h \
+		src/scrypt.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/bloom.o src/bloom.cpp
 
 build/checkpoints.o: src/checkpoints.cpp src/checkpoints.h \
 		src/main.h \
@@ -7061,6 +7139,9 @@ build/checkpoints.o: src/checkpoints.cpp src/checkpoints.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -7079,7 +7160,9 @@ build/addrman.o: src/addrman.cpp src/addrman.h \
 		src/protocol.h \
 		src/uint256.h \
 		src/util.h \
-		src/sync.h
+		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/addrman.o src/addrman.cpp
 
 build/db.o: src/db.cpp src/db.h \
@@ -7098,6 +7181,9 @@ build/db.o: src/db.cpp src/db.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -7122,6 +7208,9 @@ build/walletdb.o: src/walletdb.cpp src/walletdb.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -7231,6 +7320,9 @@ build/clientmodel.o: src/qt/clientmodel.cpp src/qt/clientmodel.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -7396,6 +7488,9 @@ build/guiutil.o: src/qt/guiutil.cpp /usr/include/qt5/QtWidgets/QApplication \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -7505,6 +7600,9 @@ build/transactionrecord.o: src/qt/transactionrecord.cpp src/qt/transactionrecord
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -7611,6 +7709,9 @@ build/optionsmodel.o: src/qt/optionsmodel.cpp src/qt/optionsmodel.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -7911,6 +8012,9 @@ build/transactiondesc.o: src/qt/transactiondesc.cpp src/qt/transactiondesc.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -8290,6 +8394,9 @@ build/wallet.o: src/wallet.cpp src/wallet.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -8309,12 +8416,14 @@ build/keystore.o: src/keystore.cpp src/keystore.h \
 		src/version.h \
 		src/clientversion.h \
 		src/uint256.h \
+		src/hash.h \
+		src/sync.h \
+		src/threadsafety.h \
+		src/script.h \
+		src/bignum.h \
 		src/util.h \
 		src/netbase.h \
-		src/compat.h \
-		src/sync.h \
-		src/script.h \
-		src/bignum.h
+		src/compat.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/keystore.o src/keystore.cpp
 
 build/transactionfilterproxy.o: src/qt/transactionfilterproxy.cpp src/qt/transactionfilterproxy.h \
@@ -8690,6 +8799,9 @@ build/walletmodel.o: src/qt/walletmodel.cpp src/qt/walletmodel.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -8721,6 +8833,9 @@ build/bitcoinrpc.o: src/bitcoinrpc.cpp src/init.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -8755,6 +8870,9 @@ build/rpcdump.o: src/rpcdump.cpp src/init.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -8785,6 +8903,9 @@ build/rpcnet.o: src/rpcnet.cpp src/net.h \
 		src/addrman.h \
 		src/util.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/bitcoinrpc.h \
 		src/json/json_spirit_reader_template.h \
 		src/json/json_spirit_value.h \
@@ -8808,6 +8929,9 @@ build/rpcmining.o: src/rpcmining.cpp src/main.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -8843,6 +8967,9 @@ build/rpcwallet.o: src/rpcwallet.cpp src/wallet.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -8876,6 +9003,9 @@ build/rpcblockchain.o: src/rpcblockchain.cpp src/main.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -8901,10 +9031,12 @@ build/rpcrawtransaction.o: src/rpcrawtransaction.cpp src/base58.h \
 		src/clientversion.h \
 		src/compat.h \
 		src/key.h \
+		src/hash.h \
 		src/script.h \
 		src/keystore.h \
 		src/crypter.h \
 		src/sync.h \
+		src/threadsafety.h \
 		src/bitcoinrpc.h \
 		src/json/json_spirit_reader_template.h \
 		src/json/json_spirit_value.h \
@@ -8917,6 +9049,7 @@ build/rpcrawtransaction.o: src/rpcrawtransaction.cpp src/base58.h \
 		src/mruset.h \
 		src/protocol.h \
 		src/addrman.h \
+		src/bloom.h \
 		src/scrypt.h \
 		src/init.h \
 		src/wallet.h \
@@ -9081,8 +9214,9 @@ build/overviewpage.o: src/qt/overviewpage.cpp src/qt/overviewpage.h \
 		/usr/include/qt5/QtWidgets/qlistview.h \
 		/usr/include/qt5/QtWidgets/QSpacerItem \
 		/usr/include/qt5/QtWidgets/QVBoxLayout \
-		src/qt/walletmodel.h \
+		src/qt/clientmodel.h \
 		/usr/include/qt5/QtCore/QObject \
+		src/qt/walletmodel.h \
 		src/allocators.h \
 		src/qt/bitcoinunits.h \
 		/usr/include/qt5/QtCore/QString \
@@ -9201,9 +9335,7 @@ build/crypter.o: src/crypter.cpp src/crypter.h \
 		src/version.h \
 		src/clientversion.h \
 		src/uint256.h \
-		src/util.h \
-		src/netbase.h \
-		src/compat.h
+		src/hash.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/crypter.o src/crypter.cpp
 
 build/sendcoinsentry.o: src/qt/sendcoinsentry.cpp src/qt/sendcoinsentry.h \
@@ -9894,7 +10026,22 @@ build/protocol.o: src/protocol.cpp src/protocol.h \
 		src/netbase.h \
 		src/compat.h \
 		src/uint256.h \
-		src/util.h
+		src/util.h \
+		src/main.h \
+		src/bignum.h \
+		src/net.h \
+		src/mruset.h \
+		src/addrman.h \
+		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
+		src/key.h \
+		src/script.h \
+		src/keystore.h \
+		src/crypter.h \
+		src/db.h \
+		src/scrypt.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/protocol.o src/protocol.cpp
 
 build/notificator.o: src/qt/notificator.cpp src/qt/notificator.h \
@@ -10436,6 +10583,9 @@ build/verifymessagedialog.o: src/qt/verifymessagedialog.cpp src/qt/verifymessage
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -10475,6 +10625,9 @@ build/noui.o: src/noui.cpp src/ui_interface.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
 		src/key.h \
 		src/script.h \
 		src/keystore.h \
@@ -10490,6 +10643,61 @@ build/noui.o: src/noui.cpp src/ui_interface.h \
 		src/json/json_spirit_writer_template.h \
 		src/json/json_spirit_utils.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/noui.o src/noui.cpp
+
+build/leveldb.o: src/leveldb.cpp src/leveldb.h \
+		src/serialize.h \
+		src/allocators.h \
+		src/version.h \
+		src/clientversion.h \
+		src/leveldb/include/leveldb/db.h \
+		src/leveldb/include/leveldb/iterator.h \
+		src/leveldb/include/leveldb/slice.h \
+		src/leveldb/include/leveldb/status.h \
+		src/leveldb/include/leveldb/options.h \
+		src/leveldb/include/leveldb/write_batch.h \
+		src/util.h \
+		src/uint256.h \
+		src/netbase.h \
+		src/compat.h \
+		src/leveldb/include/leveldb/env.h \
+		src/leveldb/include/leveldb/cache.h \
+		src/leveldb/include/leveldb/filter_policy.h \
+		src/leveldb/helpers/memenv/memenv.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/leveldb.o src/leveldb.cpp
+
+build/txdb.o: src/txdb.cpp src/txdb.h \
+		src/main.h \
+		src/bignum.h \
+		src/util.h \
+		src/uint256.h \
+		src/netbase.h \
+		src/serialize.h \
+		src/allocators.h \
+		src/version.h \
+		src/clientversion.h \
+		src/compat.h \
+		src/net.h \
+		src/mruset.h \
+		src/protocol.h \
+		src/addrman.h \
+		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
+		src/key.h \
+		src/script.h \
+		src/keystore.h \
+		src/crypter.h \
+		src/db.h \
+		src/scrypt.h \
+		src/leveldb.h \
+		src/leveldb/include/leveldb/db.h \
+		src/leveldb/include/leveldb/iterator.h \
+		src/leveldb/include/leveldb/slice.h \
+		src/leveldb/include/leveldb/status.h \
+		src/leveldb/include/leveldb/options.h \
+		src/leveldb/include/leveldb/write_batch.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/txdb.o src/txdb.cpp
 
 build/qrc_bitcoin.o: qrc_bitcoin.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/qrc_bitcoin.o qrc_bitcoin.cpp

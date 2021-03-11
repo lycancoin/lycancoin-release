@@ -27,7 +27,6 @@ public:
 
     void setClientModel(ClientModel *clientModel);
     void setWalletModel(WalletModel *walletModel);   
-    void setModel(WalletModel *model);
     void showOutOfSyncWarning(bool fShow);
 
 public slots:
@@ -40,7 +39,7 @@ signals:
 private:
     Ui::OverviewPage *ui;
     ClientModel *clientModel;
-    WalletModel *model;
+    WalletModel *walletModel;
     qint64 currentBalance;
     qint64 currentUnconfirmedBalance;
     qint64 currentImmatureBalance;
@@ -51,6 +50,7 @@ private:
 private slots:
     void updateDisplayUnit();
     void handleTransactionClicked(const QModelIndex &index);
+    void updateAlerts(const QString &warnings);
 };
 
 #endif // OVERVIEWPAGE_H

@@ -8,28 +8,47 @@
 #include <leveldb/env.h>
 #include <leveldb/cache.h>
 #include <leveldb/filter_policy.h>
+#include <memenv/memenv.h>
 
 #include <boost/filesystem.hpp>
 
-static leveldb::Options GetOptions() {
+void HandleError(const leveldb::Status &status) throw(leveldb_error) {
+    if (status.ok())
+        return;
+    if (status.IsCorruption())
+        throw leveldb_error("Database corrupted");
+    if (status.IsIOError())
+        throw leveldb_error("Database I/O error");
+    if (status.IsNotFound())
+        throw leveldb_error("Database entry missing");
+    throw leveldb_error("Unknown database error");
+}
+
+static leveldb::Options GetOptions(size_t nCacheSize) {
     leveldb::Options options;
-    int nCacheSizeMB = GetArg("-dbcache", 25);
-    options.block_cache = leveldb::NewLRUCache(nCacheSizeMB * 1048576);
+    options.block_cache = leveldb::NewLRUCache(nCacheSize / 2);
+    options.write_buffer_size = nCacheSize / 4; // up to two write buffers may be held in memory simultaneously
     options.filter_policy = leveldb::NewBloomFilterPolicy(10);
     options.compression = leveldb::kNoCompression;
     return options;
 }
 
-CLevelDB::CLevelDB(const boost::filesystem::path &path) {
+CLevelDB::CLevelDB(const boost::filesystem::path &path, size_t nCacheSize, bool fMemory, bool fWipe) {
     penv = NULL;
     readoptions.verify_checksums = true;
     iteroptions.verify_checksums = true;
     iteroptions.fill_cache = false;
     syncoptions.sync = true;
-    options = GetOptions();
+    options = GetOptions(nCacheSize);
     options.create_if_missing = true;
-    boost::filesystem::create_directory(path);
-    printf("Opening LevelDB in %s\n", path.string().c_str());
+    if (fMemory) {
+        if (fWipe) {
+            printf("Wiping LevelDB in %s\n", path.string().c_str());
+            leveldb::DestroyDB(path.string(), options);
+        }
+        boost::filesystem::create_directory(path);
+        printf("Opening LevelDB in %s\n", path.string().c_str());
+    }
     leveldb::Status status = leveldb::DB::Open(options, path.string(), &pdb);
     if (!status.ok())
         throw std::runtime_error(strprintf("CLevelDB(): error opening database environment %s", status.ToString().c_str()));
@@ -47,12 +66,12 @@ CLevelDB::~CLevelDB() {
     options.env = NULL;
 }
 
-bool CLevelDB::WriteBatch(CLevelDBBatch &batch, bool fSync) {
+bool CLevelDB::WriteBatch(CLevelDBBatch &batch, bool fSync) throw(leveldb_error) {
     leveldb::Status status = pdb->Write(fSync ? syncoptions : writeoptions, &batch.batch);
     if (!status.ok()) {
         printf("LevelDB write failure: %s\n", status.ToString().c_str());
+        HandleError(status);
         return false;
     }
     return true;
 }
-

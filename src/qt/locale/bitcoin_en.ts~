@@ -395,11 +395,11 @@ Are you sure you wish to encrypt your wallet?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Tabs toolskl</source>
+        <source>Tabs toolbar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Actions toolskl</source>
+        <source>Actions toolbar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -706,7 +706,7 @@ Address: %4
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&amp;Minimize to the tray instead of the taskskl</source>
+        <source>&amp;Minimize to the tray instead of the taskbar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

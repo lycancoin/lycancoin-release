@@ -710,7 +710,7 @@ if config.dmg is not None:
         window = disk.container_window
         window.current_view.set(appscript.k.icon_view)
         window.toolbar_visible.set(False)
-        window.statuszmb_visible.set(False)
+        window.statusbar_visible.set(False)
         if fancy.has_key("window_bounds"):
             window.bounds.set(fancy["window_bounds"])
         view_options = window.icon_view_options

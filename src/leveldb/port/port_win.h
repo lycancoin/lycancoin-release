@@ -37,14 +37,11 @@
 #define fread_unlocked _fread_nolock
 #endif
 
-
-#ifdef SNAPPY
-#include <snappy/snappy.h>
-#endif
-
 #include <string>
-
 #include <stdint.h>
+#ifdef SNAPPY
+#include <snappy.h>
+#endif
 
 namespace leveldb {
 namespace port {
@@ -67,9 +64,8 @@ class Mutex {
   friend class CondVar;
   // critical sections are more efficient than mutexes
   // but they are not recursive and can only be used to synchronize threads within the same process
-  // additionnaly they cannot be used with SignalObjectAndWait that we use for CondVar
   // we use opaque void * to avoid including windows.h in port_win.h
-  void * mutex_;
+  void * cs_;
 
   // No copying
   Mutex(const Mutex&);
@@ -79,7 +75,7 @@ class Mutex {
 // the Win32 API offers a dependable condition variable mechanism, but only starting with
 // Windows 2008 and Vista
 // no matter what we will implement our own condition variable with a semaphore
-// implementation as described in a paper written by Douglas C. Schmidt and Irfan Pyarali
+// implementation as described in a paper written by Andrew D. Birrell in 2003
 class CondVar {
  public:
   explicit CondVar(Mutex* mu);
@@ -89,15 +85,37 @@ class CondVar {
   void SignalAll();
  private:
   Mutex* mu_;
-
+  
   Mutex wait_mtx_;
   long waiting_;
-
-  void * sema_;
-  void * event_;
-
-  bool broadcasted_;  
+  
+  void * sem1_;
+  void * sem2_;
+  
+  
 };
+
+class OnceType {
+public:
+//    OnceType() : init_(false) {}
+    OnceType(const OnceType &once) : init_(once.init_) {}
+    OnceType(bool f) : init_(f) {}
+    void InitOnce(void (*initializer)()) {
+        mutex_.Lock();
+        if (!init_) {
+            init_ = true;
+            initializer();
+        }
+        mutex_.Unlock();
+    }
+
+private:
+    bool init_;
+    Mutex mutex_;
+};
+
+#define LEVELDB_ONCE_INIT false
+extern void InitOnce(port::OnceType*, void (*initializer)());
 
 // Storage for a lock-free pointer
 class AtomicPointer {
@@ -114,11 +132,6 @@ class AtomicPointer {
 
   void NoBarrier_Store(void* v);
 };
-
-typedef volatile long OnceType;
-#define LEVELDB_ONCE_INIT (0)
-
-extern void InitOnce(OnceType* once, void (*initializer)());
 
 inline bool Snappy_Compress(const char* input, size_t length,
                             ::std::string* output) {
@@ -158,4 +171,4 @@ inline bool GetHeapProfile(void (*func)(void*, const char*, int), void* arg) {
 }
 }
 
-#endif  // STORAGE_LEVELDB_PORT_PORT_WIN_H_
+#endif // STORAGE_LEVELDB_PORT_PORT_WIN_H_

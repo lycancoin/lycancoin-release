@@ -1,8 +1,8 @@
 * update translations (ping tcatm on IRC for now)
 
 * update (commit) version in sources
-  bitcoin-qt.pro
-  src/version.h
+  lycancoin-qt.pro
+  src/clientversion.h (change CLIENT_VERSION_IS_RELEASE to true)
   share/setup.nsi
   doc/README*
 
@@ -83,10 +83,10 @@
   make
   export QTDIR=/opt/local/share/qt4  # needed to find translations/qt_*.qm files
   T=$(contrib/qt_translations.py $QTDIR/translations src/qt/locale)
-  python2.7 contrib/macdeploy/macdeployqtplus Zombiecoin-Qt.app -add-qt-tr $T -dmg -fancy contrib/macdeploy/fancy.plist
+  python2.7 contrib/macdeploy/macdeployqtplus Lycancoin-Qt.app -add-qt-tr $T -dmg -fancy contrib/macdeploy/fancy.plist
 
  Build output expected:
-  Zombiecoin-Qt.dmg
+  Lycancoin-Qt.dmg
 
 * upload builds to SourceForge
 
