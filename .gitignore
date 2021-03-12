@@ -2,13 +2,13 @@ src/*.exe
 src/lycancoin
 src/lycancoind
 src/build.h
+src/leveldb/*.a
 .*.swp
 *.*~*
 *.bak
 *.rej
 *.orig
 *.o
-*.a
 *.patch
 .lycancoin
 
