@@ -1,6 +1,4 @@
 #include "optionsmodel.h"
-//#include "bitcoinunits.h"
-//#include <QSettings>
 
 #include "bitcoinunits.h"
 #include "init.h"

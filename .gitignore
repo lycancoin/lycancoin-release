@@ -12,6 +12,10 @@ src/leveldb/*.a
 *.patch
 .lycancoin
 
+# Unit-tests
+Makefile.test
+bitcoin-qt_test
+
 # Compilation and Qt preprocessor part
 *.qm
 lycancoin-qt

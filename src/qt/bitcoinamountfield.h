@@ -13,6 +13,7 @@ QT_END_NAMESPACE
 class BitcoinAmountField: public QWidget
 {
     Q_OBJECT
+    
     Q_PROPERTY(qint64 value READ value WRITE setValue NOTIFY textChanged USER true)
     
 public:

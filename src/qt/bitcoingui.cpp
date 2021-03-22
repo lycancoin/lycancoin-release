@@ -38,7 +38,6 @@
 #include "macdockiconhandler.h"
 #endif
 
-#include <QApplication> //
 #include <QMainWindow> //
 #include <QMenuBar>
 #include <QMenu>
@@ -191,9 +190,11 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     rpcConsole = new RPCConsole(this);
     connect(openRPCConsoleAction, SIGNAL(triggered()), rpcConsole, SLOT(show()));
 
-    // Clicking on "Verify Message" in the address book sends you to the verify message tab
+    // Clicking on "Send Coins" in the address book sends you to the send coins tab
+    connect(addressBookPage, SIGNAL(sendCoins(QString)), this, SLOT(gotoSendCoinsPage(QString)));
+    // Clicking on "Verify Message" in the address book opens the verify message tab in the Sign/Verify Message dialog
     connect(addressBookPage, SIGNAL(verifyMessage(QString)), this, SLOT(gotoVerifyMessageTab(QString)));
-    // Clicking on "Sign Message" in the receive coins page sends you to the sign message tab
+    // Clicking on "Sign Message" in the receive coins page opens the sign message tab in the Sign/Verify Message dialog
     connect(receiveCoinsPage, SIGNAL(signMessage(QString)), this, SLOT(gotoSignMessageTab(QString)));
     
     // Install event filter to be able to catch status tip events (QEvent::StatusTip)
@@ -631,7 +632,7 @@ void BitcoinGUI::setNumBlocks(int count, int nTotalBlocks)
     progressBar->setToolTip(tooltip);
 }
 
-void BitcoinGUI::message(const QString &title, const QString &message, unsigned int style)
+void BitcoinGUI::message(const QString &title, const QString &message, unsigned int style, bool *ret)
 {
     QString strTitle = tr("Lycancoin") + " - ";
     // Default to information icon
@@ -671,7 +672,9 @@ void BitcoinGUI::message(const QString &title, const QString &message, unsigned 
             buttons = QMessageBox::Ok;
 
         QMessageBox mBox((QMessageBox::Icon)nMBoxIcon, strTitle, message, buttons);
-        mBox.exec();
+        int r = mBox.exec();
+        if (ret != NULL)
+            *ret = r == QMessageBox::Ok;
     }
     else
         notificator->notify((Notificator::Class)nNotifyIcon, strTitle, message);
@@ -789,13 +792,16 @@ void BitcoinGUI::gotoReceiveCoinsPage()
     connect(exportAction, SIGNAL(triggered()), receiveCoinsPage, SLOT(exportClicked()));
 }
 
-void BitcoinGUI::gotoSendCoinsPage()
+void BitcoinGUI::gotoSendCoinsPage(QString addr)
 {
     sendCoinsAction->setChecked(true);
     centralWidget->setCurrentWidget(sendCoinsPage);
 
     exportAction->setEnabled(false);
     disconnect(exportAction, SIGNAL(triggered()), 0, 0);
+    
+    if(!addr.isEmpty())
+        sendCoinsPage->setAddress(addr);
 }
 
 void BitcoinGUI::gotoSignMessageTab(QString addr)

@@ -40,7 +40,7 @@ struct CBlockIndexWorkComparator;
 static const unsigned int MAX_BLOCK_SIZE = 1000000;
 /** The maximum size for mined blocks */
 static const unsigned int MAX_BLOCK_SIZE_GEN = MAX_BLOCK_SIZE/2;
-/** The maximum size for transactions we're willing to relay/mine **/
+/** The maximum size for transactions we're willing to relay/mine */
 static const unsigned int MAX_STANDARD_TX_SIZE = MAX_BLOCK_SIZE_GEN/5;
 /** The maximum allowed number of signature check operations in a block (network rule) */
 static const unsigned int MAX_BLOCK_SIGOPS = MAX_BLOCK_SIZE/50;
@@ -130,6 +130,8 @@ class CCoinsViewCache;
 class CScriptCheck;
 class CValidationState;
 
+struct CBlockTemplate;
+
 void RegisterWallet(CWallet* pwalletIn);
 void UnregisterWallet(CWallet* pwalletIn);
 void SyncWithWallets(const uint256 &hash, const CTransaction& tx, const CBlock* pblock = NULL, bool fUpdate = false);
@@ -138,7 +140,12 @@ bool CheckDiskSpace(uint64 nAdditionalBytes = 0);
 FILE* OpenBlockFile(const CDiskBlockPos &pos, bool fReadOnly = false);
 FILE* OpenUndoFile(const CDiskBlockPos &pos, bool fReadOnly = false);
 bool LoadExternalBlockFile(FILE* fileIn, CDiskBlockPos *dbp = NULL);
+/** Initialize a new block tree database + block data on disk */
+bool InitBlockIndex();
+/** Load the block tree and coins database from disk */
 bool LoadBlockIndex();
+/** Unload database information */
+void UnloadBlockIndex();
 bool VerifyDB();
 void PrintBlockTree();
 CBlockIndex* FindBlockByHeight(int nHeight);
@@ -150,7 +157,7 @@ void ThreadScriptCheck(void* parg);
 /** Stop the script checking threads */
 void ThreadScriptCheckQuit();
 void GenerateBitcoins(bool fGenerate, CWallet* pwallet);
-CBlock* CreateNewBlock(CReserveKey& reservekey);
+CBlockTemplate* CreateNewBlock(CReserveKey& reservekey);
 void IncrementExtraNonce(CBlock* pblock, CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
 void FormatHashBuffers(CBlock* pblock, char* pmidstate, char* pdata, char* phash1);
 bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey);
@@ -885,6 +892,15 @@ public:
     void Cleanup() {
         while (vout.size() > 0 && vout.back().IsNull())
             vout.pop_back();
+        if (vout.empty())
+            std::vector<CTxOut>().swap(vout);
+    }
+
+    void swap(CCoins &to) {
+        std::swap(to.fCoinBase, fCoinBase);
+        to.vout.swap(vout);
+        std::swap(to.nHeight, nHeight);
+        std::swap(to.nVersion, nVersion);
     }
 
     // equality test
@@ -1534,7 +1550,7 @@ public:
      }
 
      std::string ToString() const {
-         return strprintf("CBlockFileInfo(blocks=%u, size=%u, heights=%u..%u, time=%s..%s)", nBlocks, nSize, nHeightFirst, nHeightLast, DateTimeStrFormat("%Y-%m-%d", nTimeFirst).c_str(), DateTimeStrFormat("%Y-%m-%d", nTimeLast).c_str());
+         return strprintf("CBlockFileInfo(blocks=%u, size=%u, heights=%u...%u, time=%s...%s)", nBlocks, nSize, nHeightFirst, nHeightLast, DateTimeStrFormat("%Y-%m-%d", nTimeFirst).c_str(), DateTimeStrFormat("%Y-%m-%d", nTimeLast).c_str());
      }
 
      // update statistics (does not update nSize)
@@ -2094,14 +2110,14 @@ class CCoinsView
 {
 public:
     // Retrieve the CCoins (unspent transaction outputs) for a given txid
-    virtual bool GetCoins(uint256 txid, CCoins &coins);
+    virtual bool GetCoins(const uint256 &txid, CCoins &coins);
 
     // Modify the CCoins for a given txid
-    virtual bool SetCoins(uint256 txid, const CCoins &coins);
+    virtual bool SetCoins(const uint256 &txid, const CCoins &coins);
 
     // Just check whether we have data for a given txid.
     // This may (but cannot always) return true for fully spent transactions
-    virtual bool HaveCoins(uint256 txid);
+    virtual bool HaveCoins(const uint256 &txid);
 
     // Retrieve the block index whose state this CCoinsView currently represents
     virtual CBlockIndex *GetBestBlock();
@@ -2127,9 +2143,9 @@ protected:
 
 public:
     CCoinsViewBacked(CCoinsView &viewIn);
-    bool GetCoins(uint256 txid, CCoins &coins);
-    bool SetCoins(uint256 txid, const CCoins &coins);
-    bool HaveCoins(uint256 txid);
+    bool GetCoins(const uint256 &txid, CCoins &coins);
+    bool SetCoins(const uint256 &txid, const CCoins &coins);
+    bool HaveCoins(const uint256 &txid);
     CBlockIndex *GetBestBlock();
     bool SetBestBlock(CBlockIndex *pindex);
     void SetBackend(CCoinsView &viewIn);
@@ -2148,9 +2164,9 @@ public:
     CCoinsViewCache(CCoinsView &baseIn, bool fDummy = false);
     
     // Standard CCoinsView methods
-    bool GetCoins(uint256 txid, CCoins &coins);
-    bool SetCoins(uint256 txid, const CCoins &coins);
-    bool HaveCoins(uint256 txid);
+    bool GetCoins(const uint256 &txid, CCoins &coins);
+    bool SetCoins(const uint256 &txid, const CCoins &coins);
+    bool HaveCoins(const uint256 &txid);
     CBlockIndex *GetBestBlock();
     bool SetBestBlock(CBlockIndex *pindex);
     bool BatchWrite(const std::map<uint256, CCoins> &mapCoins, CBlockIndex *pindex);
@@ -2158,7 +2174,7 @@ public:
     // Return a modifiable reference to a CCoins. Check HaveCoins first.
     // Many methods explicitly require a CCoinsViewCache because of this method, to reduce
     // copying.
-    CCoins &GetCoins(uint256 txid);
+    CCoins &GetCoins(const uint256 &txid);
 
     // Push the modifications applied to this cache to its base.
     // Failure to call this method before destruction will cause the changes to be forgotten.
@@ -2168,7 +2184,7 @@ public:
     unsigned int GetCacheSize();
 
 private:
-    std::map<uint256,CCoins>::iterator FetchCoins(uint256 txid);
+    std::map<uint256,CCoins>::iterator FetchCoins(const uint256 &txid);
 };
 
 /** CCoinsView that brings transactions from a memorypool into view.
@@ -2180,8 +2196,8 @@ protected:
 
 public:
     CCoinsViewMemPool(CCoinsView &baseIn, CTxMemPool &mempoolIn);
-    bool GetCoins(uint256 txid, CCoins &coins);
-    bool HaveCoins(uint256 txid);
+    bool GetCoins(const uint256 &txid, CCoins &coins);
+    bool HaveCoins(const uint256 &txid);
 };
 
 /** Global variable that points to the active CCoinsView (protected by cs_main) */
@@ -2190,10 +2206,12 @@ extern CCoinsViewCache *pcoinsTip;
 /** Global variable that points to the active block tree (protected by cs_main) */
 extern CBlockTreeDB *pblocktree;
 
-
-
-
-
+struct CBlockTemplate
+{
+    CBlock block;
+    std::vector<int64_t> vTxFees;
+    std::vector<int64_t> vTxSigOps;
+};
 
 /** Used to relay blocks as header + vector<merkle branch>
  * to filtered nodes.

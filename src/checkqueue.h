@@ -162,6 +162,10 @@ public:
         while (nTotal > 0)
             condQuit.wait(lock);
     }
+    
+    ~CCheckQueue() {
+        Quit();
+    }
 
     friend class CCheckQueueControl<T>;
 };

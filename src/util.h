@@ -193,6 +193,7 @@ bool WildcardMatch(const char* psz, const char* mask);
 bool WildcardMatch(const std::string& str, const std::string& mask);
 void FileCommit(FILE *fileout);
 int GetFilesize(FILE* file);
+bool TruncateFile(FILE *file, unsigned int length);
 void AllocateFileRange(FILE *file, unsigned int offset, unsigned int length);
 bool RenameOver(boost::filesystem::path src, boost::filesystem::path dest);
 boost::filesystem::path GetDefaultDataDir();
@@ -212,6 +213,7 @@ uint256 GetRandHash();
 int64 GetTime();
 void SetMockTime(int64 nMockTimeIn);
 int64 GetAdjustedTime();
+int64 GetTimeOffset();
 std::string FormatFullVersion();
 std::string FormatSubVersion(const std::string& name, int nClientVersion, const std::vector<std::string>& comments);
 void AddTimeData(const CNetAddr& ip, int64 nTime);
@@ -403,12 +405,27 @@ bool SoftSetArg(const std::string& strArg, const std::string& strValue);
  */
 bool SoftSetBoolArg(const std::string& strArg, bool fValue);
 
+/**
+ * MWC RNG of George Marsaglia
+ * This is intended to be fast. It has a period of 2^59.3, though the
+ * least significant 16 bits only have a period of about 2^30.1.
+ *
+ * @return random value
+ */
+extern uint32_t insecure_rand_Rz;
+extern uint32_t insecure_rand_Rw;
+static inline uint32_t insecure_rand(void)
+{
+  insecure_rand_Rz=36969*(insecure_rand_Rz&65535)+(insecure_rand_Rz>>16);
+  insecure_rand_Rw=18000*(insecure_rand_Rw&65535)+(insecure_rand_Rw>>16);
+  return (insecure_rand_Rw<<16)+insecure_rand_Rz;
+}
 
-
-
-
-
-
+/**
+ * Seed insecure_rand using the random pool.
+ * @param Deterministic Use a determinstic seed
+ */
+void seed_insecure_rand(bool fDeterministic=false);
 
 /** Median filter over a stream of values. 
  * Returns the median of the last N numbers
