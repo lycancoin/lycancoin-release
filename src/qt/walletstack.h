@@ -40,7 +40,6 @@ QT_END_NAMESPACE
 class WalletStack : public QStackedWidget
 {
     Q_OBJECT
-
 public:
     explicit WalletStack(QWidget *parent = 0);
     ~WalletStack();

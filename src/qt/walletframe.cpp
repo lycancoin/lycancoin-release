@@ -8,8 +8,10 @@
 #include "bitcoingui.h"
 #include "walletstack.h"
 
-#include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QMessageBox>
+
+#include <stdio.h>
 
 WalletFrame::WalletFrame(BitcoinGUI *_gui) :
     QFrame(_gui),
@@ -18,10 +20,8 @@ WalletFrame::WalletFrame(BitcoinGUI *_gui) :
 {
     // Leave HBox hook for adding a list view later
     QHBoxLayout *walletFrameLayout = new QHBoxLayout(this);
-    setContentsMargins(0,0,0,0);
     walletStack = new WalletStack(this);
     walletStack->setBitcoinGUI(gui);
-    walletFrameLayout->setContentsMargins(0,0,0,0);
     walletFrameLayout->addWidget(walletStack);
 }
 

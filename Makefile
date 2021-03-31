@@ -67,7 +67,6 @@ SOURCES       = src/qt/bitcoin.cpp \
 		src/main.cpp \
 		src/init.cpp \
 		src/net.cpp \
-		src/irc.cpp \
 		src/bloom.cpp \
 		src/checkpoints.cpp \
 		src/addrman.cpp \
@@ -87,6 +86,9 @@ SOURCES       = src/qt/bitcoin.cpp \
 		src/qt/transactionfilterproxy.cpp \
 		src/qt/transactionview.cpp \
 		src/qt/walletmodel.cpp \
+		src/qt/walletview.cpp \
+		src/qt/walletstack.cpp \
+		src/qt/walletframe.cpp \
 		src/bitcoinrpc.cpp \
 		src/rpcdump.cpp \
 		src/rpcnet.cpp \
@@ -131,6 +133,9 @@ SOURCES       = src/qt/bitcoin.cpp \
 		build/moc_transactionfilterproxy.cpp \
 		build/moc_transactionview.cpp \
 		build/moc_walletmodel.cpp \
+		build/moc_walletview.cpp \
+		build/moc_walletstack.cpp \
+		build/moc_walletframe.cpp \
 		build/moc_overviewpage.cpp \
 		build/moc_csvmodelwriter.cpp \
 		build/moc_sendcoinsentry.cpp \
@@ -165,7 +170,6 @@ OBJECTS       = build/bitcoin.o \
 		build/main.o \
 		build/init.o \
 		build/net.o \
-		build/irc.o \
 		build/bloom.o \
 		build/checkpoints.o \
 		build/addrman.o \
@@ -185,6 +189,9 @@ OBJECTS       = build/bitcoin.o \
 		build/transactionfilterproxy.o \
 		build/transactionview.o \
 		build/walletmodel.o \
+		build/walletview.o \
+		build/walletstack.o \
+		build/walletframe.o \
 		build/bitcoinrpc.o \
 		build/rpcdump.o \
 		build/rpcnet.o \
@@ -230,6 +237,9 @@ OBJECTS       = build/bitcoin.o \
 		build/moc_transactionfilterproxy.o \
 		build/moc_transactionview.o \
 		build/moc_walletmodel.o \
+		build/moc_walletview.o \
+		build/moc_walletstack.o \
+		build/moc_walletframe.o \
 		build/moc_overviewpage.o \
 		build/moc_csvmodelwriter.o \
 		build/moc_sendcoinsentry.o \
@@ -480,7 +490,7 @@ qmake_all: FORCE
 
 dist: 
 	@test -d build/lycancoin-qt1.2.1 || mkdir -p build/lycancoin-qt1.2.1
-	$(COPY_FILE) --parents $(SOURCES) $(DIST) build/lycancoin-qt1.2.1/ && $(COPY_FILE) --parents src/qt/locale/bitcoin_bg.ts src/qt/locale/bitcoin_ca_ES.ts src/qt/locale/bitcoin_cs.ts src/qt/locale/bitcoin_da.ts src/qt/locale/bitcoin_de.ts src/qt/locale/bitcoin_el_GR.ts src/qt/locale/bitcoin_en.ts src/qt/locale/bitcoin_es.ts src/qt/locale/bitcoin_es_CL.ts src/qt/locale/bitcoin_et.ts src/qt/locale/bitcoin_eu_ES.ts src/qt/locale/bitcoin_fa.ts src/qt/locale/bitcoin_fa_IR.ts src/qt/locale/bitcoin_fi.ts src/qt/locale/bitcoin_fr.ts src/qt/locale/bitcoin_fr_CA.ts src/qt/locale/bitcoin_he.ts src/qt/locale/bitcoin_hr.ts src/qt/locale/bitcoin_hu.ts src/qt/locale/bitcoin_it.ts src/qt/locale/bitcoin_lt.ts src/qt/locale/bitcoin_nb.ts src/qt/locale/bitcoin_nl.ts src/qt/locale/bitcoin_pl.ts src/qt/locale/bitcoin_pt_BR.ts src/qt/locale/bitcoin_pt_PT.ts src/qt/locale/bitcoin_ro_RO.ts src/qt/locale/bitcoin_ru.ts src/qt/locale/bitcoin_sk.ts src/qt/locale/bitcoin_sr.ts src/qt/locale/bitcoin_sv.ts src/qt/locale/bitcoin_tr.ts src/qt/locale/bitcoin_uk.ts src/qt/locale/bitcoin_zh_CN.ts src/qt/locale/bitcoin_zh_TW.ts build/lycancoin-qt1.2.1/ && $(COPY_FILE) --parents src/qt/bitcoin.qrc build/lycancoin-qt1.2.1/ && $(COPY_FILE) --parents src/qt/bitcoingui.h src/qt/transactiontablemodel.h src/qt/addresstablemodel.h src/qt/optionsdialog.h src/qt/sendcoinsdialog.h src/qt/addressbookpage.h src/qt/signverifymessagedialog.h src/qt/aboutdialog.h src/qt/editaddressdialog.h src/qt/bitcoinaddressvalidator.h src/alert.h src/addrman.h src/base58.h src/bignum.h src/checkpoints.h src/compat.h src/sync.h src/util.h src/hash.h src/uint256.h src/serialize.h src/main.h src/net.h src/key.h src/db.h src/walletdb.h src/script.h src/init.h src/irc.h src/bloom.h src/mruset.h src/checkqueue.h src/json/json_spirit_writer_template.h src/json/json_spirit_writer.h src/json/json_spirit_value.h src/json/json_spirit_utils.h src/json/json_spirit_stream_reader.h src/json/json_spirit_reader_template.h src/json/json_spirit_reader.h src/json/json_spirit_error_position.h src/json/json_spirit.h src/qt/clientmodel.h src/qt/guiutil.h src/qt/transactionrecord.h src/qt/guiconstants.h src/qt/optionsmodel.h src/qt/monitoreddatamapper.h src/qt/transactiondesc.h src/qt/transactiondescdialog.h src/qt/bitcoinamountfield.h src/wallet.h src/keystore.h src/qt/transactionfilterproxy.h src/qt/transactionview.h src/qt/walletmodel.h src/bitcoinrpc.h src/qt/overviewpage.h src/qt/csvmodelwriter.h src/crypter.h src/qt/sendcoinsentry.h src/qt/qvalidatedlineedit.h src/qt/bitcoinunits.h src/qt/qvaluecombobox.h src/qt/askpassphrasedialog.h src/protocol.h src/qt/notificator.h src/qt/paymentserver.h src/allocators.h src/ui_interface.h src/scrypt.h src/version.h src/netbase.h src/qt/rpcconsole.h src/qt/verifymessagedialog.h src/qt/macnotificationhandler.h src/clientversion.h src/txdb.h src/leveldb.h src/threadsafety.h build/lycancoin-qt1.2.1/ && $(COPY_FILE) --parents src/qt/bitcoin.cpp src/qt/bitcoingui.cpp src/qt/transactiontablemodel.cpp src/qt/addresstablemodel.cpp src/qt/optionsdialog.cpp src/qt/sendcoinsdialog.cpp src/qt/addressbookpage.cpp src/qt/signverifymessagedialog.cpp src/qt/aboutdialog.cpp src/qt/editaddressdialog.cpp src/qt/bitcoinaddressvalidator.cpp src/alert.cpp src/version.cpp src/sync.cpp src/util.cpp src/hash.cpp src/netbase.cpp src/key.cpp src/script.cpp src/main.cpp src/init.cpp src/net.cpp src/irc.cpp src/bloom.cpp src/checkpoints.cpp src/addrman.cpp src/db.cpp src/walletdb.cpp src/qt/clientmodel.cpp src/qt/guiutil.cpp src/qt/transactionrecord.cpp src/qt/optionsmodel.cpp src/qt/monitoreddatamapper.cpp src/qt/transactiondesc.cpp src/qt/transactiondescdialog.cpp src/qt/bitcoinstrings.cpp src/qt/bitcoinamountfield.cpp src/wallet.cpp src/keystore.cpp src/qt/transactionfilterproxy.cpp src/qt/transactionview.cpp src/qt/walletmodel.cpp src/bitcoinrpc.cpp src/rpcdump.cpp src/rpcnet.cpp src/rpcmining.cpp src/rpcwallet.cpp src/rpcblockchain.cpp src/rpcrawtransaction.cpp src/qt/overviewpage.cpp src/qt/csvmodelwriter.cpp src/crypter.cpp src/qt/sendcoinsentry.cpp src/qt/qvalidatedlineedit.cpp src/qt/bitcoinunits.cpp src/qt/qvaluecombobox.cpp src/qt/askpassphrasedialog.cpp src/protocol.cpp src/qt/notificator.cpp src/qt/paymentserver.cpp src/qt/rpcconsole.cpp src/qt/verifymessagedialog.cpp src/scrypt.c src/noui.cpp src/leveldb.cpp src/txdb.cpp build/lycancoin-qt1.2.1/ && $(COPY_FILE) --parents src/qt/forms/sendcoinsdialog.ui src/qt/forms/addressbookpage.ui src/qt/forms/signverifymessagedialog.ui src/qt/forms/aboutdialog.ui src/qt/forms/editaddressdialog.ui src/qt/forms/transactiondescdialog.ui src/qt/forms/overviewpage.ui src/qt/forms/sendcoinsentry.ui src/qt/forms/askpassphrasedialog.ui src/qt/forms/rpcconsole.ui src/qt/forms/verifymessagedialog.ui src/qt/forms/optionsdialog.ui build/lycancoin-qt1.2.1/ && $(COPY_FILE) --parents src/qt/locale/bitcoin_bg.ts src/qt/locale/bitcoin_ca_ES.ts src/qt/locale/bitcoin_cs.ts src/qt/locale/bitcoin_da.ts src/qt/locale/bitcoin_de.ts src/qt/locale/bitcoin_el_GR.ts src/qt/locale/bitcoin_en.ts src/qt/locale/bitcoin_es.ts src/qt/locale/bitcoin_es_CL.ts src/qt/locale/bitcoin_et.ts src/qt/locale/bitcoin_eu_ES.ts src/qt/locale/bitcoin_fa.ts src/qt/locale/bitcoin_fa_IR.ts src/qt/locale/bitcoin_fi.ts src/qt/locale/bitcoin_fr.ts src/qt/locale/bitcoin_fr_CA.ts src/qt/locale/bitcoin_he.ts src/qt/locale/bitcoin_hr.ts src/qt/locale/bitcoin_hu.ts src/qt/locale/bitcoin_it.ts src/qt/locale/bitcoin_lt.ts src/qt/locale/bitcoin_nb.ts src/qt/locale/bitcoin_nl.ts src/qt/locale/bitcoin_pl.ts src/qt/locale/bitcoin_pt_BR.ts src/qt/locale/bitcoin_pt_PT.ts src/qt/locale/bitcoin_ro_RO.ts src/qt/locale/bitcoin_ru.ts src/qt/locale/bitcoin_sk.ts src/qt/locale/bitcoin_sr.ts src/qt/locale/bitcoin_sv.ts src/qt/locale/bitcoin_tr.ts src/qt/locale/bitcoin_uk.ts src/qt/locale/bitcoin_zh_CN.ts src/qt/locale/bitcoin_zh_TW.ts build/lycancoin-qt1.2.1/ && (cd `dirname build/lycancoin-qt1.2.1` && $(TAR) lycancoin-qt1.2.1.tar lycancoin-qt1.2.1 && $(COMPRESS) lycancoin-qt1.2.1.tar) && $(MOVE) `dirname build/lycancoin-qt1.2.1`/lycancoin-qt1.2.1.tar.gz . && $(DEL_FILE) -r build/lycancoin-qt1.2.1
+	$(COPY_FILE) --parents $(SOURCES) $(DIST) build/lycancoin-qt1.2.1/ && $(COPY_FILE) --parents src/qt/locale/bitcoin_bg.ts src/qt/locale/bitcoin_ca_ES.ts src/qt/locale/bitcoin_cs.ts src/qt/locale/bitcoin_da.ts src/qt/locale/bitcoin_de.ts src/qt/locale/bitcoin_el_GR.ts src/qt/locale/bitcoin_en.ts src/qt/locale/bitcoin_es.ts src/qt/locale/bitcoin_es_CL.ts src/qt/locale/bitcoin_et.ts src/qt/locale/bitcoin_eu_ES.ts src/qt/locale/bitcoin_fa.ts src/qt/locale/bitcoin_fa_IR.ts src/qt/locale/bitcoin_fi.ts src/qt/locale/bitcoin_fr.ts src/qt/locale/bitcoin_fr_CA.ts src/qt/locale/bitcoin_he.ts src/qt/locale/bitcoin_hr.ts src/qt/locale/bitcoin_hu.ts src/qt/locale/bitcoin_it.ts src/qt/locale/bitcoin_lt.ts src/qt/locale/bitcoin_nb.ts src/qt/locale/bitcoin_nl.ts src/qt/locale/bitcoin_pl.ts src/qt/locale/bitcoin_pt_BR.ts src/qt/locale/bitcoin_pt_PT.ts src/qt/locale/bitcoin_ro_RO.ts src/qt/locale/bitcoin_ru.ts src/qt/locale/bitcoin_sk.ts src/qt/locale/bitcoin_sr.ts src/qt/locale/bitcoin_sv.ts src/qt/locale/bitcoin_tr.ts src/qt/locale/bitcoin_uk.ts src/qt/locale/bitcoin_zh_CN.ts src/qt/locale/bitcoin_zh_TW.ts build/lycancoin-qt1.2.1/ && $(COPY_FILE) --parents src/qt/bitcoin.qrc build/lycancoin-qt1.2.1/ && $(COPY_FILE) --parents src/qt/bitcoingui.h src/qt/transactiontablemodel.h src/qt/addresstablemodel.h src/qt/optionsdialog.h src/qt/sendcoinsdialog.h src/qt/addressbookpage.h src/qt/signverifymessagedialog.h src/qt/aboutdialog.h src/qt/editaddressdialog.h src/qt/bitcoinaddressvalidator.h src/alert.h src/addrman.h src/base58.h src/bignum.h src/checkpoints.h src/compat.h src/sync.h src/util.h src/hash.h src/uint256.h src/serialize.h src/main.h src/net.h src/key.h src/db.h src/walletdb.h src/script.h src/init.h src/bloom.h src/mruset.h src/checkqueue.h src/json/json_spirit_writer_template.h src/json/json_spirit_writer.h src/json/json_spirit_value.h src/json/json_spirit_utils.h src/json/json_spirit_stream_reader.h src/json/json_spirit_reader_template.h src/json/json_spirit_reader.h src/json/json_spirit_error_position.h src/json/json_spirit.h src/qt/clientmodel.h src/qt/guiutil.h src/qt/transactionrecord.h src/qt/guiconstants.h src/qt/optionsmodel.h src/qt/monitoreddatamapper.h src/qt/transactiondesc.h src/qt/transactiondescdialog.h src/qt/bitcoinamountfield.h src/wallet.h src/keystore.h src/qt/transactionfilterproxy.h src/qt/transactionview.h src/qt/walletmodel.h src/qt/walletview.h src/qt/walletstack.h src/qt/walletframe.h src/bitcoinrpc.h src/qt/overviewpage.h src/qt/csvmodelwriter.h src/crypter.h src/qt/sendcoinsentry.h src/qt/qvalidatedlineedit.h src/qt/bitcoinunits.h src/qt/qvaluecombobox.h src/qt/askpassphrasedialog.h src/protocol.h src/qt/notificator.h src/qt/paymentserver.h src/allocators.h src/ui_interface.h src/scrypt.h src/version.h src/netbase.h src/qt/rpcconsole.h src/qt/verifymessagedialog.h src/qt/macnotificationhandler.h src/clientversion.h src/txdb.h src/leveldb.h src/threadsafety.h src/limitedmap.h build/lycancoin-qt1.2.1/ && $(COPY_FILE) --parents src/qt/bitcoin.cpp src/qt/bitcoingui.cpp src/qt/transactiontablemodel.cpp src/qt/addresstablemodel.cpp src/qt/optionsdialog.cpp src/qt/sendcoinsdialog.cpp src/qt/addressbookpage.cpp src/qt/signverifymessagedialog.cpp src/qt/aboutdialog.cpp src/qt/editaddressdialog.cpp src/qt/bitcoinaddressvalidator.cpp src/alert.cpp src/version.cpp src/sync.cpp src/util.cpp src/hash.cpp src/netbase.cpp src/key.cpp src/script.cpp src/main.cpp src/init.cpp src/net.cpp src/bloom.cpp src/checkpoints.cpp src/addrman.cpp src/db.cpp src/walletdb.cpp src/qt/clientmodel.cpp src/qt/guiutil.cpp src/qt/transactionrecord.cpp src/qt/optionsmodel.cpp src/qt/monitoreddatamapper.cpp src/qt/transactiondesc.cpp src/qt/transactiondescdialog.cpp src/qt/bitcoinstrings.cpp src/qt/bitcoinamountfield.cpp src/wallet.cpp src/keystore.cpp src/qt/transactionfilterproxy.cpp src/qt/transactionview.cpp src/qt/walletmodel.cpp src/qt/walletview.cpp src/qt/walletstack.cpp src/qt/walletframe.cpp src/bitcoinrpc.cpp src/rpcdump.cpp src/rpcnet.cpp src/rpcmining.cpp src/rpcwallet.cpp src/rpcblockchain.cpp src/rpcrawtransaction.cpp src/qt/overviewpage.cpp src/qt/csvmodelwriter.cpp src/crypter.cpp src/qt/sendcoinsentry.cpp src/qt/qvalidatedlineedit.cpp src/qt/bitcoinunits.cpp src/qt/qvaluecombobox.cpp src/qt/askpassphrasedialog.cpp src/protocol.cpp src/qt/notificator.cpp src/qt/paymentserver.cpp src/qt/rpcconsole.cpp src/qt/verifymessagedialog.cpp src/scrypt.c src/noui.cpp src/leveldb.cpp src/txdb.cpp build/lycancoin-qt1.2.1/ && $(COPY_FILE) --parents src/qt/forms/sendcoinsdialog.ui src/qt/forms/addressbookpage.ui src/qt/forms/signverifymessagedialog.ui src/qt/forms/aboutdialog.ui src/qt/forms/editaddressdialog.ui src/qt/forms/transactiondescdialog.ui src/qt/forms/overviewpage.ui src/qt/forms/sendcoinsentry.ui src/qt/forms/askpassphrasedialog.ui src/qt/forms/rpcconsole.ui src/qt/forms/verifymessagedialog.ui src/qt/forms/optionsdialog.ui build/lycancoin-qt1.2.1/ && $(COPY_FILE) --parents src/qt/locale/bitcoin_bg.ts src/qt/locale/bitcoin_ca_ES.ts src/qt/locale/bitcoin_cs.ts src/qt/locale/bitcoin_da.ts src/qt/locale/bitcoin_de.ts src/qt/locale/bitcoin_el_GR.ts src/qt/locale/bitcoin_en.ts src/qt/locale/bitcoin_es.ts src/qt/locale/bitcoin_es_CL.ts src/qt/locale/bitcoin_et.ts src/qt/locale/bitcoin_eu_ES.ts src/qt/locale/bitcoin_fa.ts src/qt/locale/bitcoin_fa_IR.ts src/qt/locale/bitcoin_fi.ts src/qt/locale/bitcoin_fr.ts src/qt/locale/bitcoin_fr_CA.ts src/qt/locale/bitcoin_he.ts src/qt/locale/bitcoin_hr.ts src/qt/locale/bitcoin_hu.ts src/qt/locale/bitcoin_it.ts src/qt/locale/bitcoin_lt.ts src/qt/locale/bitcoin_nb.ts src/qt/locale/bitcoin_nl.ts src/qt/locale/bitcoin_pl.ts src/qt/locale/bitcoin_pt_BR.ts src/qt/locale/bitcoin_pt_PT.ts src/qt/locale/bitcoin_ro_RO.ts src/qt/locale/bitcoin_ru.ts src/qt/locale/bitcoin_sk.ts src/qt/locale/bitcoin_sr.ts src/qt/locale/bitcoin_sv.ts src/qt/locale/bitcoin_tr.ts src/qt/locale/bitcoin_uk.ts src/qt/locale/bitcoin_zh_CN.ts src/qt/locale/bitcoin_zh_TW.ts build/lycancoin-qt1.2.1/ && (cd `dirname build/lycancoin-qt1.2.1` && $(TAR) lycancoin-qt1.2.1.tar lycancoin-qt1.2.1 && $(COMPRESS) lycancoin-qt1.2.1.tar) && $(MOVE) `dirname build/lycancoin-qt1.2.1`/lycancoin-qt1.2.1.tar.gz . && $(DEL_FILE) -r build/lycancoin-qt1.2.1
 
 
 clean:compiler_clean 
@@ -497,7 +507,7 @@ distclean: clean
 
 
 /home/lycan/lycancoin-release/src/leveldb/libleveldb.a: FORCE
-	cd /home/lycan/lycancoin-release/src/leveldb && CC=gcc CXX=g++ $(MAKE) OPT="-m64 -pipe -fstack-protector-all -D_FORTIFY_SOURCE=2" libleveldb.a libmemenv.a
+	cd /home/lycan/lycancoin-release/src/leveldb && CC=gcc CXX=g++ $(MAKE) OPT="-m64 -pipe -fstack-protector-all -D_FORTIFY_SOURCE=2 -O2" libleveldb.a libmemenv.a
 
 /home/lycan/lycancoin-release/build/build.h: FORCE
 	cd /home/lycan/lycancoin-release; /bin/sh share/genbuild.sh /home/lycan/lycancoin-release/build/build.h
@@ -620,93 +630,93 @@ compiler_rcc_make_all: qrc_bitcoin.cpp
 compiler_rcc_clean:
 	-$(DEL_FILE) qrc_bitcoin.cpp
 qrc_bitcoin.cpp: src/qt/bitcoin.qrc \
-		src/qt/res/movies/update_spinner.mng \
-		src/qt/locale/bitcoin_da.qm \
-		src/qt/locale/bitcoin_fa_IR.qm \
-		src/qt/locale/bitcoin_sr.qm \
-		src/qt/locale/bitcoin_zh_TW.qm \
-		src/qt/locale/bitcoin_ro_RO.qm \
 		src/qt/locale/bitcoin_el_GR.qm \
-		src/qt/locale/bitcoin_de.qm \
-		src/qt/locale/bitcoin_fr.qm \
-		src/qt/locale/bitcoin_sv.qm \
-		src/qt/locale/bitcoin_en.qm \
-		src/qt/locale/bitcoin_lt.qm \
-		src/qt/locale/bitcoin_ru.qm \
-		src/qt/locale/bitcoin_fr_CA.qm \
-		src/qt/locale/bitcoin_pt_PT.qm \
-		src/qt/locale/bitcoin_es.qm \
-		src/qt/locale/bitcoin_et.qm \
-		src/qt/locale/bitcoin_pl.qm \
-		src/qt/locale/bitcoin_nb.qm \
-		src/qt/locale/bitcoin_he.qm \
-		src/qt/locale/bitcoin_bg.qm \
-		src/qt/locale/bitcoin_pt_BR.qm \
-		src/qt/locale/bitcoin_uk.qm \
-		src/qt/locale/bitcoin_zh_CN.qm \
-		src/qt/locale/bitcoin_ca_ES.qm \
-		src/qt/locale/bitcoin_cs.qm \
-		src/qt/locale/bitcoin_fa.qm \
-		src/qt/locale/bitcoin_nl.qm \
-		src/qt/locale/bitcoin_it.qm \
-		src/qt/locale/bitcoin_es_CL.qm \
 		src/qt/locale/bitcoin_hr.qm \
 		src/qt/locale/bitcoin_sk.qm \
 		src/qt/locale/bitcoin_tr.qm \
 		src/qt/locale/bitcoin_fi.qm \
 		src/qt/locale/bitcoin_hu.qm \
+		src/qt/locale/bitcoin_fr_CA.qm \
+		src/qt/locale/bitcoin_pt_PT.qm \
+		src/qt/locale/bitcoin_da.qm \
+		src/qt/locale/bitcoin_sr.qm \
+		src/qt/locale/bitcoin_de.qm \
+		src/qt/locale/bitcoin_fr.qm \
+		src/qt/locale/bitcoin_sv.qm \
+		src/qt/locale/bitcoin_pt_BR.qm \
+		src/qt/locale/bitcoin_en.qm \
+		src/qt/locale/bitcoin_lt.qm \
+		src/qt/locale/bitcoin_zh_CN.qm \
+		src/qt/locale/bitcoin_ca_ES.qm \
+		src/qt/locale/bitcoin_ru.qm \
+		src/qt/locale/bitcoin_es.qm \
+		src/qt/locale/bitcoin_et.qm \
+		src/qt/locale/bitcoin_pl.qm \
+		src/qt/locale/bitcoin_es_CL.qm \
+		src/qt/locale/bitcoin_nb.qm \
+		src/qt/locale/bitcoin_he.qm \
+		src/qt/locale/bitcoin_bg.qm \
+		src/qt/locale/bitcoin_uk.qm \
 		src/qt/locale/bitcoin_eu_ES.qm \
-		src/qt/res/images/about.png \
-		src/qt/res/images/splash2.jpg \
-		src/qt/res/images/lycancoin.png \
-		src/qt/res/icons/filesave.png \
-		src/qt/res/icons/transaction2.png \
-		src/qt/res/icons/transaction0.png \
-		src/qt/res/icons/clock1.png \
-		src/qt/res/icons/debugwindow.png \
-		src/qt/res/icons/clock2.png \
-		src/qt/res/icons/toolbar_testnet.png \
-		src/qt/res/icons/clock3.png \
-		src/qt/res/icons/synced.png \
-		src/qt/res/icons/edit.png \
-		src/qt/res/icons/clock4.png \
-		src/qt/res/icons/configure.png \
-		src/qt/res/icons/clock5.png \
-		src/qt/res/icons/tx_input.png \
-		src/qt/res/icons/overview.png \
-		src/qt/res/icons/mining_inactive.png \
-		src/qt/res/icons/tx_mined.png \
-		src/qt/res/icons/history.png \
-		src/qt/res/icons/export.png \
-		src/qt/res/icons/mining_active.png \
-		src/qt/res/icons/editpaste.png \
-		src/qt/res/icons/bitcoin_testnet.png \
-		src/qt/res/icons/mining.png \
-		src/qt/res/icons/send.png \
-		src/qt/res/icons/receive.png \
-		src/qt/res/icons/lock_closed.png \
-		src/qt/res/icons/add.png \
-		src/qt/res/icons/quit.png \
-		src/qt/res/icons/tx_output.png \
-		src/qt/res/icons/editcopy.png \
-		src/qt/res/icons/connect0_16.png \
-		src/qt/res/icons/connect1_16.png \
-		src/qt/res/icons/connect2_16.png \
-		src/qt/res/icons/connect3_16.png \
-		src/qt/res/icons/connect4_16.png \
-		src/qt/res/icons/bitcoin.png \
-		src/qt/res/icons/remove.png \
-		src/qt/res/icons/toolbar.png \
-		src/qt/res/icons/tx_inout.png \
+		src/qt/locale/bitcoin_cs.qm \
+		src/qt/locale/bitcoin_fa_IR.qm \
+		src/qt/locale/bitcoin_fa.qm \
+		src/qt/locale/bitcoin_nl.qm \
+		src/qt/locale/bitcoin_it.qm \
+		src/qt/locale/bitcoin_zh_TW.qm \
+		src/qt/locale/bitcoin_ro_RO.qm \
 		src/qt/res/icons/key.png \
-		src/qt/res/icons/lock_open.png \
+		src/qt/res/icons/history.png \
+		src/qt/res/icons/tx_input.png \
+		src/qt/res/icons/receive.png \
+		src/qt/res/icons/tx_mined.png \
+		src/qt/res/icons/edit.png \
+		src/qt/res/icons/transaction0.png \
+		src/qt/res/icons/connect0_16.png \
+		src/qt/res/icons/toolbar.png \
+		src/qt/res/icons/clock1.png \
+		src/qt/res/icons/connect1_16.png \
+		src/qt/res/icons/clock2.png \
+		src/qt/res/icons/connect2_16.png \
+		src/qt/res/icons/clock3.png \
+		src/qt/res/icons/connect3_16.png \
+		src/qt/res/icons/clock4.png \
+		src/qt/res/icons/remove.png \
+		src/qt/res/icons/connect4_16.png \
+		src/qt/res/icons/clock5.png \
+		src/qt/res/icons/toolbar_testnet.png \
 		src/qt/res/icons/address-book.png \
-		src/qt/res/icons/qrcode.png
+		src/qt/res/icons/transaction2.png \
+		src/qt/res/icons/mining_inactive.png \
+		src/qt/res/icons/qrcode.png \
+		src/qt/res/icons/lock_closed.png \
+		src/qt/res/icons/lock_open.png \
+		src/qt/res/icons/filesave.png \
+		src/qt/res/icons/configure.png \
+		src/qt/res/icons/send.png \
+		src/qt/res/icons/synced.png \
+		src/qt/res/icons/editcopy.png \
+		src/qt/res/icons/overview.png \
+		src/qt/res/icons/bitcoin_testnet.png \
+		src/qt/res/icons/bitcoin.png \
+		src/qt/res/icons/tx_output.png \
+		src/qt/res/icons/export.png \
+		src/qt/res/icons/quit.png \
+		src/qt/res/icons/tx_inout.png \
+		src/qt/res/icons/add.png \
+		src/qt/res/icons/editpaste.png \
+		src/qt/res/icons/mining_active.png \
+		src/qt/res/icons/debugwindow.png \
+		src/qt/res/icons/mining.png \
+		src/qt/res/movies/update_spinner.mng \
+		src/qt/res/images/splash2.jpg \
+		src/qt/res/images/about.png \
+		src/qt/res/images/lycancoin.png
 	/usr/lib/x86_64-linux-gnu/qt5/bin/rcc -name bitcoin src/qt/bitcoin.qrc -o qrc_bitcoin.cpp
 
-compiler_moc_header_make_all: build/moc_bitcoingui.cpp build/moc_transactiontablemodel.cpp build/moc_addresstablemodel.cpp build/moc_optionsdialog.cpp build/moc_sendcoinsdialog.cpp build/moc_addressbookpage.cpp build/moc_signverifymessagedialog.cpp build/moc_aboutdialog.cpp build/moc_editaddressdialog.cpp build/moc_bitcoinaddressvalidator.cpp build/moc_clientmodel.cpp build/moc_guiutil.cpp build/moc_optionsmodel.cpp build/moc_monitoreddatamapper.cpp build/moc_transactiondesc.cpp build/moc_transactiondescdialog.cpp build/moc_bitcoinamountfield.cpp build/moc_transactionfilterproxy.cpp build/moc_transactionview.cpp build/moc_walletmodel.cpp build/moc_overviewpage.cpp build/moc_csvmodelwriter.cpp build/moc_sendcoinsentry.cpp build/moc_qvalidatedlineedit.cpp build/moc_bitcoinunits.cpp build/moc_qvaluecombobox.cpp build/moc_askpassphrasedialog.cpp build/moc_notificator.cpp build/moc_paymentserver.cpp build/moc_rpcconsole.cpp build/moc_verifymessagedialog.cpp build/moc_macnotificationhandler.cpp
+compiler_moc_header_make_all: build/moc_bitcoingui.cpp build/moc_transactiontablemodel.cpp build/moc_addresstablemodel.cpp build/moc_optionsdialog.cpp build/moc_sendcoinsdialog.cpp build/moc_addressbookpage.cpp build/moc_signverifymessagedialog.cpp build/moc_aboutdialog.cpp build/moc_editaddressdialog.cpp build/moc_bitcoinaddressvalidator.cpp build/moc_clientmodel.cpp build/moc_guiutil.cpp build/moc_optionsmodel.cpp build/moc_monitoreddatamapper.cpp build/moc_transactiondesc.cpp build/moc_transactiondescdialog.cpp build/moc_bitcoinamountfield.cpp build/moc_transactionfilterproxy.cpp build/moc_transactionview.cpp build/moc_walletmodel.cpp build/moc_walletview.cpp build/moc_walletstack.cpp build/moc_walletframe.cpp build/moc_overviewpage.cpp build/moc_csvmodelwriter.cpp build/moc_sendcoinsentry.cpp build/moc_qvalidatedlineedit.cpp build/moc_bitcoinunits.cpp build/moc_qvaluecombobox.cpp build/moc_askpassphrasedialog.cpp build/moc_notificator.cpp build/moc_paymentserver.cpp build/moc_rpcconsole.cpp build/moc_verifymessagedialog.cpp build/moc_macnotificationhandler.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) build/moc_bitcoingui.cpp build/moc_transactiontablemodel.cpp build/moc_addresstablemodel.cpp build/moc_optionsdialog.cpp build/moc_sendcoinsdialog.cpp build/moc_addressbookpage.cpp build/moc_signverifymessagedialog.cpp build/moc_aboutdialog.cpp build/moc_editaddressdialog.cpp build/moc_bitcoinaddressvalidator.cpp build/moc_clientmodel.cpp build/moc_guiutil.cpp build/moc_optionsmodel.cpp build/moc_monitoreddatamapper.cpp build/moc_transactiondesc.cpp build/moc_transactiondescdialog.cpp build/moc_bitcoinamountfield.cpp build/moc_transactionfilterproxy.cpp build/moc_transactionview.cpp build/moc_walletmodel.cpp build/moc_overviewpage.cpp build/moc_csvmodelwriter.cpp build/moc_sendcoinsentry.cpp build/moc_qvalidatedlineedit.cpp build/moc_bitcoinunits.cpp build/moc_qvaluecombobox.cpp build/moc_askpassphrasedialog.cpp build/moc_notificator.cpp build/moc_paymentserver.cpp build/moc_rpcconsole.cpp build/moc_verifymessagedialog.cpp build/moc_macnotificationhandler.cpp
+	-$(DEL_FILE) build/moc_bitcoingui.cpp build/moc_transactiontablemodel.cpp build/moc_addresstablemodel.cpp build/moc_optionsdialog.cpp build/moc_sendcoinsdialog.cpp build/moc_addressbookpage.cpp build/moc_signverifymessagedialog.cpp build/moc_aboutdialog.cpp build/moc_editaddressdialog.cpp build/moc_bitcoinaddressvalidator.cpp build/moc_clientmodel.cpp build/moc_guiutil.cpp build/moc_optionsmodel.cpp build/moc_monitoreddatamapper.cpp build/moc_transactiondesc.cpp build/moc_transactiondescdialog.cpp build/moc_bitcoinamountfield.cpp build/moc_transactionfilterproxy.cpp build/moc_transactionview.cpp build/moc_walletmodel.cpp build/moc_walletview.cpp build/moc_walletstack.cpp build/moc_walletframe.cpp build/moc_overviewpage.cpp build/moc_csvmodelwriter.cpp build/moc_sendcoinsentry.cpp build/moc_qvalidatedlineedit.cpp build/moc_bitcoinunits.cpp build/moc_qvaluecombobox.cpp build/moc_askpassphrasedialog.cpp build/moc_notificator.cpp build/moc_paymentserver.cpp build/moc_rpcconsole.cpp build/moc_verifymessagedialog.cpp build/moc_macnotificationhandler.cpp
 build/moc_bitcoingui.cpp: /usr/include/qt5/QtWidgets/QMainWindow \
 		/usr/include/qt5/QtWidgets/qmainwindow.h \
 		/usr/include/qt5/QtWidgets/qwidget.h \
@@ -820,6 +830,7 @@ build/moc_bitcoingui.cpp: /usr/include/qt5/QtWidgets/QMainWindow \
 		/usr/include/qt5/QtGui/qicon.h \
 		/usr/include/qt5/QtWidgets/QSystemTrayIcon \
 		/usr/include/qt5/QtWidgets/qsystemtrayicon.h \
+		/usr/include/qt5/QtCore/QMap \
 		src/qt/bitcoingui.h
 	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) $(INCPATH) -I/usr/include/c++/4.8 -I/usr/include/x86_64-linux-gnu/c++/4.8 -I/usr/include/c++/4.8/backward -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include src/qt/bitcoingui.h -o build/moc_bitcoingui.cpp
 
@@ -2585,6 +2596,345 @@ build/moc_walletmodel.cpp: /usr/include/qt5/QtCore/QObject \
 		src/allocators.h \
 		src/qt/walletmodel.h
 	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) $(INCPATH) -I/usr/include/c++/4.8 -I/usr/include/x86_64-linux-gnu/c++/4.8 -I/usr/include/c++/4.8/backward -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include src/qt/walletmodel.h -o build/moc_walletmodel.cpp
+
+build/moc_walletview.cpp: /usr/include/qt5/QtWidgets/QStackedWidget \
+		/usr/include/qt5/QtWidgets/qstackedwidget.h \
+		/usr/include/qt5/QtWidgets/qframe.h \
+		/usr/include/qt5/QtWidgets/qwidget.h \
+		/usr/include/qt5/QtGui/qwindowdefs.h \
+		/usr/include/qt5/QtCore/qglobal.h \
+		/usr/include/qt5/QtCore/qconfig.h \
+		/usr/include/qt5/QtCore/qfeatures.h \
+		/usr/include/qt5/QtCore/qsystemdetection.h \
+		/usr/include/qt5/QtCore/qprocessordetection.h \
+		/usr/include/qt5/QtCore/qcompilerdetection.h \
+		/usr/include/qt5/QtCore/qglobalstatic.h \
+		/usr/include/qt5/QtCore/qatomic.h \
+		/usr/include/qt5/QtCore/qbasicatomic.h \
+		/usr/include/qt5/QtCore/qatomic_bootstrap.h \
+		/usr/include/qt5/QtCore/qgenericatomic.h \
+		/usr/include/qt5/QtCore/qatomic_msvc.h \
+		/usr/include/qt5/QtCore/qatomic_integrity.h \
+		/usr/include/qt5/QtCore/qoldbasicatomic.h \
+		/usr/include/qt5/QtCore/qatomic_vxworks.h \
+		/usr/include/qt5/QtCore/qatomic_power.h \
+		/usr/include/qt5/QtCore/qatomic_alpha.h \
+		/usr/include/qt5/QtCore/qatomic_armv7.h \
+		/usr/include/qt5/QtCore/qatomic_armv6.h \
+		/usr/include/qt5/QtCore/qatomic_armv5.h \
+		/usr/include/qt5/QtCore/qatomic_bfin.h \
+		/usr/include/qt5/QtCore/qatomic_ia64.h \
+		/usr/include/qt5/QtCore/qatomic_mips.h \
+		/usr/include/qt5/QtCore/qatomic_s390.h \
+		/usr/include/qt5/QtCore/qatomic_sh4a.h \
+		/usr/include/qt5/QtCore/qatomic_sparc.h \
+		/usr/include/qt5/QtCore/qatomic_gcc.h \
+		/usr/include/qt5/QtCore/qatomic_x86.h \
+		/usr/include/qt5/QtCore/qatomic_cxx11.h \
+		/usr/include/qt5/QtCore/qatomic_unix.h \
+		/usr/include/qt5/QtCore/qmutex.h \
+		/usr/include/qt5/QtCore/qlogging.h \
+		/usr/include/qt5/QtCore/qflags.h \
+		/usr/include/qt5/QtCore/qtypeinfo.h \
+		/usr/include/qt5/QtCore/qtypetraits.h \
+		/usr/include/qt5/QtCore/qsysinfo.h \
+		/usr/include/qt5/QtCore/qobjectdefs.h \
+		/usr/include/qt5/QtCore/qnamespace.h \
+		/usr/include/qt5/QtCore/qobjectdefs_impl.h \
+		/usr/include/qt5/QtGui/qwindowdefs_win.h \
+		/usr/include/qt5/QtCore/qobject.h \
+		/usr/include/qt5/QtCore/qstring.h \
+		/usr/include/qt5/QtCore/qchar.h \
+		/usr/include/qt5/QtCore/qbytearray.h \
+		/usr/include/qt5/QtCore/qrefcount.h \
+		/usr/include/qt5/QtCore/qarraydata.h \
+		/usr/include/qt5/QtCore/qstringbuilder.h \
+		/usr/include/qt5/QtCore/qlist.h \
+		/usr/include/qt5/QtCore/qalgorithms.h \
+		/usr/include/qt5/QtCore/qiterator.h \
+		/usr/include/qt5/QtCore/qcoreevent.h \
+		/usr/include/qt5/QtCore/qscopedpointer.h \
+		/usr/include/qt5/QtCore/qmetatype.h \
+		/usr/include/qt5/QtCore/qvarlengtharray.h \
+		/usr/include/qt5/QtCore/qcontainerfwd.h \
+		/usr/include/qt5/QtCore/qisenum.h \
+		/usr/include/qt5/QtCore/qobject_impl.h \
+		/usr/include/qt5/QtCore/qmargins.h \
+		/usr/include/qt5/QtCore/qrect.h \
+		/usr/include/qt5/QtCore/qsize.h \
+		/usr/include/qt5/QtCore/qpoint.h \
+		/usr/include/qt5/QtGui/qpaintdevice.h \
+		/usr/include/qt5/QtGui/qpalette.h \
+		/usr/include/qt5/QtGui/qcolor.h \
+		/usr/include/qt5/QtGui/qrgb.h \
+		/usr/include/qt5/QtCore/qstringlist.h \
+		/usr/include/qt5/QtCore/qdatastream.h \
+		/usr/include/qt5/QtCore/qiodevice.h \
+		/usr/include/qt5/QtCore/qpair.h \
+		/usr/include/qt5/QtCore/qregexp.h \
+		/usr/include/qt5/QtCore/qstringmatcher.h \
+		/usr/include/qt5/QtGui/qbrush.h \
+		/usr/include/qt5/QtCore/qvector.h \
+		/usr/include/qt5/QtGui/qmatrix.h \
+		/usr/include/qt5/QtGui/qpolygon.h \
+		/usr/include/qt5/QtGui/qregion.h \
+		/usr/include/qt5/QtCore/qline.h \
+		/usr/include/qt5/QtGui/qtransform.h \
+		/usr/include/qt5/QtGui/qpainterpath.h \
+		/usr/include/qt5/QtGui/qimage.h \
+		/usr/include/qt5/QtGui/qpixmap.h \
+		/usr/include/qt5/QtCore/qsharedpointer.h \
+		/usr/include/qt5/QtCore/qshareddata.h \
+		/usr/include/qt5/QtCore/qsharedpointer_impl.h \
+		/usr/include/qt5/QtCore/qhash.h \
+		/usr/include/qt5/QtGui/qfont.h \
+		/usr/include/qt5/QtGui/qfontmetrics.h \
+		/usr/include/qt5/QtGui/qfontinfo.h \
+		/usr/include/qt5/QtWidgets/qsizepolicy.h \
+		/usr/include/qt5/QtGui/qcursor.h \
+		/usr/include/qt5/QtGui/qkeysequence.h \
+		/usr/include/qt5/QtGui/qevent.h \
+		/usr/include/qt5/QtCore/qvariant.h \
+		/usr/include/qt5/QtCore/qmap.h \
+		/usr/include/qt5/QtCore/qdebug.h \
+		/usr/include/qt5/QtCore/qtextstream.h \
+		/usr/include/qt5/QtCore/qlocale.h \
+		/usr/include/qt5/QtCore/qset.h \
+		/usr/include/qt5/QtCore/qcontiguouscache.h \
+		/usr/include/qt5/QtCore/qurl.h \
+		/usr/include/qt5/QtCore/qurlquery.h \
+		/usr/include/qt5/QtCore/qfile.h \
+		/usr/include/qt5/QtCore/qfiledevice.h \
+		/usr/include/qt5/QtGui/qvector2d.h \
+		/usr/include/qt5/QtGui/qtouchdevice.h \
+		src/qt/walletview.h
+	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) $(INCPATH) -I/usr/include/c++/4.8 -I/usr/include/x86_64-linux-gnu/c++/4.8 -I/usr/include/c++/4.8/backward -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include src/qt/walletview.h -o build/moc_walletview.cpp
+
+build/moc_walletstack.cpp: /usr/include/qt5/QtWidgets/QStackedWidget \
+		/usr/include/qt5/QtWidgets/qstackedwidget.h \
+		/usr/include/qt5/QtWidgets/qframe.h \
+		/usr/include/qt5/QtWidgets/qwidget.h \
+		/usr/include/qt5/QtGui/qwindowdefs.h \
+		/usr/include/qt5/QtCore/qglobal.h \
+		/usr/include/qt5/QtCore/qconfig.h \
+		/usr/include/qt5/QtCore/qfeatures.h \
+		/usr/include/qt5/QtCore/qsystemdetection.h \
+		/usr/include/qt5/QtCore/qprocessordetection.h \
+		/usr/include/qt5/QtCore/qcompilerdetection.h \
+		/usr/include/qt5/QtCore/qglobalstatic.h \
+		/usr/include/qt5/QtCore/qatomic.h \
+		/usr/include/qt5/QtCore/qbasicatomic.h \
+		/usr/include/qt5/QtCore/qatomic_bootstrap.h \
+		/usr/include/qt5/QtCore/qgenericatomic.h \
+		/usr/include/qt5/QtCore/qatomic_msvc.h \
+		/usr/include/qt5/QtCore/qatomic_integrity.h \
+		/usr/include/qt5/QtCore/qoldbasicatomic.h \
+		/usr/include/qt5/QtCore/qatomic_vxworks.h \
+		/usr/include/qt5/QtCore/qatomic_power.h \
+		/usr/include/qt5/QtCore/qatomic_alpha.h \
+		/usr/include/qt5/QtCore/qatomic_armv7.h \
+		/usr/include/qt5/QtCore/qatomic_armv6.h \
+		/usr/include/qt5/QtCore/qatomic_armv5.h \
+		/usr/include/qt5/QtCore/qatomic_bfin.h \
+		/usr/include/qt5/QtCore/qatomic_ia64.h \
+		/usr/include/qt5/QtCore/qatomic_mips.h \
+		/usr/include/qt5/QtCore/qatomic_s390.h \
+		/usr/include/qt5/QtCore/qatomic_sh4a.h \
+		/usr/include/qt5/QtCore/qatomic_sparc.h \
+		/usr/include/qt5/QtCore/qatomic_gcc.h \
+		/usr/include/qt5/QtCore/qatomic_x86.h \
+		/usr/include/qt5/QtCore/qatomic_cxx11.h \
+		/usr/include/qt5/QtCore/qatomic_unix.h \
+		/usr/include/qt5/QtCore/qmutex.h \
+		/usr/include/qt5/QtCore/qlogging.h \
+		/usr/include/qt5/QtCore/qflags.h \
+		/usr/include/qt5/QtCore/qtypeinfo.h \
+		/usr/include/qt5/QtCore/qtypetraits.h \
+		/usr/include/qt5/QtCore/qsysinfo.h \
+		/usr/include/qt5/QtCore/qobjectdefs.h \
+		/usr/include/qt5/QtCore/qnamespace.h \
+		/usr/include/qt5/QtCore/qobjectdefs_impl.h \
+		/usr/include/qt5/QtGui/qwindowdefs_win.h \
+		/usr/include/qt5/QtCore/qobject.h \
+		/usr/include/qt5/QtCore/qstring.h \
+		/usr/include/qt5/QtCore/qchar.h \
+		/usr/include/qt5/QtCore/qbytearray.h \
+		/usr/include/qt5/QtCore/qrefcount.h \
+		/usr/include/qt5/QtCore/qarraydata.h \
+		/usr/include/qt5/QtCore/qstringbuilder.h \
+		/usr/include/qt5/QtCore/qlist.h \
+		/usr/include/qt5/QtCore/qalgorithms.h \
+		/usr/include/qt5/QtCore/qiterator.h \
+		/usr/include/qt5/QtCore/qcoreevent.h \
+		/usr/include/qt5/QtCore/qscopedpointer.h \
+		/usr/include/qt5/QtCore/qmetatype.h \
+		/usr/include/qt5/QtCore/qvarlengtharray.h \
+		/usr/include/qt5/QtCore/qcontainerfwd.h \
+		/usr/include/qt5/QtCore/qisenum.h \
+		/usr/include/qt5/QtCore/qobject_impl.h \
+		/usr/include/qt5/QtCore/qmargins.h \
+		/usr/include/qt5/QtCore/qrect.h \
+		/usr/include/qt5/QtCore/qsize.h \
+		/usr/include/qt5/QtCore/qpoint.h \
+		/usr/include/qt5/QtGui/qpaintdevice.h \
+		/usr/include/qt5/QtGui/qpalette.h \
+		/usr/include/qt5/QtGui/qcolor.h \
+		/usr/include/qt5/QtGui/qrgb.h \
+		/usr/include/qt5/QtCore/qstringlist.h \
+		/usr/include/qt5/QtCore/qdatastream.h \
+		/usr/include/qt5/QtCore/qiodevice.h \
+		/usr/include/qt5/QtCore/qpair.h \
+		/usr/include/qt5/QtCore/qregexp.h \
+		/usr/include/qt5/QtCore/qstringmatcher.h \
+		/usr/include/qt5/QtGui/qbrush.h \
+		/usr/include/qt5/QtCore/qvector.h \
+		/usr/include/qt5/QtGui/qmatrix.h \
+		/usr/include/qt5/QtGui/qpolygon.h \
+		/usr/include/qt5/QtGui/qregion.h \
+		/usr/include/qt5/QtCore/qline.h \
+		/usr/include/qt5/QtGui/qtransform.h \
+		/usr/include/qt5/QtGui/qpainterpath.h \
+		/usr/include/qt5/QtGui/qimage.h \
+		/usr/include/qt5/QtGui/qpixmap.h \
+		/usr/include/qt5/QtCore/qsharedpointer.h \
+		/usr/include/qt5/QtCore/qshareddata.h \
+		/usr/include/qt5/QtCore/qsharedpointer_impl.h \
+		/usr/include/qt5/QtCore/qhash.h \
+		/usr/include/qt5/QtGui/qfont.h \
+		/usr/include/qt5/QtGui/qfontmetrics.h \
+		/usr/include/qt5/QtGui/qfontinfo.h \
+		/usr/include/qt5/QtWidgets/qsizepolicy.h \
+		/usr/include/qt5/QtGui/qcursor.h \
+		/usr/include/qt5/QtGui/qkeysequence.h \
+		/usr/include/qt5/QtGui/qevent.h \
+		/usr/include/qt5/QtCore/qvariant.h \
+		/usr/include/qt5/QtCore/qmap.h \
+		/usr/include/qt5/QtCore/qdebug.h \
+		/usr/include/qt5/QtCore/qtextstream.h \
+		/usr/include/qt5/QtCore/qlocale.h \
+		/usr/include/qt5/QtCore/qset.h \
+		/usr/include/qt5/QtCore/qcontiguouscache.h \
+		/usr/include/qt5/QtCore/qurl.h \
+		/usr/include/qt5/QtCore/qurlquery.h \
+		/usr/include/qt5/QtCore/qfile.h \
+		/usr/include/qt5/QtCore/qfiledevice.h \
+		/usr/include/qt5/QtGui/qvector2d.h \
+		/usr/include/qt5/QtGui/qtouchdevice.h \
+		/usr/include/qt5/QtCore/QMap \
+		src/qt/walletstack.h
+	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) $(INCPATH) -I/usr/include/c++/4.8 -I/usr/include/x86_64-linux-gnu/c++/4.8 -I/usr/include/c++/4.8/backward -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include src/qt/walletstack.h -o build/moc_walletstack.cpp
+
+build/moc_walletframe.cpp: /usr/include/qt5/QtWidgets/QFrame \
+		/usr/include/qt5/QtWidgets/qframe.h \
+		/usr/include/qt5/QtWidgets/qwidget.h \
+		/usr/include/qt5/QtGui/qwindowdefs.h \
+		/usr/include/qt5/QtCore/qglobal.h \
+		/usr/include/qt5/QtCore/qconfig.h \
+		/usr/include/qt5/QtCore/qfeatures.h \
+		/usr/include/qt5/QtCore/qsystemdetection.h \
+		/usr/include/qt5/QtCore/qprocessordetection.h \
+		/usr/include/qt5/QtCore/qcompilerdetection.h \
+		/usr/include/qt5/QtCore/qglobalstatic.h \
+		/usr/include/qt5/QtCore/qatomic.h \
+		/usr/include/qt5/QtCore/qbasicatomic.h \
+		/usr/include/qt5/QtCore/qatomic_bootstrap.h \
+		/usr/include/qt5/QtCore/qgenericatomic.h \
+		/usr/include/qt5/QtCore/qatomic_msvc.h \
+		/usr/include/qt5/QtCore/qatomic_integrity.h \
+		/usr/include/qt5/QtCore/qoldbasicatomic.h \
+		/usr/include/qt5/QtCore/qatomic_vxworks.h \
+		/usr/include/qt5/QtCore/qatomic_power.h \
+		/usr/include/qt5/QtCore/qatomic_alpha.h \
+		/usr/include/qt5/QtCore/qatomic_armv7.h \
+		/usr/include/qt5/QtCore/qatomic_armv6.h \
+		/usr/include/qt5/QtCore/qatomic_armv5.h \
+		/usr/include/qt5/QtCore/qatomic_bfin.h \
+		/usr/include/qt5/QtCore/qatomic_ia64.h \
+		/usr/include/qt5/QtCore/qatomic_mips.h \
+		/usr/include/qt5/QtCore/qatomic_s390.h \
+		/usr/include/qt5/QtCore/qatomic_sh4a.h \
+		/usr/include/qt5/QtCore/qatomic_sparc.h \
+		/usr/include/qt5/QtCore/qatomic_gcc.h \
+		/usr/include/qt5/QtCore/qatomic_x86.h \
+		/usr/include/qt5/QtCore/qatomic_cxx11.h \
+		/usr/include/qt5/QtCore/qatomic_unix.h \
+		/usr/include/qt5/QtCore/qmutex.h \
+		/usr/include/qt5/QtCore/qlogging.h \
+		/usr/include/qt5/QtCore/qflags.h \
+		/usr/include/qt5/QtCore/qtypeinfo.h \
+		/usr/include/qt5/QtCore/qtypetraits.h \
+		/usr/include/qt5/QtCore/qsysinfo.h \
+		/usr/include/qt5/QtCore/qobjectdefs.h \
+		/usr/include/qt5/QtCore/qnamespace.h \
+		/usr/include/qt5/QtCore/qobjectdefs_impl.h \
+		/usr/include/qt5/QtGui/qwindowdefs_win.h \
+		/usr/include/qt5/QtCore/qobject.h \
+		/usr/include/qt5/QtCore/qstring.h \
+		/usr/include/qt5/QtCore/qchar.h \
+		/usr/include/qt5/QtCore/qbytearray.h \
+		/usr/include/qt5/QtCore/qrefcount.h \
+		/usr/include/qt5/QtCore/qarraydata.h \
+		/usr/include/qt5/QtCore/qstringbuilder.h \
+		/usr/include/qt5/QtCore/qlist.h \
+		/usr/include/qt5/QtCore/qalgorithms.h \
+		/usr/include/qt5/QtCore/qiterator.h \
+		/usr/include/qt5/QtCore/qcoreevent.h \
+		/usr/include/qt5/QtCore/qscopedpointer.h \
+		/usr/include/qt5/QtCore/qmetatype.h \
+		/usr/include/qt5/QtCore/qvarlengtharray.h \
+		/usr/include/qt5/QtCore/qcontainerfwd.h \
+		/usr/include/qt5/QtCore/qisenum.h \
+		/usr/include/qt5/QtCore/qobject_impl.h \
+		/usr/include/qt5/QtCore/qmargins.h \
+		/usr/include/qt5/QtCore/qrect.h \
+		/usr/include/qt5/QtCore/qsize.h \
+		/usr/include/qt5/QtCore/qpoint.h \
+		/usr/include/qt5/QtGui/qpaintdevice.h \
+		/usr/include/qt5/QtGui/qpalette.h \
+		/usr/include/qt5/QtGui/qcolor.h \
+		/usr/include/qt5/QtGui/qrgb.h \
+		/usr/include/qt5/QtCore/qstringlist.h \
+		/usr/include/qt5/QtCore/qdatastream.h \
+		/usr/include/qt5/QtCore/qiodevice.h \
+		/usr/include/qt5/QtCore/qpair.h \
+		/usr/include/qt5/QtCore/qregexp.h \
+		/usr/include/qt5/QtCore/qstringmatcher.h \
+		/usr/include/qt5/QtGui/qbrush.h \
+		/usr/include/qt5/QtCore/qvector.h \
+		/usr/include/qt5/QtGui/qmatrix.h \
+		/usr/include/qt5/QtGui/qpolygon.h \
+		/usr/include/qt5/QtGui/qregion.h \
+		/usr/include/qt5/QtCore/qline.h \
+		/usr/include/qt5/QtGui/qtransform.h \
+		/usr/include/qt5/QtGui/qpainterpath.h \
+		/usr/include/qt5/QtGui/qimage.h \
+		/usr/include/qt5/QtGui/qpixmap.h \
+		/usr/include/qt5/QtCore/qsharedpointer.h \
+		/usr/include/qt5/QtCore/qshareddata.h \
+		/usr/include/qt5/QtCore/qsharedpointer_impl.h \
+		/usr/include/qt5/QtCore/qhash.h \
+		/usr/include/qt5/QtGui/qfont.h \
+		/usr/include/qt5/QtGui/qfontmetrics.h \
+		/usr/include/qt5/QtGui/qfontinfo.h \
+		/usr/include/qt5/QtWidgets/qsizepolicy.h \
+		/usr/include/qt5/QtGui/qcursor.h \
+		/usr/include/qt5/QtGui/qkeysequence.h \
+		/usr/include/qt5/QtGui/qevent.h \
+		/usr/include/qt5/QtCore/qvariant.h \
+		/usr/include/qt5/QtCore/qmap.h \
+		/usr/include/qt5/QtCore/qdebug.h \
+		/usr/include/qt5/QtCore/qtextstream.h \
+		/usr/include/qt5/QtCore/qlocale.h \
+		/usr/include/qt5/QtCore/qset.h \
+		/usr/include/qt5/QtCore/qcontiguouscache.h \
+		/usr/include/qt5/QtCore/qurl.h \
+		/usr/include/qt5/QtCore/qurlquery.h \
+		/usr/include/qt5/QtCore/qfile.h \
+		/usr/include/qt5/QtCore/qfiledevice.h \
+		/usr/include/qt5/QtGui/qvector2d.h \
+		/usr/include/qt5/QtGui/qtouchdevice.h \
+		src/qt/walletframe.h
+	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) $(INCPATH) -I/usr/include/c++/4.8 -I/usr/include/x86_64-linux-gnu/c++/4.8 -I/usr/include/c++/4.8/backward -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include src/qt/walletframe.h -o build/moc_walletframe.cpp
 
 build/moc_overviewpage.cpp: /usr/include/qt5/QtWidgets/QWidget \
 		/usr/include/qt5/QtWidgets/qwidget.h \
@@ -5102,6 +5452,7 @@ build/bitcoin.o: src/qt/bitcoin.cpp /usr/include/qt5/QtWidgets/QApplication \
 		/usr/include/qt5/QtGui/qicon.h \
 		/usr/include/qt5/QtWidgets/QSystemTrayIcon \
 		/usr/include/qt5/QtWidgets/qsystemtrayicon.h \
+		/usr/include/qt5/QtCore/QMap \
 		src/qt/clientmodel.h \
 		/usr/include/qt5/QtCore/QObject \
 		src/qt/walletmodel.h \
@@ -5128,6 +5479,7 @@ build/bitcoin.o: src/qt/bitcoin.cpp /usr/include/qt5/QtWidgets/QApplication \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -5285,34 +5637,29 @@ build/bitcoingui.o: src/qt/bitcoingui.cpp /usr/include/qt5/QtWidgets/QApplicatio
 		/usr/include/qt5/QtGui/qicon.h \
 		/usr/include/qt5/QtWidgets/QSystemTrayIcon \
 		/usr/include/qt5/QtWidgets/qsystemtrayicon.h \
+		/usr/include/qt5/QtCore/QMap \
 		src/qt/transactiontablemodel.h \
 		/usr/include/qt5/QtCore/QAbstractTableModel \
 		/usr/include/qt5/QtCore/qabstractitemmodel.h \
 		/usr/include/qt5/QtCore/QStringList \
-		src/qt/addressbookpage.h \
+		src/qt/verifymessagedialog.h \
 		/usr/include/qt5/QtWidgets/QDialog \
 		/usr/include/qt5/QtWidgets/qdialog.h \
-		src/qt/sendcoinsdialog.h \
-		src/qt/signverifymessagedialog.h \
-		src/qt/verifymessagedialog.h \
 		src/qt/optionsdialog.h \
 		src/qt/aboutdialog.h \
 		src/qt/clientmodel.h \
 		/usr/include/qt5/QtCore/QObject \
 		src/qt/walletmodel.h \
 		src/allocators.h \
-		src/qt/editaddressdialog.h \
+		src/qt/walletframe.h \
+		/usr/include/qt5/QtWidgets/QFrame \
+		/usr/include/qt5/QtWidgets/qframe.h \
 		src/qt/optionsmodel.h \
 		/usr/include/qt5/QtCore/QAbstractListModel \
 		src/qt/transactiondescdialog.h \
-		src/qt/addresstablemodel.h \
-		src/qt/transactionview.h \
-		/usr/include/qt5/QtWidgets/QWidget \
-		src/qt/overviewpage.h \
 		src/qt/bitcoinunits.h \
 		/usr/include/qt5/QtCore/QString \
 		src/qt/guiconstants.h \
-		src/qt/askpassphrasedialog.h \
 		src/qt/notificator.h \
 		/usr/include/qt5/QtGui/QIcon \
 		src/qt/guiutil.h \
@@ -5327,6 +5674,27 @@ build/bitcoingui.o: src/qt/bitcoingui.cpp /usr/include/qt5/QtWidgets/QApplicatio
 		src/version.h \
 		src/clientversion.h \
 		src/compat.h \
+		src/wallet.h \
+		src/main.h \
+		src/bignum.h \
+		src/net.h \
+		src/mruset.h \
+		src/limitedmap.h \
+		src/protocol.h \
+		src/addrman.h \
+		src/sync.h \
+		src/threadsafety.h \
+		src/hash.h \
+		src/bloom.h \
+		src/key.h \
+		src/script.h \
+		src/keystore.h \
+		src/crypter.h \
+		src/db.h \
+		src/scrypt.h \
+		src/walletdb.h \
+		src/base58.h \
+		src/init.h \
 		src/qt/macdockiconhandler.h \
 		/usr/include/qt5/QtWidgets/QMenuBar \
 		/usr/include/qt5/QtWidgets/qmenubar.h \
@@ -5346,7 +5714,6 @@ build/bitcoingui.o: src/qt/bitcoingui.cpp /usr/include/qt5/QtWidgets/QApplicatio
 		/usr/include/qt5/QtWidgets/qstatusbar.h \
 		/usr/include/qt5/QtWidgets/QLabel \
 		/usr/include/qt5/QtWidgets/qlabel.h \
-		/usr/include/qt5/QtWidgets/qframe.h \
 		/usr/include/qt5/QtWidgets/QLineEdit \
 		/usr/include/qt5/QtWidgets/qlineedit.h \
 		/usr/include/qt5/QtGui/qtextcursor.h \
@@ -5403,7 +5770,10 @@ build/bitcoingui.o: src/qt/bitcoingui.cpp /usr/include/qt5/QtWidgets/QApplicatio
 		/usr/include/qt5/QtWidgets/qslider.h \
 		/usr/include/qt5/QtWidgets/qabstractslider.h \
 		/usr/include/qt5/QtWidgets/qtabbar.h \
-		/usr/include/qt5/QtWidgets/qrubberband.h
+		/usr/include/qt5/QtWidgets/qrubberband.h \
+		/usr/include/qt5/QtCore/QSettings \
+		/usr/include/qt5/QtCore/qsettings.h \
+		/usr/include/qt5/QtWidgets/QDesktopWidget
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/bitcoingui.o src/qt/bitcoingui.cpp
 
 build/transactiontablemodel.o: src/qt/transactiontablemodel.cpp src/qt/transactiontablemodel.h \
@@ -5545,6 +5915,7 @@ build/transactiontablemodel.o: src/qt/transactiontablemodel.cpp src/qt/transacti
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -5701,6 +6072,7 @@ build/addresstablemodel.o: src/qt/addresstablemodel.cpp src/qt/addresstablemodel
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -6275,6 +6647,7 @@ build/addressbookpage.o: src/qt/addressbookpage.cpp src/qt/addressbookpage.h \
 		/usr/include/qt5/QtWidgets/qmainwindow.h \
 		/usr/include/qt5/QtWidgets/QSystemTrayIcon \
 		/usr/include/qt5/QtWidgets/qsystemtrayicon.h \
+		/usr/include/qt5/QtCore/QMap \
 		src/qt/editaddressdialog.h \
 		src/qt/csvmodelwriter.h \
 		/usr/include/qt5/QtCore/QObject \
@@ -6495,6 +6868,7 @@ build/signverifymessagedialog.o: src/qt/signverifymessagedialog.cpp src/qt/signv
 		src/main.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/bloom.h \
@@ -6932,6 +7306,7 @@ build/alert.o: src/alert.cpp src/alert.h \
 		src/hash.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -7019,6 +7394,7 @@ build/script.o: src/script.cpp src/script.h \
 		src/main.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/bloom.h \
@@ -7041,6 +7417,7 @@ build/main.o: src/main.cpp src/alert.h \
 		src/bignum.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -7081,6 +7458,7 @@ build/init.o: src/init.cpp src/txdb.h \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -7113,8 +7491,7 @@ build/init.o: src/init.cpp src/txdb.h \
 		src/ui_interface.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/init.o src/init.cpp
 
-build/net.o: src/net.cpp src/irc.h \
-		src/db.h \
+build/net.o: src/net.cpp src/db.h \
 		src/main.h \
 		src/bignum.h \
 		src/util.h \
@@ -7127,6 +7504,7 @@ build/net.o: src/net.cpp src/irc.h \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -7145,31 +7523,6 @@ build/net.o: src/net.cpp src/irc.h \
 		src/base58.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/net.o src/net.cpp
 
-build/irc.o: src/irc.cpp src/irc.h \
-		src/net.h \
-		src/mruset.h \
-		src/netbase.h \
-		src/serialize.h \
-		src/allocators.h \
-		src/version.h \
-		src/clientversion.h \
-		src/compat.h \
-		src/protocol.h \
-		src/uint256.h \
-		src/addrman.h \
-		src/util.h \
-		src/sync.h \
-		src/threadsafety.h \
-		src/hash.h \
-		src/bloom.h \
-		src/base58.h \
-		src/bignum.h \
-		src/key.h \
-		src/script.h \
-		src/keystore.h \
-		src/crypter.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/irc.o src/irc.cpp
-
 build/bloom.o: src/bloom.cpp src/bloom.h \
 		src/uint256.h \
 		src/serialize.h \
@@ -7183,6 +7536,7 @@ build/bloom.o: src/bloom.cpp src/bloom.h \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -7209,6 +7563,7 @@ build/checkpoints.o: src/checkpoints.cpp src/checkpoints.h \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -7251,6 +7606,7 @@ build/db.o: src/db.cpp src/db.h \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -7278,6 +7634,7 @@ build/walletdb.o: src/walletdb.cpp src/walletdb.h \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -7390,6 +7747,7 @@ build/clientmodel.o: src/qt/clientmodel.cpp src/qt/clientmodel.h \
 		src/bignum.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -7558,6 +7916,7 @@ build/guiutil.o: src/qt/guiutil.cpp /usr/include/qt5/QtWidgets/QApplication \
 		src/bignum.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -7670,6 +8029,7 @@ build/transactionrecord.o: src/qt/transactionrecord.cpp src/qt/transactionrecord
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -7779,6 +8139,7 @@ build/optionsmodel.o: src/qt/optionsmodel.cpp src/qt/optionsmodel.h \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -8082,6 +8443,7 @@ build/transactiondesc.o: src/qt/transactiondesc.cpp src/qt/transactiondesc.h \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -8464,6 +8826,7 @@ build/wallet.o: src/wallet.cpp src/wallet.h \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -8869,6 +9232,7 @@ build/walletmodel.o: src/qt/walletmodel.cpp src/qt/walletmodel.h \
 		src/bignum.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -8889,6 +9253,439 @@ build/walletmodel.o: src/qt/walletmodel.cpp src/qt/walletmodel.h \
 		/usr/include/qt5/QtCore/qbasictimer.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/walletmodel.o src/qt/walletmodel.cpp
 
+build/walletview.o: src/qt/walletview.cpp src/qt/walletview.h \
+		/usr/include/qt5/QtWidgets/QStackedWidget \
+		/usr/include/qt5/QtWidgets/qstackedwidget.h \
+		/usr/include/qt5/QtWidgets/qframe.h \
+		/usr/include/qt5/QtWidgets/qwidget.h \
+		/usr/include/qt5/QtGui/qwindowdefs.h \
+		/usr/include/qt5/QtCore/qglobal.h \
+		/usr/include/qt5/QtCore/qconfig.h \
+		/usr/include/qt5/QtCore/qfeatures.h \
+		/usr/include/qt5/QtCore/qsystemdetection.h \
+		/usr/include/qt5/QtCore/qprocessordetection.h \
+		/usr/include/qt5/QtCore/qcompilerdetection.h \
+		/usr/include/qt5/QtCore/qglobalstatic.h \
+		/usr/include/qt5/QtCore/qatomic.h \
+		/usr/include/qt5/QtCore/qbasicatomic.h \
+		/usr/include/qt5/QtCore/qatomic_bootstrap.h \
+		/usr/include/qt5/QtCore/qgenericatomic.h \
+		/usr/include/qt5/QtCore/qatomic_msvc.h \
+		/usr/include/qt5/QtCore/qatomic_integrity.h \
+		/usr/include/qt5/QtCore/qoldbasicatomic.h \
+		/usr/include/qt5/QtCore/qatomic_vxworks.h \
+		/usr/include/qt5/QtCore/qatomic_power.h \
+		/usr/include/qt5/QtCore/qatomic_alpha.h \
+		/usr/include/qt5/QtCore/qatomic_armv7.h \
+		/usr/include/qt5/QtCore/qatomic_armv6.h \
+		/usr/include/qt5/QtCore/qatomic_armv5.h \
+		/usr/include/qt5/QtCore/qatomic_bfin.h \
+		/usr/include/qt5/QtCore/qatomic_ia64.h \
+		/usr/include/qt5/QtCore/qatomic_mips.h \
+		/usr/include/qt5/QtCore/qatomic_s390.h \
+		/usr/include/qt5/QtCore/qatomic_sh4a.h \
+		/usr/include/qt5/QtCore/qatomic_sparc.h \
+		/usr/include/qt5/QtCore/qatomic_gcc.h \
+		/usr/include/qt5/QtCore/qatomic_x86.h \
+		/usr/include/qt5/QtCore/qatomic_cxx11.h \
+		/usr/include/qt5/QtCore/qatomic_unix.h \
+		/usr/include/qt5/QtCore/qmutex.h \
+		/usr/include/qt5/QtCore/qlogging.h \
+		/usr/include/qt5/QtCore/qflags.h \
+		/usr/include/qt5/QtCore/qtypeinfo.h \
+		/usr/include/qt5/QtCore/qtypetraits.h \
+		/usr/include/qt5/QtCore/qsysinfo.h \
+		/usr/include/qt5/QtCore/qobjectdefs.h \
+		/usr/include/qt5/QtCore/qnamespace.h \
+		/usr/include/qt5/QtCore/qobjectdefs_impl.h \
+		/usr/include/qt5/QtGui/qwindowdefs_win.h \
+		/usr/include/qt5/QtCore/qobject.h \
+		/usr/include/qt5/QtCore/qstring.h \
+		/usr/include/qt5/QtCore/qchar.h \
+		/usr/include/qt5/QtCore/qbytearray.h \
+		/usr/include/qt5/QtCore/qrefcount.h \
+		/usr/include/qt5/QtCore/qarraydata.h \
+		/usr/include/qt5/QtCore/qstringbuilder.h \
+		/usr/include/qt5/QtCore/qlist.h \
+		/usr/include/qt5/QtCore/qalgorithms.h \
+		/usr/include/qt5/QtCore/qiterator.h \
+		/usr/include/qt5/QtCore/qcoreevent.h \
+		/usr/include/qt5/QtCore/qscopedpointer.h \
+		/usr/include/qt5/QtCore/qmetatype.h \
+		/usr/include/qt5/QtCore/qvarlengtharray.h \
+		/usr/include/qt5/QtCore/qcontainerfwd.h \
+		/usr/include/qt5/QtCore/qisenum.h \
+		/usr/include/qt5/QtCore/qobject_impl.h \
+		/usr/include/qt5/QtCore/qmargins.h \
+		/usr/include/qt5/QtCore/qrect.h \
+		/usr/include/qt5/QtCore/qsize.h \
+		/usr/include/qt5/QtCore/qpoint.h \
+		/usr/include/qt5/QtGui/qpaintdevice.h \
+		/usr/include/qt5/QtGui/qpalette.h \
+		/usr/include/qt5/QtGui/qcolor.h \
+		/usr/include/qt5/QtGui/qrgb.h \
+		/usr/include/qt5/QtCore/qstringlist.h \
+		/usr/include/qt5/QtCore/qdatastream.h \
+		/usr/include/qt5/QtCore/qiodevice.h \
+		/usr/include/qt5/QtCore/qpair.h \
+		/usr/include/qt5/QtCore/qregexp.h \
+		/usr/include/qt5/QtCore/qstringmatcher.h \
+		/usr/include/qt5/QtGui/qbrush.h \
+		/usr/include/qt5/QtCore/qvector.h \
+		/usr/include/qt5/QtGui/qmatrix.h \
+		/usr/include/qt5/QtGui/qpolygon.h \
+		/usr/include/qt5/QtGui/qregion.h \
+		/usr/include/qt5/QtCore/qline.h \
+		/usr/include/qt5/QtGui/qtransform.h \
+		/usr/include/qt5/QtGui/qpainterpath.h \
+		/usr/include/qt5/QtGui/qimage.h \
+		/usr/include/qt5/QtGui/qpixmap.h \
+		/usr/include/qt5/QtCore/qsharedpointer.h \
+		/usr/include/qt5/QtCore/qshareddata.h \
+		/usr/include/qt5/QtCore/qsharedpointer_impl.h \
+		/usr/include/qt5/QtCore/qhash.h \
+		/usr/include/qt5/QtGui/qfont.h \
+		/usr/include/qt5/QtGui/qfontmetrics.h \
+		/usr/include/qt5/QtGui/qfontinfo.h \
+		/usr/include/qt5/QtWidgets/qsizepolicy.h \
+		/usr/include/qt5/QtGui/qcursor.h \
+		/usr/include/qt5/QtGui/qkeysequence.h \
+		/usr/include/qt5/QtGui/qevent.h \
+		/usr/include/qt5/QtCore/qvariant.h \
+		/usr/include/qt5/QtCore/qmap.h \
+		/usr/include/qt5/QtCore/qdebug.h \
+		/usr/include/qt5/QtCore/qtextstream.h \
+		/usr/include/qt5/QtCore/qlocale.h \
+		/usr/include/qt5/QtCore/qset.h \
+		/usr/include/qt5/QtCore/qcontiguouscache.h \
+		/usr/include/qt5/QtCore/qurl.h \
+		/usr/include/qt5/QtCore/qurlquery.h \
+		/usr/include/qt5/QtCore/qfile.h \
+		/usr/include/qt5/QtCore/qfiledevice.h \
+		/usr/include/qt5/QtGui/qvector2d.h \
+		/usr/include/qt5/QtGui/qtouchdevice.h \
+		src/qt/bitcoingui.h \
+		/usr/include/qt5/QtWidgets/QMainWindow \
+		/usr/include/qt5/QtWidgets/qmainwindow.h \
+		/usr/include/qt5/QtWidgets/qtabwidget.h \
+		/usr/include/qt5/QtGui/qicon.h \
+		/usr/include/qt5/QtWidgets/QSystemTrayIcon \
+		/usr/include/qt5/QtWidgets/qsystemtrayicon.h \
+		/usr/include/qt5/QtCore/QMap \
+		src/qt/transactiontablemodel.h \
+		/usr/include/qt5/QtCore/QAbstractTableModel \
+		/usr/include/qt5/QtCore/qabstractitemmodel.h \
+		/usr/include/qt5/QtCore/QStringList \
+		src/qt/addressbookpage.h \
+		/usr/include/qt5/QtWidgets/QDialog \
+		/usr/include/qt5/QtWidgets/qdialog.h \
+		src/qt/sendcoinsdialog.h \
+		src/qt/signverifymessagedialog.h \
+		src/qt/optionsdialog.h \
+		src/qt/aboutdialog.h \
+		src/qt/clientmodel.h \
+		/usr/include/qt5/QtCore/QObject \
+		src/qt/walletmodel.h \
+		src/allocators.h \
+		src/qt/editaddressdialog.h \
+		src/qt/optionsmodel.h \
+		/usr/include/qt5/QtCore/QAbstractListModel \
+		src/qt/transactiondescdialog.h \
+		src/qt/addresstablemodel.h \
+		src/qt/transactionview.h \
+		/usr/include/qt5/QtWidgets/QWidget \
+		src/qt/overviewpage.h \
+		src/qt/bitcoinunits.h \
+		/usr/include/qt5/QtCore/QString \
+		src/qt/guiconstants.h \
+		src/qt/askpassphrasedialog.h \
+		src/qt/guiutil.h \
+		/usr/include/qt5/QtWidgets/QMessageBox \
+		/usr/include/qt5/QtWidgets/qmessagebox.h \
+		src/ui_interface.h \
+		src/util.h \
+		src/uint256.h \
+		src/netbase.h \
+		src/serialize.h \
+		src/version.h \
+		src/clientversion.h \
+		src/compat.h \
+		/usr/include/qt5/QtWidgets/QVBoxLayout \
+		/usr/include/qt5/QtWidgets/qboxlayout.h \
+		/usr/include/qt5/QtWidgets/qlayout.h \
+		/usr/include/qt5/QtWidgets/qlayoutitem.h \
+		/usr/include/qt5/QtWidgets/qgridlayout.h \
+		/usr/include/qt5/QtWidgets/QActionGroup \
+		/usr/include/qt5/QtWidgets/qactiongroup.h \
+		/usr/include/qt5/QtWidgets/qaction.h \
+		/usr/include/qt5/QtWidgets/QAction \
+		/usr/include/qt5/QtWidgets/QLabel \
+		/usr/include/qt5/QtWidgets/qlabel.h \
+		/usr/include/qt5/QtGui/QDesktopServices \
+		/usr/include/qt5/QtGui/qdesktopservices.h \
+		/usr/include/qt5/QtCore/qstandardpaths.h \
+		/usr/include/qt5/QtWidgets/QFileDialog \
+		/usr/include/qt5/QtWidgets/qfiledialog.h \
+		/usr/include/qt5/QtCore/qdir.h \
+		/usr/include/qt5/QtCore/qfileinfo.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/walletview.o src/qt/walletview.cpp
+
+build/walletstack.o: src/qt/walletstack.cpp src/qt/walletstack.h \
+		/usr/include/qt5/QtWidgets/QStackedWidget \
+		/usr/include/qt5/QtWidgets/qstackedwidget.h \
+		/usr/include/qt5/QtWidgets/qframe.h \
+		/usr/include/qt5/QtWidgets/qwidget.h \
+		/usr/include/qt5/QtGui/qwindowdefs.h \
+		/usr/include/qt5/QtCore/qglobal.h \
+		/usr/include/qt5/QtCore/qconfig.h \
+		/usr/include/qt5/QtCore/qfeatures.h \
+		/usr/include/qt5/QtCore/qsystemdetection.h \
+		/usr/include/qt5/QtCore/qprocessordetection.h \
+		/usr/include/qt5/QtCore/qcompilerdetection.h \
+		/usr/include/qt5/QtCore/qglobalstatic.h \
+		/usr/include/qt5/QtCore/qatomic.h \
+		/usr/include/qt5/QtCore/qbasicatomic.h \
+		/usr/include/qt5/QtCore/qatomic_bootstrap.h \
+		/usr/include/qt5/QtCore/qgenericatomic.h \
+		/usr/include/qt5/QtCore/qatomic_msvc.h \
+		/usr/include/qt5/QtCore/qatomic_integrity.h \
+		/usr/include/qt5/QtCore/qoldbasicatomic.h \
+		/usr/include/qt5/QtCore/qatomic_vxworks.h \
+		/usr/include/qt5/QtCore/qatomic_power.h \
+		/usr/include/qt5/QtCore/qatomic_alpha.h \
+		/usr/include/qt5/QtCore/qatomic_armv7.h \
+		/usr/include/qt5/QtCore/qatomic_armv6.h \
+		/usr/include/qt5/QtCore/qatomic_armv5.h \
+		/usr/include/qt5/QtCore/qatomic_bfin.h \
+		/usr/include/qt5/QtCore/qatomic_ia64.h \
+		/usr/include/qt5/QtCore/qatomic_mips.h \
+		/usr/include/qt5/QtCore/qatomic_s390.h \
+		/usr/include/qt5/QtCore/qatomic_sh4a.h \
+		/usr/include/qt5/QtCore/qatomic_sparc.h \
+		/usr/include/qt5/QtCore/qatomic_gcc.h \
+		/usr/include/qt5/QtCore/qatomic_x86.h \
+		/usr/include/qt5/QtCore/qatomic_cxx11.h \
+		/usr/include/qt5/QtCore/qatomic_unix.h \
+		/usr/include/qt5/QtCore/qmutex.h \
+		/usr/include/qt5/QtCore/qlogging.h \
+		/usr/include/qt5/QtCore/qflags.h \
+		/usr/include/qt5/QtCore/qtypeinfo.h \
+		/usr/include/qt5/QtCore/qtypetraits.h \
+		/usr/include/qt5/QtCore/qsysinfo.h \
+		/usr/include/qt5/QtCore/qobjectdefs.h \
+		/usr/include/qt5/QtCore/qnamespace.h \
+		/usr/include/qt5/QtCore/qobjectdefs_impl.h \
+		/usr/include/qt5/QtGui/qwindowdefs_win.h \
+		/usr/include/qt5/QtCore/qobject.h \
+		/usr/include/qt5/QtCore/qstring.h \
+		/usr/include/qt5/QtCore/qchar.h \
+		/usr/include/qt5/QtCore/qbytearray.h \
+		/usr/include/qt5/QtCore/qrefcount.h \
+		/usr/include/qt5/QtCore/qarraydata.h \
+		/usr/include/qt5/QtCore/qstringbuilder.h \
+		/usr/include/qt5/QtCore/qlist.h \
+		/usr/include/qt5/QtCore/qalgorithms.h \
+		/usr/include/qt5/QtCore/qiterator.h \
+		/usr/include/qt5/QtCore/qcoreevent.h \
+		/usr/include/qt5/QtCore/qscopedpointer.h \
+		/usr/include/qt5/QtCore/qmetatype.h \
+		/usr/include/qt5/QtCore/qvarlengtharray.h \
+		/usr/include/qt5/QtCore/qcontainerfwd.h \
+		/usr/include/qt5/QtCore/qisenum.h \
+		/usr/include/qt5/QtCore/qobject_impl.h \
+		/usr/include/qt5/QtCore/qmargins.h \
+		/usr/include/qt5/QtCore/qrect.h \
+		/usr/include/qt5/QtCore/qsize.h \
+		/usr/include/qt5/QtCore/qpoint.h \
+		/usr/include/qt5/QtGui/qpaintdevice.h \
+		/usr/include/qt5/QtGui/qpalette.h \
+		/usr/include/qt5/QtGui/qcolor.h \
+		/usr/include/qt5/QtGui/qrgb.h \
+		/usr/include/qt5/QtCore/qstringlist.h \
+		/usr/include/qt5/QtCore/qdatastream.h \
+		/usr/include/qt5/QtCore/qiodevice.h \
+		/usr/include/qt5/QtCore/qpair.h \
+		/usr/include/qt5/QtCore/qregexp.h \
+		/usr/include/qt5/QtCore/qstringmatcher.h \
+		/usr/include/qt5/QtGui/qbrush.h \
+		/usr/include/qt5/QtCore/qvector.h \
+		/usr/include/qt5/QtGui/qmatrix.h \
+		/usr/include/qt5/QtGui/qpolygon.h \
+		/usr/include/qt5/QtGui/qregion.h \
+		/usr/include/qt5/QtCore/qline.h \
+		/usr/include/qt5/QtGui/qtransform.h \
+		/usr/include/qt5/QtGui/qpainterpath.h \
+		/usr/include/qt5/QtGui/qimage.h \
+		/usr/include/qt5/QtGui/qpixmap.h \
+		/usr/include/qt5/QtCore/qsharedpointer.h \
+		/usr/include/qt5/QtCore/qshareddata.h \
+		/usr/include/qt5/QtCore/qsharedpointer_impl.h \
+		/usr/include/qt5/QtCore/qhash.h \
+		/usr/include/qt5/QtGui/qfont.h \
+		/usr/include/qt5/QtGui/qfontmetrics.h \
+		/usr/include/qt5/QtGui/qfontinfo.h \
+		/usr/include/qt5/QtWidgets/qsizepolicy.h \
+		/usr/include/qt5/QtGui/qcursor.h \
+		/usr/include/qt5/QtGui/qkeysequence.h \
+		/usr/include/qt5/QtGui/qevent.h \
+		/usr/include/qt5/QtCore/qvariant.h \
+		/usr/include/qt5/QtCore/qmap.h \
+		/usr/include/qt5/QtCore/qdebug.h \
+		/usr/include/qt5/QtCore/qtextstream.h \
+		/usr/include/qt5/QtCore/qlocale.h \
+		/usr/include/qt5/QtCore/qset.h \
+		/usr/include/qt5/QtCore/qcontiguouscache.h \
+		/usr/include/qt5/QtCore/qurl.h \
+		/usr/include/qt5/QtCore/qurlquery.h \
+		/usr/include/qt5/QtCore/qfile.h \
+		/usr/include/qt5/QtCore/qfiledevice.h \
+		/usr/include/qt5/QtGui/qvector2d.h \
+		/usr/include/qt5/QtGui/qtouchdevice.h \
+		/usr/include/qt5/QtCore/QMap \
+		src/qt/walletview.h \
+		src/qt/bitcoingui.h \
+		/usr/include/qt5/QtWidgets/QMainWindow \
+		/usr/include/qt5/QtWidgets/qmainwindow.h \
+		/usr/include/qt5/QtWidgets/qtabwidget.h \
+		/usr/include/qt5/QtGui/qicon.h \
+		/usr/include/qt5/QtWidgets/QSystemTrayIcon \
+		/usr/include/qt5/QtWidgets/qsystemtrayicon.h \
+		/usr/include/qt5/QtWidgets/QMessageBox \
+		/usr/include/qt5/QtWidgets/qmessagebox.h \
+		/usr/include/qt5/QtWidgets/qdialog.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/walletstack.o src/qt/walletstack.cpp
+
+build/walletframe.o: src/qt/walletframe.cpp src/qt/walletframe.h \
+		/usr/include/qt5/QtWidgets/QFrame \
+		/usr/include/qt5/QtWidgets/qframe.h \
+		/usr/include/qt5/QtWidgets/qwidget.h \
+		/usr/include/qt5/QtGui/qwindowdefs.h \
+		/usr/include/qt5/QtCore/qglobal.h \
+		/usr/include/qt5/QtCore/qconfig.h \
+		/usr/include/qt5/QtCore/qfeatures.h \
+		/usr/include/qt5/QtCore/qsystemdetection.h \
+		/usr/include/qt5/QtCore/qprocessordetection.h \
+		/usr/include/qt5/QtCore/qcompilerdetection.h \
+		/usr/include/qt5/QtCore/qglobalstatic.h \
+		/usr/include/qt5/QtCore/qatomic.h \
+		/usr/include/qt5/QtCore/qbasicatomic.h \
+		/usr/include/qt5/QtCore/qatomic_bootstrap.h \
+		/usr/include/qt5/QtCore/qgenericatomic.h \
+		/usr/include/qt5/QtCore/qatomic_msvc.h \
+		/usr/include/qt5/QtCore/qatomic_integrity.h \
+		/usr/include/qt5/QtCore/qoldbasicatomic.h \
+		/usr/include/qt5/QtCore/qatomic_vxworks.h \
+		/usr/include/qt5/QtCore/qatomic_power.h \
+		/usr/include/qt5/QtCore/qatomic_alpha.h \
+		/usr/include/qt5/QtCore/qatomic_armv7.h \
+		/usr/include/qt5/QtCore/qatomic_armv6.h \
+		/usr/include/qt5/QtCore/qatomic_armv5.h \
+		/usr/include/qt5/QtCore/qatomic_bfin.h \
+		/usr/include/qt5/QtCore/qatomic_ia64.h \
+		/usr/include/qt5/QtCore/qatomic_mips.h \
+		/usr/include/qt5/QtCore/qatomic_s390.h \
+		/usr/include/qt5/QtCore/qatomic_sh4a.h \
+		/usr/include/qt5/QtCore/qatomic_sparc.h \
+		/usr/include/qt5/QtCore/qatomic_gcc.h \
+		/usr/include/qt5/QtCore/qatomic_x86.h \
+		/usr/include/qt5/QtCore/qatomic_cxx11.h \
+		/usr/include/qt5/QtCore/qatomic_unix.h \
+		/usr/include/qt5/QtCore/qmutex.h \
+		/usr/include/qt5/QtCore/qlogging.h \
+		/usr/include/qt5/QtCore/qflags.h \
+		/usr/include/qt5/QtCore/qtypeinfo.h \
+		/usr/include/qt5/QtCore/qtypetraits.h \
+		/usr/include/qt5/QtCore/qsysinfo.h \
+		/usr/include/qt5/QtCore/qobjectdefs.h \
+		/usr/include/qt5/QtCore/qnamespace.h \
+		/usr/include/qt5/QtCore/qobjectdefs_impl.h \
+		/usr/include/qt5/QtGui/qwindowdefs_win.h \
+		/usr/include/qt5/QtCore/qobject.h \
+		/usr/include/qt5/QtCore/qstring.h \
+		/usr/include/qt5/QtCore/qchar.h \
+		/usr/include/qt5/QtCore/qbytearray.h \
+		/usr/include/qt5/QtCore/qrefcount.h \
+		/usr/include/qt5/QtCore/qarraydata.h \
+		/usr/include/qt5/QtCore/qstringbuilder.h \
+		/usr/include/qt5/QtCore/qlist.h \
+		/usr/include/qt5/QtCore/qalgorithms.h \
+		/usr/include/qt5/QtCore/qiterator.h \
+		/usr/include/qt5/QtCore/qcoreevent.h \
+		/usr/include/qt5/QtCore/qscopedpointer.h \
+		/usr/include/qt5/QtCore/qmetatype.h \
+		/usr/include/qt5/QtCore/qvarlengtharray.h \
+		/usr/include/qt5/QtCore/qcontainerfwd.h \
+		/usr/include/qt5/QtCore/qisenum.h \
+		/usr/include/qt5/QtCore/qobject_impl.h \
+		/usr/include/qt5/QtCore/qmargins.h \
+		/usr/include/qt5/QtCore/qrect.h \
+		/usr/include/qt5/QtCore/qsize.h \
+		/usr/include/qt5/QtCore/qpoint.h \
+		/usr/include/qt5/QtGui/qpaintdevice.h \
+		/usr/include/qt5/QtGui/qpalette.h \
+		/usr/include/qt5/QtGui/qcolor.h \
+		/usr/include/qt5/QtGui/qrgb.h \
+		/usr/include/qt5/QtCore/qstringlist.h \
+		/usr/include/qt5/QtCore/qdatastream.h \
+		/usr/include/qt5/QtCore/qiodevice.h \
+		/usr/include/qt5/QtCore/qpair.h \
+		/usr/include/qt5/QtCore/qregexp.h \
+		/usr/include/qt5/QtCore/qstringmatcher.h \
+		/usr/include/qt5/QtGui/qbrush.h \
+		/usr/include/qt5/QtCore/qvector.h \
+		/usr/include/qt5/QtGui/qmatrix.h \
+		/usr/include/qt5/QtGui/qpolygon.h \
+		/usr/include/qt5/QtGui/qregion.h \
+		/usr/include/qt5/QtCore/qline.h \
+		/usr/include/qt5/QtGui/qtransform.h \
+		/usr/include/qt5/QtGui/qpainterpath.h \
+		/usr/include/qt5/QtGui/qimage.h \
+		/usr/include/qt5/QtGui/qpixmap.h \
+		/usr/include/qt5/QtCore/qsharedpointer.h \
+		/usr/include/qt5/QtCore/qshareddata.h \
+		/usr/include/qt5/QtCore/qsharedpointer_impl.h \
+		/usr/include/qt5/QtCore/qhash.h \
+		/usr/include/qt5/QtGui/qfont.h \
+		/usr/include/qt5/QtGui/qfontmetrics.h \
+		/usr/include/qt5/QtGui/qfontinfo.h \
+		/usr/include/qt5/QtWidgets/qsizepolicy.h \
+		/usr/include/qt5/QtGui/qcursor.h \
+		/usr/include/qt5/QtGui/qkeysequence.h \
+		/usr/include/qt5/QtGui/qevent.h \
+		/usr/include/qt5/QtCore/qvariant.h \
+		/usr/include/qt5/QtCore/qmap.h \
+		/usr/include/qt5/QtCore/qdebug.h \
+		/usr/include/qt5/QtCore/qtextstream.h \
+		/usr/include/qt5/QtCore/qlocale.h \
+		/usr/include/qt5/QtCore/qset.h \
+		/usr/include/qt5/QtCore/qcontiguouscache.h \
+		/usr/include/qt5/QtCore/qurl.h \
+		/usr/include/qt5/QtCore/qurlquery.h \
+		/usr/include/qt5/QtCore/qfile.h \
+		/usr/include/qt5/QtCore/qfiledevice.h \
+		/usr/include/qt5/QtGui/qvector2d.h \
+		/usr/include/qt5/QtGui/qtouchdevice.h \
+		src/qt/bitcoingui.h \
+		/usr/include/qt5/QtWidgets/QMainWindow \
+		/usr/include/qt5/QtWidgets/qmainwindow.h \
+		/usr/include/qt5/QtWidgets/qtabwidget.h \
+		/usr/include/qt5/QtGui/qicon.h \
+		/usr/include/qt5/QtWidgets/QSystemTrayIcon \
+		/usr/include/qt5/QtWidgets/qsystemtrayicon.h \
+		/usr/include/qt5/QtCore/QMap \
+		src/qt/walletstack.h \
+		/usr/include/qt5/QtWidgets/QStackedWidget \
+		/usr/include/qt5/QtWidgets/qstackedwidget.h \
+		/usr/include/qt5/QtWidgets/QVBoxLayout \
+		/usr/include/qt5/QtWidgets/qboxlayout.h \
+		/usr/include/qt5/QtWidgets/qlayout.h \
+		/usr/include/qt5/QtWidgets/qlayoutitem.h \
+		/usr/include/qt5/QtWidgets/qgridlayout.h \
+		/usr/include/qt5/QtWidgets/QMessageBox \
+		/usr/include/qt5/QtWidgets/qmessagebox.h \
+		/usr/include/qt5/QtWidgets/qdialog.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/walletframe.o src/qt/walletframe.cpp
+
 build/bitcoinrpc.o: src/bitcoinrpc.cpp src/init.h \
 		src/wallet.h \
 		src/main.h \
@@ -8903,6 +9700,7 @@ build/bitcoinrpc.o: src/bitcoinrpc.cpp src/init.h \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -8940,6 +9738,7 @@ build/rpcdump.o: src/rpcdump.cpp src/init.h \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -8965,6 +9764,7 @@ build/rpcdump.o: src/rpcdump.cpp src/init.h \
 
 build/rpcnet.o: src/rpcnet.cpp src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/netbase.h \
 		src/serialize.h \
 		src/allocators.h \
@@ -8999,6 +9799,7 @@ build/rpcmining.o: src/rpcmining.cpp src/main.h \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -9037,6 +9838,7 @@ build/rpcwallet.o: src/rpcwallet.cpp src/wallet.h \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -9073,6 +9875,7 @@ build/rpcblockchain.o: src/rpcblockchain.cpp src/main.h \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -9120,6 +9923,7 @@ build/rpcrawtransaction.o: src/rpcrawtransaction.cpp src/base58.h \
 		src/main.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/bloom.h \
@@ -10104,6 +10908,7 @@ build/protocol.o: src/protocol.cpp src/protocol.h \
 		src/bignum.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/addrman.h \
 		src/sync.h \
 		src/threadsafety.h \
@@ -10781,6 +11586,7 @@ build/verifymessagedialog.o: src/qt/verifymessagedialog.cpp src/qt/verifymessage
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -10823,6 +11629,7 @@ build/noui.o: src/noui.cpp src/ui_interface.h \
 		src/bignum.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -10879,6 +11686,7 @@ build/txdb.o: src/txdb.cpp src/txdb.h \
 		src/compat.h \
 		src/net.h \
 		src/mruset.h \
+		src/limitedmap.h \
 		src/protocol.h \
 		src/addrman.h \
 		src/sync.h \
@@ -10962,6 +11770,15 @@ build/moc_transactionview.o: build/moc_transactionview.cpp
 
 build/moc_walletmodel.o: build/moc_walletmodel.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/moc_walletmodel.o build/moc_walletmodel.cpp
+
+build/moc_walletview.o: build/moc_walletview.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/moc_walletview.o build/moc_walletview.cpp
+
+build/moc_walletstack.o: build/moc_walletstack.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/moc_walletstack.o build/moc_walletstack.cpp
+
+build/moc_walletframe.o: build/moc_walletframe.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/moc_walletframe.o build/moc_walletframe.cpp
 
 build/moc_overviewpage.o: build/moc_overviewpage.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/moc_overviewpage.o build/moc_overviewpage.cpp

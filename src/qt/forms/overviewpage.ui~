@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>588</width>
-    <height>496</height>
+    <height>512</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -207,13 +207,13 @@
          </layout>
         </widget>
        </item>
-       <item>
-        <widget class="QLabel" name="label_wallet_lyccoin">
+       <item alignment="Qt::AlignTop">
+        <widget class="QLabel" name="label_wallet_bgcoin">
          <property name="text">
           <string/>
          </property>
          <property name="pixmap">
-          <pixmap>../res/images/lycancoin.png</pixmap>
+          <pixmap>../lycancoin-release/src/qt/res/images/lycancoin.png</pixmap>
          </property>
          <property name="margin">
           <number>-2</number>

@@ -58,14 +58,14 @@ private:
     QString newAddressToSelect;
 
 private slots:
-    void on_deleteButton_clicked();
-    void on_newAddressButton_clicked();
+    void on_deleteAddress_clicked();
+    void on_newAddress_clicked();
     /** Copy address of currently selected address entry to clipboard */
-    void on_copyToClipboard_clicked();
+    void on_copyAddress_clicked();
     void on_signMessage_clicked();
     void on_verifyMessage_clicked();
-    /** Open send coins dialog for currently selected address (no button) */
-    void onSendCoins_clicked();
+    /** Open send coins dialogue for currently selected address (no button) */
+    void onSendCoinsAction();
     /** Generate a QR Code from the currently selected address */
     void on_showQRCode_clicked();
      /** Copy label of currently selected address entry to clipboard (no button) */
