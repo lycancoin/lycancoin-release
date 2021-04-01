@@ -19,6 +19,7 @@ bitcoin-qt_test
 # Compilation and Qt preprocessor part
 *.qm
 lycancoin-qt
+Makefile
 
 # Resources cpp
 qrc_*.cpp
