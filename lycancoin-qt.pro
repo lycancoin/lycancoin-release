@@ -1,6 +1,6 @@
 TEMPLATE = app
 TARGET = lycancoin-qt
-VERSION = 1.2.1
+VERSION = 1.1.2.3
 INCLUDEPATH += src src/json src/qt
 QT += network
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
@@ -318,10 +318,15 @@ TSQM.CONFIG = no_link
 QMAKE_EXTRA_COMPILERS += TSQM
 
 # "Other files" to show in Qt Creator
-OTHER_FILES += \
-    doc/*.md \
-    contrib/gitian-descriptors/* doc/*.rst doc/*.txt doc/README README.md res/bitcoin-qt.rc src/test/*.cpp src/test/*.h src/qt/test/*.cpp src/qt/test/*.h
-    share/setup.nsi
+OTHER_FILES += README.md \
+    doc/*.rst \
+    doc/*.txt \
+    doc/README \
+    src/qt/res/bitcoin-qt.rc \
+    src/test/*.cpp \
+    src/test/*.h \
+    src/qt/test/*.cpp \
+    src/qt/test/*.h
 
 # platform specific defaults, if not overridden on command line
 isEmpty(BOOST_LIB_SUFFIX) {

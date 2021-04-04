@@ -86,6 +86,8 @@ private:
     int cachedNumBlocks;
     int cachedNumBlocksOfPeers;
     int cachedHashrate;
+	 bool cachedReindexing;
+	 bool cachedImporting;
 
     MiningType miningType;
     int miningThreads;

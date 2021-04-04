@@ -14,7 +14,7 @@ src/leveldb/*.a
 
 # Unit-tests
 Makefile.test
-bitcoin-qt_test
+lycancoin-qt_test
 
 # Compilation and Qt preprocessor part
 *.qm

@@ -57,6 +57,17 @@ public:
     }
 
 
+    double getdouble() const
+    {
+        double ret = 0.0;
+        double fact = 1.0;
+        for (int i = 0; i < WIDTH; i++) {
+            ret += fact * pn[i];
+            fact *= 4294967296.0;
+        }
+        return ret;
+    }
+
     base_uint& operator=(uint64 b)
     {
         pn[0] = (unsigned int)b;

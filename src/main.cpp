@@ -37,8 +37,8 @@ uint256 hashGenesisBlock("0x50f80e3dea383a355eb15e4be1f122acbc4144bceaa866045559
 static CBigNum bnProofOfWorkLimit(~uint256(0) >> 20); // starting difficulty is 1 / 2^12
 CBlockIndex* pindexGenesisBlock = NULL;
 int nBestHeight = -1;
-CBigNum bnBestChainWork = 0;
-CBigNum bnBestInvalidWork = 0;
+uint256 nBestChainWork = 0;
+uint256 nBestInvalidWork = 0;
 uint256 hashBestChain = 0;
 CBlockIndex* pindexBest = NULL;
 set<CBlockIndex*, CBlockIndexWorkComparator> setBlockIndexValid; // may contain all CBlockIndex*'s that have validness >=BLOCK_VALID_TRANSACTIONS, and must contain those who aren't failed
@@ -769,7 +769,7 @@ bool CTxMemPool::accept(CValidationState &state, CTransaction &tx, bool fCheckIn
 
         // Check against previous transactions
         // This is done last to help prevent CPU exhaustion denial-of-service attacks.
-        if (!tx.CheckInputs(state, view, true, SCRIPT_VERIFY_P2SH))
+        if (!tx.CheckInputs(state, view, true, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_STRICTENC))
         {
             return error("CTxMemPool::accept() : ConnectInputs failed %s", hash.ToString().c_str());
         }
@@ -1321,20 +1321,20 @@ bool IsInitialBlockDownload()
 
 void static InvalidChainFound(CBlockIndex* pindexNew)
 {
-    if (pindexNew->bnChainWork > bnBestInvalidWork)
+    if (pindexNew->nChainWork > nBestInvalidWork)
     {
-        bnBestInvalidWork = pindexNew->bnChainWork;
-        pblocktree->WriteBestInvalidWork(bnBestInvalidWork);
+        nBestInvalidWork = pindexNew->nChainWork;
+        pblocktree->WriteBestInvalidWork(CBigNum(nBestInvalidWork));
         uiInterface.NotifyBlocksChanged();
     }
-    printf("InvalidChainFound: invalid block=%s  height=%d  work=%s  date=%s\n",
+    printf("InvalidChainFound: invalid block=%s  height=%d  log2_work=%.8g  date=%s\n",
       pindexNew->GetBlockHash().ToString().c_str(), pindexNew->nHeight,
-      pindexNew->bnChainWork.ToString().c_str(), DateTimeStrFormat("%Y-%m-%dT%H:%M:%S",
+      log(pindexNew->nChainWork.getdouble())/log(2.0), DateTimeStrFormat("%Y-%m-%d %H:%M:%S",
       pindexNew->GetBlockTime()).c_str());
-    printf("InvalidChainFound:  current best=%s  height=%d  work=%s  date=%s\n",
-      hashBestChain.ToString().c_str(), nBestHeight, bnBestChainWork.ToString().c_str(),
+    printf("InvalidChainFound:  current best=%s  height=%d  log2_work=%.8g  date=%s\n",
+      hashBestChain.ToString().c_str(), nBestHeight, log(nBestChainWork.getdouble())/log(2.0),
       DateTimeStrFormat("%Y-%m-%dT%H:%M:%S", pindexBest->GetBlockTime()).c_str());
-    if (pindexBest && bnBestInvalidWork > bnBestChainWork + pindexBest->GetBlockWork() * 6)
+    if (pindexBest && nBestInvalidWork > nBestChainWork + (pindexBest->GetBlockWork() * 6).getuint256())
         printf("InvalidChainFound: Warning: Displayed transactions may not be correct!  You may need to upgrade, or other nodes may need to upgrade.\n");
 }
 
@@ -1360,7 +1360,7 @@ bool ConnectBestBlock(CValidationState &state) {
             pindexNewBest = *it;
         }
 
-        if (pindexNewBest == pindexBest || (pindexBest && pindexNewBest->bnChainWork == pindexBest->bnChainWork))
+        if (pindexNewBest == pindexBest || (pindexBest && pindexNewBest->nChainWork == pindexBest->nChainWork))
             return true; // nothing to do
 
         // check ancestry
@@ -1380,7 +1380,7 @@ bool ConnectBestBlock(CValidationState &state) {
                 break;
             }
 
-            if (pindexBest == NULL || pindexTest->bnChainWork > pindexBest->bnChainWork)
+            if (pindexBest == NULL || pindexTest->nChainWork > pindexBest->nChainWork)
                 vAttach.push_back(pindexTest);
 
             if (pindexTest->pprev == NULL || pindexTest->pnext != NULL) {
@@ -1978,11 +1978,11 @@ bool SetBestChain(CValidationState &state, CBlockIndex* pindexNew)
     pindexBest = pindexNew;
     pblockindexFBBHLast = NULL;
     nBestHeight = pindexBest->nHeight;
-    bnBestChainWork = pindexNew->bnChainWork;
+    nBestChainWork = pindexNew->nChainWork;
     nTimeBestReceived = GetTime();
     nTransactionsUpdated++;
-    printf("SetBestChain: new best=%s  height=%d  work=%s  tx=%lu  date=%s\n",
-      hashBestChain.ToString().c_str(), nBestHeight, bnBestChainWork.ToString().c_str(), (unsigned long)pindexNew->nChainTx,
+    printf("SetBestChain: new best=%s  height=%d  log2_work=%.8g  tx=%lu  date=%s progress=%f\n",
+      hashBestChain.ToString().c_str(), nBestHeight, log(nBestChainWork.getdouble())/log(2.0), (unsigned long)pindexNew->nChainTx,
       DateTimeStrFormat("%Y-%m-%dT%H:%M:%S", pindexBest->GetBlockTime()).c_str());
 
     // Check the version of the last 100 blocks to see if we need to upgrade:
@@ -2034,7 +2034,7 @@ bool CBlock::AddToBlockIndex(CValidationState &state, const CDiskBlockPos &pos)
         pindexNew->nHeight = pindexNew->pprev->nHeight + 1;
     }
     pindexNew->nTx = vtx.size();
-    pindexNew->bnChainWork = (pindexNew->pprev ? pindexNew->pprev->bnChainWork : 0) + pindexNew->GetBlockWork();
+    pindexNew->nChainWork = (pindexNew->pprev ? pindexNew->pprev->nChainWork : 0) + pindexNew->GetBlockWork().getuint256();
     pindexNew->nChainTx = (pindexNew->pprev ? pindexNew->pprev->nChainTx : 0) + pindexNew->nTx;
     pindexNew->nFile = pos.nFile;
     pindexNew->nDataPos = pos.nPos;
@@ -2635,7 +2635,7 @@ bool static LoadBlockIndexDB()
 
     boost::this_thread::interruption_point();
 
-    // Calculate bnChainWork
+    // Calculate nChainWork
     vector<pair<int, CBlockIndex*> > vSortedByHeight;
     vSortedByHeight.reserve(mapBlockIndex.size());
     BOOST_FOREACH(const PAIRTYPE(uint256, CBlockIndex*)& item, mapBlockIndex)
@@ -2647,7 +2647,7 @@ bool static LoadBlockIndexDB()
     BOOST_FOREACH(const PAIRTYPE(int, CBlockIndex*)& item, vSortedByHeight)
     {
         CBlockIndex* pindex = item.second;
-        pindex->bnChainWork = (pindex->pprev ? pindex->pprev->bnChainWork : 0) + pindex->GetBlockWork();
+        pindex->nChainWork = (pindex->pprev ? pindex->pprev->nChainWork : 0) + pindex->GetBlockWork().getuint256();
         pindex->nChainTx = (pindex->pprev ? pindex->pprev->nChainTx : 0) + pindex->nTx;
         if ((pindex->nStatus & BLOCK_VALID_MASK) >= BLOCK_VALID_TRANSACTIONS && !(pindex->nStatus & BLOCK_FAILED_MASK))
             setBlockIndexValid.insert(pindex);
@@ -2659,8 +2659,10 @@ bool static LoadBlockIndexDB()
     if (pblocktree->ReadBlockFileInfo(nLastBlockFile, infoLastBlockFile))
         printf("LoadBlockIndexDB(): last block file info: %s\n", infoLastBlockFile.ToString().c_str());
 
-    // Load bnBestInvalidWork, OK if it doesn't exist
+    // Load nBestInvalidWork, OK if it doesn't exist
+    CBigNum bnBestInvalidWork;
     pblocktree->ReadBestInvalidWork(bnBestInvalidWork);
+    nBestInvalidWork = bnBestInvalidWork.getuint256();
     
     // Check whether we need to continue reindexing
     bool fReindexing = false;
@@ -2677,7 +2679,7 @@ bool static LoadBlockIndexDB()
         return true;
     hashBestChain = pindexBest->GetBlockHash();
     nBestHeight = pindexBest->nHeight;
-    bnBestChainWork = pindexBest->bnChainWork;
+    nBestChainWork = pindexBest->nChainWork;
 
     // set 'next' pointers in best chain
     CBlockIndex *pindex = pindexBest;
@@ -2773,8 +2775,8 @@ void UnloadBlockIndex()
     setBlockIndexValid.clear();
     pindexGenesisBlock = NULL;
     nBestHeight = 0;
-    bnBestChainWork = 0;
-    bnBestInvalidWork = 0;
+    nBestChainWork = 0;
+    nBestInvalidWork = 0;
     hashBestChain = 0;
     pindexBest = NULL;
 }
@@ -3040,7 +3042,7 @@ string GetWarnings(string strFor)
     }
 
     // Longer invalid proof-of-work chain
-    if (pindexBest && bnBestInvalidWork > bnBestChainWork + pindexBest->GetBlockWork() * 6)
+    if (pindexBest && nBestInvalidWork > nBestChainWork + (pindexBest->GetBlockWork() * 6).getuint256())
     {
         nPriority = 2000;
         strStatusBar = strRPC = _("Warning: Displayed transactions may not be correct! You may need to upgrade, or other nodes may need to upgrade.");

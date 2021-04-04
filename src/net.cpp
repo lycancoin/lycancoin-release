@@ -1,6 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2012 The Bitcoin developers
-// Copyright (c) 2011-2012 Litecoin Developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,11 +14,17 @@
 #include <string.h>
 #endif
 
+#ifdef USE_UPNP
+#include <miniupnpc/miniwget.h>
+#include <miniupnpc/miniupnpc.h>
+#include <miniupnpc/upnpcommands.h>
+#include <miniupnpc/upnperrors.h>
+#endif
 
 using namespace std;
 using namespace boost;
 
-static const int MAX_OUTBOUND_CONNECTIONS = 10;
+static const int MAX_OUTBOUND_CONNECTIONS = 8;
 
 bool OpenNetworkConnection(const CAddress& addrConnect, CSemaphoreGrant *grantOutbound = NULL, const char *strDest = NULL, bool fOneShot = false);
 
@@ -33,7 +38,6 @@ struct LocalServiceInfo {
 // Global state variables
 //
 bool fDiscover = true;
-
 uint64 nLocalServices = NODE_NETWORK;
 static CCriticalSection cs_mapLocalHost;
 static map<CNetAddr, LocalServiceInfo> mapLocalHost;
@@ -421,12 +425,10 @@ void AddressCurrentlyConnected(const CService& addr)
 
 CNode* FindNode(const CNetAddr& ip)
 {
-    {
-        LOCK(cs_vNodes);
-        BOOST_FOREACH(CNode* pnode, vNodes)
-            if ((CNetAddr)pnode->addr == ip)
-                return (pnode);
-    }
+    LOCK(cs_vNodes);
+    BOOST_FOREACH(CNode* pnode, vNodes)
+        if ((CNetAddr)pnode->addr == ip)
+            return (pnode);
     return NULL;
 }
 
@@ -441,12 +443,10 @@ CNode* FindNode(std::string addrName)
 
 CNode* FindNode(const CService& addr)
 {
-    {
-        LOCK(cs_vNodes);
-        BOOST_FOREACH(CNode* pnode, vNodes)
-            if ((CService)pnode->addr == addr)
-                return (pnode);
-    }
+    LOCK(cs_vNodes);
+    BOOST_FOREACH(CNode* pnode, vNodes)
+        if ((CService)pnode->addr == addr)
+            return (pnode);
     return NULL;
 }
 
@@ -480,14 +480,14 @@ CNode* ConnectNode(CAddress addrConnect, const char *pszDest)
         /// debug print
         printf("connected %s\n", pszDest ? pszDest : addrConnect.ToString().c_str());
 
-        // Set to nonblocking
+        // Set to non-blocking
 #ifdef WIN32
         u_long nOne = 1;
         if (ioctlsocket(hSocket, FIONBIO, &nOne) == SOCKET_ERROR)
-            printf("ConnectSocket() : ioctlsocket nonblocking setting failed, error %d\n", WSAGetLastError());
+            printf("ConnectSocket() : ioctlsocket non-blocking setting failed, error %d\n", WSAGetLastError());
 #else
         if (fcntl(hSocket, F_SETFL, O_NONBLOCK) == SOCKET_ERROR)
-            printf("ConnectSocket() : fcntl nonblocking setting failed, error %d\n", errno);
+            printf("ConnectSocket() : fcntl non-blocking setting failed, error %d\n", errno);
 #endif
 
         // Add node
@@ -1167,59 +1167,52 @@ void MapPort(bool)
 
 
 
-
 // DNS seeds
 // Each pair gives a source name and a seed name.
 // The first name is used as information source for addrman.
 // The second name should resolve to a list of seed addresses.
 static const char *strMainNetDNSSeed[][2] = {
-    {"68.183.110.174","68.183.110.174"},
-    {"107.170.217.164","107.170.217.164"},
-    {"107.170.30.97","107.170.30.97"},
-    {"162.243.113.175","162.243.113.175"},
-    {"69.90.132.162","69.90.132.162"},
-    {"192.241.200.112","192.241.200.112"},
-    {"107.170.247.9","107.170.247.9"},
-    {"107.170.241.117","107.170.241.117"},
-    {"45.77.189.152","45.77.189.152"},
-    {"69.172.229.241","69.172.229.241"},
+    {"lycancoin.org","seed.lycancoin.org"},
+    {"lycancoin.org","seed2.lycancoin.org"},
+    {"lycancoin.org","seed3.lycancoin.org"},
+    {NULL, NULL}
   
 };
 
+
+
 static const char *strTestNetDNSSeed[][2] = {
-    {"bitcoin.petertodd.org", "testnet-seed.bitcoin.petertodd.org"},
-    {"bluematt.me", "testnet-seed.bluematt.me"},
     {NULL, NULL}
 };
 
+
+
 void ThreadDNSAddressSeed()
 {
-	 static const char *(*strDNSSeed)[2] = fTestNet ? strTestNetDNSSeed : strMainNetDNSSeed;
+    static const char *(*strDNSSeed)[2] = fTestNet ? strTestNetDNSSeed : strMainNetDNSSeed;
+
     int found = 0;
 
-    if (!fTestNet)
-    {
-        printf("Loading addresses from DNS seeds (could take a while)\n");
+    printf("Loading addresses from DNS seeds (could take a while)\n");
 
-        for (unsigned int seed_idx = 0; seed_idx < ARRAYLEN(strDNSSeed); seed_idx++) {
-            if (HaveNameProxy()) {
-                AddOneShot(strDNSSeed[seed_idx][1]);
-            } else {
-                vector<CNetAddr> vaddr;
-                vector<CAddress> vAdd;
-                if (LookupHost(strDNSSeed[seed_idx][1], vaddr))
+    for (unsigned int seed_idx = 0; strDNSSeed[seed_idx][0] != NULL; seed_idx++) {
+        if (HaveNameProxy()) {
+            AddOneShot(strDNSSeed[seed_idx][1]);
+        } else {
+            vector<CNetAddr> vaddr;
+            vector<CAddress> vAdd;
+            if (LookupHost(strDNSSeed[seed_idx][1], vaddr))
+            {
+                BOOST_FOREACH(CNetAddr& ip, vaddr)
                 {
-                    BOOST_FOREACH(CNetAddr& ip, vaddr)
-                    {
-                        int nOneDay = 24*3600;
-                        CAddress addr = CAddress(CService(ip, GetDefaultPort()));
-                        addr.nTime = GetTime() - 3*nOneDay - GetRand(4*nOneDay); // use a random age between 3 and 7 days old
-                        vAdd.push_back(addr);
-                        found++;
-                    }
+                    int nOneDay = 24*3600;
+                    CAddress addr = CAddress(CService(ip, GetDefaultPort()));
+                    addr.nTime = GetTime() - 3*nOneDay - GetRand(4*nOneDay); // use a random age between 3 and 7 days old
+                    vAdd.push_back(addr);
+                    found++;
                 }
-                addrman.Add(vAdd, CNetAddr(strDNSSeed[seed_idx][0], true));
             }
+            addrman.Add(vAdd, CNetAddr(strDNSSeed[seed_idx][0], true));
         }
     }
 
@@ -1239,7 +1232,7 @@ void ThreadDNSAddressSeed()
 
 unsigned int pnSeed[] =
 {
-    0x44b76eae, 0x6baad9a5, 0x6baa1e61, 0xa2f371af
+    0x44b76eae, 0x6baad9a5, 0x6baa1e61, 0xa2f371af, 0x2d4dbd98
 };
 
 void DumpAddresses()
@@ -1294,7 +1287,7 @@ void ThreadOpenConnections()
 
     // Initiate network connections
     int64 nStart = GetTime();
-    while (true)
+    loop
     {
         ProcessOneShot();
 
@@ -1345,7 +1338,7 @@ void ThreadOpenConnections()
         int64 nANow = GetAdjustedTime();
 
         int nTries = 0;
-        while (true)
+        loop
         {
             // use an nUnkBias between 10 (no outgoing connections) and 90 (8 outgoing connections)
             CAddress addr = addrman.Select(10 + min(nOutbound,8)*10);
@@ -1353,7 +1346,7 @@ void ThreadOpenConnections()
             // if we selected an invalid address, restart
             if (!addr.IsValid() || setConnected.count(addr.GetGroup()) || IsLocal(addr))
                 break;
-                
+
             // If we didn't find an appropriate destination after trying 100 addresses fetched from addrman,
             // stop this loop, and let the outer loop run again (which sleeps, adds seed nodes, recalculates
             // already-connected network ranges, ...) before trying new addrman addresses.
@@ -1501,9 +1494,10 @@ void static StartSync(const vector<CNode*> &vNodes) {
     BOOST_FOREACH(CNode* pnode, vNodes) {
         // check preconditions for allowing a sync
         if (!pnode->fClient && !pnode->fOneShot &&
-            !pnode->fDisconnect && pnode->fSuccessfullyConnected &&
-            (pnode->nStartingHeight > (nBestHeight - 144)) &&
-            (pnode->nVersion < NOBLKS_VERSION_START || pnode->nVersion >= NOBLKS_VERSION_END)) {
+            !pnode->fDisconnect && pnode->fSuccessfullyConnected) 
+        { //&&
+//            (pnode->nStartingHeight > (nBestHeight - 144)) &&
+//            (pnode->nVersion < NOBLKS_VERSION_START || pnode->nVersion >= NOBLKS_VERSION_END)) {
             // if ok, compare node's score with the best so far
             double dScore = NodeSyncScore(pnode);
             if (pnodeNewSync == NULL || dScore > dBestScore) {
@@ -1771,9 +1765,9 @@ void StartNode(boost::thread_group& threadGroup)
     else
         threadGroup.create_thread(boost::bind(&TraceThread<boost::function<void()> >, "dnsseed", &ThreadDNSAddressSeed));
 
- #ifdef USE_UPNP
-     // Map ports with UPnP
-     MapPort(GetBoolArg("-upnp", USE_UPNP));
+#ifdef USE_UPNP
+    // Map ports with UPnP
+    MapPort(GetBoolArg("-upnp", USE_UPNP));
 #endif
 
     // Send and receive from sockets, accept connections

@@ -58,6 +58,14 @@ public:
     bool setCurrentWallet(const QString& name);
 
     void removeAllWallets();
+    
+    /** Used by WalletView to allow access to needed QActions */
+    // Todo: Use Qt signals for these
+    QAction * getOverviewAction() { return overviewAction; }
+    QAction * getHistoryAction() { return historyAction; }
+    QAction * getAddressBookAction() { return addressBookAction; }
+    QAction * getReceiveCoinsAction() { return receiveCoinsAction; }
+    QAction * getSendCoinsAction() { return sendCoinsAction; }
 
 protected:
     void changeEvent(QEvent *e);
@@ -88,7 +96,6 @@ private:
     QAction *receiveCoinsAction;
     QAction *optionsAction;
     QAction *toggleHideAction;
-    QAction *exportAction;
     QAction *encryptWalletAction;
     QAction *backupWalletAction;
     QAction *changePassphraseAction;

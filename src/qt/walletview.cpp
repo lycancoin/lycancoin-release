@@ -32,6 +32,7 @@
 #include <QLabel>
 #include <QDesktopServices>
 #include <QFileDialog>
+#include <QPushButton>
 
 WalletView::WalletView(QWidget *parent, BitcoinGUI *_gui):
     QStackedWidget(parent),
@@ -49,8 +50,17 @@ WalletView::WalletView(QWidget *parent, BitcoinGUI *_gui):
 
     transactionsPage = new QWidget(this);
     QVBoxLayout *vbox = new QVBoxLayout();
+    QHBoxLayout *hbox_buttons = new QHBoxLayout();
     transactionView = new TransactionView(this);
     vbox->addWidget(transactionView);
+    QPushButton *exportButton = new QPushButton("&Export", this);
+    exportButton->setToolTip(tr("Export the data in the current tab to a file"));
+#ifndef Q_OS_MAC // Icons on push buttons are very uncommon on Mac
+    exportButton->setIcon(QIcon(":/icons/export"));
+#endif
+    hbox_buttons->addStretch();
+    hbox_buttons->addWidget(exportButton);
+    vbox->addLayout(hbox_buttons);
     transactionsPage->setLayout(vbox);
 
     addressBookPage = new AddressBookPage(AddressBookPage::ForEditing, AddressBookPage::SendingTab);
@@ -80,6 +90,8 @@ WalletView::WalletView(QWidget *parent, BitcoinGUI *_gui):
     connect(addressBookPage, SIGNAL(verifyMessage(QString)), this, SLOT(gotoVerifyMessageTab(QString)));
     // Clicking on "Sign Message" in the receive coins page opens the sign message tab in the Sign/Verify Message dialog
     connect(receiveCoinsPage, SIGNAL(signMessage(QString)), this, SLOT(gotoSignMessageTab(QString)));
+    // Clicking on "Export" allows to export the transaction list
+    connect(exportButton, SIGNAL(clicked()), transactionView, SLOT(exportClicked()));
 
     gotoOverviewPage();
 }
@@ -224,49 +236,31 @@ void WalletView::gotoOverviewPage()
 {
     overviewAction->setChecked(true);
     setCurrentWidget(overviewPage);
-
-    exportAction->setEnabled(false);
-    disconnect(exportAction, SIGNAL(triggered()), 0, 0);
 }
 
 void WalletView::gotoHistoryPage()
 {
     historyAction->setChecked(true);
     setCurrentWidget(transactionsPage);
-
-    exportAction->setEnabled(true);
-    disconnect(exportAction, SIGNAL(triggered()), 0, 0);
-    connect(exportAction, SIGNAL(triggered()), transactionView, SLOT(exportClicked()));
 }
 
 void WalletView::gotoAddressBookPage()
 {
     addressBookAction->setChecked(true);
     setCurrentWidget(addressBookPage);
-
-    exportAction->setEnabled(true);
-    disconnect(exportAction, SIGNAL(triggered()), 0, 0);
-    connect(exportAction, SIGNAL(triggered()), addressBookPage, SLOT(exportClicked()));
 }
 
 void WalletView::gotoReceiveCoinsPage()
 {
     receiveCoinsAction->setChecked(true);
     setCurrentWidget(receiveCoinsPage);
-
-    exportAction->setEnabled(true);
-    disconnect(exportAction, SIGNAL(triggered()), 0, 0);
-    connect(exportAction, SIGNAL(triggered()), receiveCoinsPage, SLOT(exportClicked()));
 }
 
 void WalletView::gotoSendCoinsPage(QString addr)
 {
     sendCoinsAction->setChecked(true);
     setCurrentWidget(sendCoinsPage);
-
-    exportAction->setEnabled(false);
-    disconnect(exportAction, SIGNAL(triggered()), 0, 0);
-
+    
     if(!addr.isEmpty())
         sendCoinsPage->setAddress(addr);
 }

@@ -1,6 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2012 The Bitcoin developers
-// Copyright (c) 2011-2012 Litecoin Developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #ifndef BITCOIN_NET_H
@@ -52,7 +51,7 @@ enum
     LOCAL_IF,     // address a local interface listens on
     LOCAL_BIND,   // address explicit bound to
     LOCAL_UPNP,   // address reported by UPnP
-    LOCAL_HTTP,   // address reported by whatismyip.com and similars
+    LOCAL_HTTP,   // address reported by whatismyip.com and similar
     LOCAL_MANUAL, // address explicitly specified (-externalip=)
 
     LOCAL_MAX
@@ -71,7 +70,6 @@ void SetReachable(enum Network net, bool fFlag = true);
 CAddress GetLocalAddress(const CNetAddr *paddrPeer = NULL);
 
 
-
 extern bool fDiscover;
 extern uint64 nLocalServices;
 extern uint64 nLocalHostNonce;
@@ -86,6 +84,8 @@ extern limitedmap<CInv, int64> mapAlreadyAskedFor;
 
 extern std::vector<std::string> vAddedNodes;
 extern CCriticalSection cs_vAddedNodes;
+
+
 
 
 class CNodeStats
@@ -105,6 +105,9 @@ public:
     uint64 nRecvBytes;
     bool fSyncNode;
 };
+
+
+
 
 class CNetMessage {
 public:
@@ -158,13 +161,13 @@ public:
     uint64 nSendBytes;
     std::deque<CSerializeData> vSendMsg;
     CCriticalSection cs_vSend;
-    
+
     std::deque<CInv> vRecvGetData;
     std::deque<CNetMessage> vRecvMsg;
     CCriticalSection cs_vRecvMsg;
     uint64 nRecvBytes;
-    
     int nRecvVersion;
+
     int64 nLastSend;
     int64 nLastRecv;
     int64 nLastSendEmpty;
@@ -192,7 +195,7 @@ public:
 protected:
 
     // Denial-of-service detection/prevention
-    // Key is ip address, value is banned-until-time
+    // Key is IP address, value is banned-until-time
     static std::map<CNetAddr, int64> setBanned;
     static CCriticalSection cs_setBanned;
     int nMisbehavior;
@@ -278,7 +281,7 @@ public:
         assert(nRefCount >= 0);
         return nRefCount;
     }
-    
+
     // requires LOCK(cs_vRecvMsg)
     unsigned int GetTotalRecvSize()
     {
@@ -389,7 +392,7 @@ public:
     void AbortMessage() UNLOCK_FUNCTION(cs_vSend)
     {
         ssSend.clear();
-        
+
         LEAVE_CRITICAL_SECTION(cs_vSend);
 
         if (fDebug)
@@ -431,7 +434,7 @@ public:
         // If write queue empty, attempt "optimistic write"
         if (it == vSendMsg.begin())
             SocketSendData(this);
-            
+
         LEAVE_CRITICAL_SECTION(cs_vSend);
     }
 
@@ -623,6 +626,8 @@ public:
     bool Misbehaving(int howmuch); // 1 == a little, 100 == a lot
     void copyStats(CNodeStats &stats);
 };
+
+
 
 class CTransaction;
 void RelayTransaction(const CTransaction& tx, const uint256& hash);
