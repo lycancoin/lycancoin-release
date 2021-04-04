@@ -1,5 +1,5 @@
 Lycancoin (LYC)
-Version 1.2.0
+Version 1.1.2.3
 Added Kimoto Gravity Well & Patch
 
 http://www.lycancoin.org

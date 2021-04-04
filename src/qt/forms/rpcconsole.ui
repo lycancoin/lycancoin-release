@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>lycancoin - Debug window</string>
+   <string>Lycancoin - Debug window</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
@@ -36,7 +36,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Bitcoin Core</string>
+          <string>Lycancoin Core</string>
          </property>
         </widget>
        </item>
@@ -348,13 +348,10 @@
        <item row="17" column="0">
         <widget class="QPushButton" name="showCLOptionsButton">
          <property name="toolTip">
-          <string>Show the lycancoin-qt help message to get a list with possible command-line options.</string>
+          <string>Show the Lycancoin-Qt help message to get a list with possible Lycancoin command-line options.</string>
          </property>
          <property name="text">
           <string>&amp;Show</string>
-         </property>
-         <property name="autoDefault">
-          <bool>false</bool>
          </property>
          <property name="autoDefault">
           <bool>false</bool>
