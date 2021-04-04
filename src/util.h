@@ -8,6 +8,8 @@
 
 #include "uint256.h"
 
+#include <stdarg.h>
+
 #ifndef WIN32
 #include <sys/types.h>
 #include <sys/time.h>
@@ -197,6 +199,7 @@ bool WildcardMatch(const std::string& str, const std::string& mask);
 void FileCommit(FILE *fileout);
 int GetFilesize(FILE* file);
 bool TruncateFile(FILE *file, unsigned int length);
+int RaiseFileDescriptorLimit(int nMinFD);
 void AllocateFileRange(FILE *file, unsigned int offset, unsigned int length);
 bool RenameOver(boost::filesystem::path src, boost::filesystem::path dest);
 boost::filesystem::path GetDefaultDataDir();

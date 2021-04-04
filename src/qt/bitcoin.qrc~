@@ -47,12 +47,14 @@
   <qresource prefix="/images">
     <file>res/images/lycancoin.png</file>
     <file alias="about">res/images/about.png</file>
-    <file alias="splash">res/images/splash2.jpg</file>
+    <file alias="splash">res/images/splash.png</file>
+    <file alias="splash_testnet">res/images/splash.png</file>
   </qresource>
   <qresource prefix="/movies">
     <file alias="update_spinner">res/movies/update_spinner.mng</file>
   </qresource>
   <qresource prefix="/translations">
+    <file alias="af_ZA">locale/bitcoin_af_ZA.qm</file>
     <file alias="bg">locale/bitcoin_bg.qm</file>
     <file alias="ca_ES">locale/bitcoin_ca_ES.qm</file>
     <file alias="cs">locale/bitcoin_cs.qm</file>

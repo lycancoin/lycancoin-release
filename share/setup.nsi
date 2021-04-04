@@ -5,7 +5,7 @@ SetCompressor /SOLID lzma
 
 # General Symbol Definitions
 !define REGKEY "SOFTWARE\$(^Name)"
-!define VERSION 0.6.3
+!define VERSION 0.1.2
 !define COMPANY "Lycancoin project"
 !define URL http://www.lycancoin.org/
 
@@ -45,13 +45,13 @@ Var StartMenuGroup
 !insertmacro MUI_LANGUAGE English
 
 # Installer attributes
-OutFile lycancoin-0.6.3-win32-setup.exe
+OutFile lycancoin-1.1.2-win32-setup.exe
 InstallDir $PROGRAMFILES\Lycancoin
 CRCCheck on
 XPStyle on
 BrandingText " "
 ShowInstDetails show
-VIProductVersion 0.6.3.0
+VIProductVersion 1.1.2.4
 VIAddVersionKey ProductName Lycancoin
 VIAddVersionKey ProductVersion "${VERSION}"
 VIAddVersionKey CompanyName "${COMPANY}"

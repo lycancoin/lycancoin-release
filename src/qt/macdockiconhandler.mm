@@ -59,6 +59,10 @@ void MacDockIconHandler::setMainWindow(QMainWindow *window) {
     this->mainWindow = window;
 }
 
+void MacDockIconHandler::setMainWindow(QMainWindow *window) {
+    this->mainWindow = window;
+}
+
 MacDockIconHandler::~MacDockIconHandler()
 {
     [this->m_dockIconClickEventHandler release];

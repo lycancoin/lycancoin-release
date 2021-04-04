@@ -19,6 +19,7 @@ lycancoin-qt_test
 # Compilation and Qt preprocessor part
 *.qm
 lycancoin-qt
+lycancoin-qt.app
 Makefile
 
 # Resources cpp

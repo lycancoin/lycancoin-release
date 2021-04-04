@@ -195,7 +195,8 @@ HEADERS += src/qt/bitcoingui.h \
     src/txdb.h \
     src/leveldb.h \
     src/threadsafety.h \
-    src/limitedmap.h
+    src/limitedmap.h \
+    src/qt/splashscreen.h
 
 SOURCES += src/qt/bitcoin.cpp \
     src/qt/bitcoingui.cpp \
@@ -264,7 +265,8 @@ SOURCES += src/qt/bitcoin.cpp \
     src/scrypt.c \
     src/noui.cpp \
     src/leveldb.cpp \
-    src/txdb.cpp
+    src/txdb.cpp \
+    src/qt/splashscreen.cpp
     
 RESOURCES += src/qt/bitcoin.qrc
 
@@ -398,6 +400,7 @@ LIBS += -lssl -lcrypto -ldb_cxx$$BDB_LIB_SUFFIX
 win32:LIBS += -lws2_32 -lshlwapi -lmswsock -lole32 -loleaut32 -luuid -lgdi32
 LIBS += -lboost_system$$BOOST_LIB_SUFFIX -lboost_filesystem$$BOOST_LIB_SUFFIX -lboost_program_options$$BOOST_LIB_SUFFIX -lboost_thread$$BOOST_THREAD_LIB_SUFFIX
 win32:LIBS += -lboost_chrono$$BOOST_LIB_SUFFIX
+macx:LIBS += -lboost_chrono$$BOOST_LIB_SUFFIX
 
 contains(RELEASE, 1) {
     !win32:!macx {

@@ -34,7 +34,7 @@ class CDBEnv
 private:
     bool fDbEnvInit;
     bool fMockDb;
-    std::string strPath;
+    boost::filesystem::path path;
 
     void EnvShutdown();
 
