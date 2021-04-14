@@ -186,6 +186,7 @@ RPCConsole::RPCConsole(QWidget *parent) :
     historyPtr(0)
 {
     ui->setupUi(this);
+    GUIUtil::restoreWindowGeometry("nRPCConsoleWindow", this->size(), this);
 
 #ifndef Q_WS_MAC
     ui->openDebugLogfileButton->setIcon(QIcon(":/icons/export"));
@@ -208,6 +209,7 @@ RPCConsole::RPCConsole(QWidget *parent) :
 
 RPCConsole::~RPCConsole()
 {
+    GUIUtil::saveWindowGeometry("nRPCConsoleWindow", this);    
     emit stopExecutor();
     delete ui;
 }
@@ -253,8 +255,11 @@ void RPCConsole::setClientModel(ClientModel *model)
     this->clientModel = model;
     if(model)
     {
-        // Subscribe to information, replies, messages, errors
+        // Keep up to date with client
+        setNumConnections(model->getNumConnections());
         connect(model, SIGNAL(numConnectionsChanged(int)), this, SLOT(setNumConnections(int)));
+        
+        setNumBlocks(model->getNumBlocks(), model->getNumBlocksOfPeers());
         connect(model, SIGNAL(numBlocksChanged(int,int)), this, SLOT(setNumBlocks(int,int)));
 
         // Provide initial values
@@ -263,7 +268,6 @@ void RPCConsole::setClientModel(ClientModel *model)
         ui->buildDate->setText(model->formatBuildDate());
         ui->startupTime->setText(model->formatClientStartupTime());
 
-        setNumConnections(model->getNumConnections());
         ui->isTestNet->setChecked(model->isTestNet());
     }
 }

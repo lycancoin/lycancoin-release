@@ -96,7 +96,7 @@
      <item>
       <widget class="QPushButton" name="signMessage">
        <property name="toolTip">
-        <string>Sign a message to prove you own a Bitcoin address</string>
+        <string>Sign a message to prove you own a  address</string>
        </property>
        <property name="text">
         <string>Sign &amp;Message</string>
@@ -124,7 +124,7 @@
      <item>
       <widget class="QPushButton" name="deleteAddress">
        <property name="toolTip">
-        <string>Delete the currently selected address from the list. Only sending addresses can be deleted.</string>
+        <string>Delete the currently selected address from the list</string>
        </property>
        <property name="text">
         <string>&amp;Delete</string>
@@ -147,6 +147,20 @@
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="exportButton">
+       <property name="toolTip">
+        <string>Export the data in the current tab to a file</string>
+       </property>
+       <property name="text">
+        <string>&amp;Export</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../bitcoin.qrc">
+         <normaloff>:/icons/export</normaloff>:/icons/export</iconset>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QDialogButtonBox" name="buttonBox">

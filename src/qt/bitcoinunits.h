@@ -4,17 +4,17 @@
 #include <QString>
 #include <QAbstractListModel>
 
-/** Bitcoin unit definitions. Encapsulates parsing and formatting
-   and serves as list model for dropdown selection boxes.
+/** Lycancoin unit definitions. Encapsulates parsing and formatting
+   and serves as list model for drop-down selection boxes.
 */
 class BitcoinUnits: public QAbstractListModel
 {
-	 Q_OBJECT
+    Q_OBJECT
 
 public:
     explicit BitcoinUnits(QObject *parent);
 
-    /** Bitcoin units.
+    /** Lycancoin units.
       @note Source: https://en.bitcoin.it/wiki/Units . Please add only sensible ones
      */
     enum Unit
@@ -28,7 +28,7 @@ public:
     //! Unit conversion and formatting
     ///@{
 
-    //! Get list of units, for dropdown box
+    //! Get list of units, for drop-down box
     static QList<Unit> availableUnits();
     //! Is unit ID valid?
     static bool valid(int unit);
@@ -38,6 +38,8 @@ public:
     static QString description(int unit);
     //! Number of Satoshis (1e-8) per unit
     static qint64 factor(int unit);
+    //! Max amount per unit
+    static qint64 maxAmount(int unit);
     //! Number of amount digits (to represent max number of coins)
     static int amountDigits(int unit);
     //! Number of decimals left
@@ -51,7 +53,7 @@ public:
     ///@}
 
     //! @name AbstractListModel implementation
-    //! List model for unit dropdown selection box.
+    //! List model for unit drop-down selection box.
     ///@{
     enum RoleIndex {
         /** Unit identifier */

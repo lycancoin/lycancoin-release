@@ -34,9 +34,9 @@ QString BitcoinUnits::name(int unit)
 {
     switch(unit)
     {
-    case BTC: return QString("ZMB");
-    case mBTC: return QString("mZMB");
-    case uBTC: return QString::fromUtf8("μZMB");
+    case BTC: return QString("LYC");
+    case mBTC: return QString("mLYC");
+    case uBTC: return QString::fromUtf8("μLYC");
     default: return QString("???");
     }
 }
@@ -45,13 +45,13 @@ QString BitcoinUnits::description(int unit)
 {
     switch(unit)
     {
-    case BTC: return QString("lycancoin");
-    case mBTC: return QString("millilycancoin (1 / 1,000)");
-    case uBTC: return QString("microlycancoin (1 / 1,000,000)");
+    case BTC: return QString("Lycancoins");
+    case mBTC: return QString("Milli-Lycancoins (1 / 1,000)");
+    case uBTC: return QString("Micro-Lycancoins (1 / 1,000,000)");
     default: return QString("???");
     }
 }
-//a single unit (.00000001) of lycancoin is called a "wander."
+
 qint64 BitcoinUnits::factor(int unit)
 {
     switch(unit)
@@ -60,6 +60,17 @@ qint64 BitcoinUnits::factor(int unit)
     case mBTC: return 100000;
     case uBTC: return 100;
     default:   return 100000000;
+    }
+}
+
+qint64 BitcoinUnits::maxAmount(int unit)
+{
+    switch(unit)
+    {
+    case BTC:  return Q_INT64_C(4950000000);
+    case mBTC: return Q_INT64_C(4950000000000);
+    case uBTC: return Q_INT64_C(4950000000000000);
+    default:   return 0;
     }
 }
 
@@ -99,7 +110,7 @@ QString BitcoinUnits::format(int unit, qint64 n, bool fPlus)
     QString quotient_str = QString::number(quotient);
     QString remainder_str = QString::number(remainder).rightJustified(num_decimals, '0');
 
-    // Right-trim excess 0's after the decimal point
+    // Right-trim excess zeros after the decimal point
     int nTrim = 0;
     for (int i = remainder_str.size()-1; i>=2 && (remainder_str.at(i) == '0'); --i)
         ++nTrim;

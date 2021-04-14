@@ -6,22 +6,22 @@
 #ifndef BITCOIN_DB_H
 #define BITCOIN_DB_H
 
-#include "main.h"
+#include "sync.h"
+#include "serialize.h"
 
 #include <map>
 #include <string>
 #include <vector>
 
+#include <boost/filesystem.hpp>
 #include <db_cxx.h>
 
-class CAddress;
 class CAddrMan;
 class CBlockLocator;
 class CDiskBlockIndex;
 class CMasterKey;
 class COutPoint;
 class CWallet;
-class CWalletTx;
 
 extern unsigned int nWalletDBUpdated;
 

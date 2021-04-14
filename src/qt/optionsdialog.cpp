@@ -45,8 +45,9 @@ OptionsDialog::OptionsDialog(QWidget *parent) :
     ui->proxyIp->installEventFilter(this);
 
     /* Window elements init */
-#ifdef Q_WS_MAC
-    ui->tabWindow->setVisible(false);
+#ifdef Q_OS_MAC
+    /* remove Window tab on Mac */
+    ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->tabWindow));
 #endif
 
     /* Display elements init */

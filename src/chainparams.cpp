@@ -1,0 +1,211 @@
+// Copyright (c) 2010 Satoshi Nakamoto
+// Copyright (c) 2009-2012 The Bitcoin developers
+// Distributed under the MIT/X11 software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+#include "assert.h"
+
+#include "chainparams.h"
+#include "main.h"
+#include "util.h"
+
+//
+// Main network
+//
+
+unsigned int pnSeed[] =
+{
+    0x44b76eae, 0x6baad9a5, 0x6baa1e61, 0xa2f371af, 0x2d4dbd98
+};
+
+class CMainParams : public CChainParams {
+public:
+    CMainParams() {
+        // The message start string is designed to be unlikely to occur in normal data.
+        // The characters are rarely used upper ASCII, not valid as UTF-8, and produce
+        // a large 4-byte int at any alignment.
+        pchMessageStart[0] = 0xfc;
+        pchMessageStart[1] = 0xd9;
+        pchMessageStart[2] = 0xb7;
+        pchMessageStart[3] = 0xdd;
+        vAlertPubKey = ParseHex("04fc9702847840aaf195de8442ebecedf5b095cdbb9bc716bda9110971b28a49e0ead8564ff0db22209e0374782c093bb899692d524e9d6a6956e7c5ecbcd68284");
+        nDefaultPort = 58862;
+        nRPCPort = 58861;
+        bnProofOfWorkLimit = CBigNum(~uint256(0) >> 20); // starting difficulty is 1 / 2^12
+        nSubsidyHalvingInterval = 800000;
+
+        // Build the genesis block. Note that the output of the genesis coinbase cannot
+        // be spent as it did not originally exist in the database.
+        //
+        // CBlock(hash=000000000019d6, ver=1, hashPrevBlock=00000000000000, hashMerkleRoot=4a5e1e, nTime=1231006505, nBits=1d00ffff, nNonce=2083236893, vtx=1)
+        //   CTransaction(hash=4a5e1e, ver=1, vin.size=1, vout.size=1, nLockTime=0)
+        //     CTxIn(COutPoint(000000, -1), coinbase 04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73)
+        //     CTxOut(nValue=50.00000000, scriptPubKey=0x5F1DF16B2B704C8A578D0B)
+        //   vMerkleTree: 4a5e1e
+        const char* pszTimestamp = "Lycancoin Build V.1.0 January 22, 2014";
+        CTransaction txNew;
+        txNew.vin.resize(1);
+        txNew.vout.resize(1);
+        txNew.vin[0].scriptSig = CScript() << 486604799 << CBigNum(4) << vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
+        txNew.vout[0].nValue = 0;
+        txNew.vout[0].scriptPubKey = CScript() << 0x0 << OP_CHECKSIG;
+        genesis.vtx.push_back(txNew);
+        genesis.hashPrevBlock = 0;
+        genesis.hashMerkleRoot = genesis.BuildMerkleTree();
+        genesis.nVersion = 1;
+        genesis.nTime    = 1391485370;
+        genesis.nBits    = 0x1e0ffff0;
+        genesis.nNonce   = 6678936;
+
+        hashGenesisBlock = genesis.GetHash();
+        assert(hashGenesisBlock == uint256("0x50f80e3dea383a355eb15e4be1f122acbc4144bceaa86604555953c5b8a0c9e4")); //1391485370
+        assert(genesis.hashMerkleRoot == uint256("0x269910b6413f0b424d62db021fed2758ce6761f9b45f5e3a7640ef9dfbe2c218"));
+
+        vSeeds.push_back(CDNSSeedData("lycancoin.org", "seed.lycancoin.org"));
+        vSeeds.push_back(CDNSSeedData("lycancoin.org", "seed2.lycancoin.org"));
+        vSeeds.push_back(CDNSSeedData("lycancoin.org", "seed3.lycancoin.org"));
+
+        base58Prefixes[PUBKEY_ADDRESS] = 48;
+        base58Prefixes[SCRIPT_ADDRESS] = 5;
+        base58Prefixes[SECRET_KEY] = 128;
+
+        // Convert the pnSeeds array into usable address objects.
+        for (unsigned int i = 0; i < ARRAYLEN(pnSeed); i++)
+        {
+            // It'll only connect to one or two seed nodes because once it connects,
+            // it'll get a pile of addresses with newer timestamps.
+            // Seed nodes are given a random 'last seen time' of between one and two
+            // weeks ago.
+            const int64 nOneWeek = 7*24*60*60;
+            struct in_addr ip;
+            memcpy(&ip, &pnSeed[i], sizeof(ip));
+            CAddress addr(CService(ip, GetDefaultPort()));
+            addr.nTime = GetTime() - GetRand(nOneWeek) - nOneWeek;
+            vFixedSeeds.push_back(addr);
+        }
+    }
+
+    virtual const CBlock& GenesisBlock() const { return genesis; }
+    virtual Network NetworkID() const { return CChainParams::MAIN; }
+
+    virtual const vector<CAddress>& FixedSeeds() const {
+        return vFixedSeeds;
+    }
+protected:
+    CBlock genesis;
+    vector<CAddress> vFixedSeeds;
+};
+static CMainParams mainParams;
+
+
+//
+// Testnet (v3)
+//
+class CTestNetParams : public CMainParams {
+public:
+    CTestNetParams() {
+        // The message start string is designed to be unlikely to occur in normal data.
+        // The characters are rarely used upper ASCII, not valid as UTF-8, and produce
+        // a large 4-byte int at any alignment.
+        pchMessageStart[0] = 0x0b;
+        pchMessageStart[1] = 0x11;
+        pchMessageStart[2] = 0x09;
+        pchMessageStart[3] = 0x07;
+        vAlertPubKey = ParseHex("04302390343f91cc401d56d68b123028bf52e5fca1939df127f63c6467cdf9c8e2c14b61104cf817d0b780da337893ecc4aaff1309e536162dabbdb45200ca2b0a");
+        nDefaultPort = 18333;
+        nRPCPort = 18332;
+        strDataDir = "testnet3";
+
+        // Modify the testnet genesis block so the timestamp is valid for a later start.
+        genesis.nTime = 1296688602;
+        genesis.nNonce = 414098458;
+        hashGenesisBlock = genesis.GetHash();
+//        assert(hashGenesisBlock == uint256("000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"));
+
+        vFixedSeeds.clear();
+        vSeeds.clear();
+        vSeeds.push_back(CDNSSeedData("bitcoin.petertodd.org", "testnet-seed.bitcoin.petertodd.org"));
+        vSeeds.push_back(CDNSSeedData("bluematt.me", "testnet-seed.bluematt.me"));
+
+        base58Prefixes[PUBKEY_ADDRESS] = 111;
+        base58Prefixes[SCRIPT_ADDRESS] = 196;
+        base58Prefixes[SECRET_KEY] = 239;
+
+    }
+    virtual Network NetworkID() const { return CChainParams::TESTNET; }
+};
+static CTestNetParams testNetParams;
+
+
+//
+// Regression test
+//
+class CRegTestParams : public CTestNetParams {
+public:
+    CRegTestParams() {
+        pchMessageStart[0] = 0xfa;
+        pchMessageStart[1] = 0xbf;
+        pchMessageStart[2] = 0xb5;
+        pchMessageStart[3] = 0xda;
+        nSubsidyHalvingInterval = 150;
+        bnProofOfWorkLimit = CBigNum(~uint256(0) >> 1);
+        genesis.nTime = 1296688602;
+        genesis.nBits = 0x207fffff;
+        genesis.nNonce = 2;
+        hashGenesisBlock = genesis.GetHash();
+        nDefaultPort = 18444;
+        strDataDir = "regtest";
+//        assert(hashGenesisBlock == uint256("0x0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"));
+
+        vSeeds.clear();  // Regtest mode doesn't have any DNS seeds.
+
+        base58Prefixes[PUBKEY_ADDRESS] = 0;
+        base58Prefixes[SCRIPT_ADDRESS] = 5;
+        base58Prefixes[SECRET_KEY] = 128;
+    }
+
+    virtual bool RequireRPCPassword() const { return false; }
+    virtual Network NetworkID() const { return CChainParams::REGTEST; }
+};
+static CRegTestParams regTestParams;
+
+static CChainParams *pCurrentParams = &mainParams;
+
+const CChainParams &Params() {
+    return *pCurrentParams;
+}
+
+void SelectParams(CChainParams::Network network) {
+    switch (network) {
+        case CChainParams::MAIN:
+            pCurrentParams = &mainParams;
+            break;
+        case CChainParams::TESTNET:
+            pCurrentParams = &testNetParams;
+            break;
+        case CChainParams::REGTEST:
+            pCurrentParams = &regTestParams;
+            break;
+        default:
+            assert(false && "Unimplemented network");
+            return;
+    }
+}
+
+bool SelectParamsFromCommandLine() {
+    bool fRegTest = GetBoolArg("-regtest", false);
+    bool fTestNet = GetBoolArg("-testnet", false);
+
+    if (fTestNet && fRegTest) {
+        return false;
+    }
+
+    if (fRegTest) {
+        SelectParams(CChainParams::REGTEST);
+    } else if (fTestNet) {
+        SelectParams(CChainParams::TESTNET);
+    } else {
+        SelectParams(CChainParams::MAIN);
+    }
+    return true;
+}

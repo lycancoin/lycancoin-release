@@ -20,45 +20,22 @@ enum BlockSource {
     BLOCK_SOURCE_NETWORK
 };
 
-/** Model for Bitcoin network client. */
+/** Model for Lycancoin network client. */
 class ClientModel : public QObject
 {
     Q_OBJECT
+
 public:
     explicit ClientModel(OptionsModel *optionsModel, QObject *parent = 0);
     ~ClientModel();
-
-    enum MiningType
-    {
-        SoloMining,
-        PoolMining
-    };
 
     OptionsModel *getOptionsModel();
 
     int getNumConnections() const;
     int getNumBlocks() const;
     int getNumBlocksAtStartup();
-    MiningType getMiningType() const;
-    int getMiningThreads() const;
-    bool getMiningStarted() const;
 
-    bool getMiningDebug() const;
-    void setMiningDebug(bool debug);
-    int getMiningScanTime() const;
-    void setMiningScanTime(int scantime);
-    QString getMiningServer() const;
-    void setMiningServer(QString server);
-    QString getMiningPort() const;
-    void setMiningPort(QString port);
-    QString getMiningUsername() const;
-    void setMiningUsername(QString username);
-    QString getMiningPassword() const;
-    void setMiningPassword(QString password);
-
-    int getHashrate() const;
-    double GetDifficulty() const;
-
+    double getVerificationProgress() const;
     QDateTime getLastBlockDate() const;
 
     //! Return true if client connected to testnet
@@ -72,8 +49,6 @@ public:
     //! Return warnings to be displayed in status bar
     QString getStatusBarWarnings() const;
 
-    void setMining(MiningType type, bool mining, int threads, int hashrate);
-
     QString formatFullVersion() const;
     QString formatBuildDate() const;
     bool isReleaseVersion() const;
@@ -85,19 +60,8 @@ private:
 
     int cachedNumBlocks;
     int cachedNumBlocksOfPeers;
-    int cachedHashrate;
-	 bool cachedReindexing;
-	 bool cachedImporting;
-
-    MiningType miningType;
-    int miningThreads;
-    bool miningStarted;
-    bool miningDebug;
-    int miningScanTime;
-    QString miningServer;
-    QString miningPort;
-    QString miningUsername;
-    QString miningPassword;
+	bool cachedReindexing;
+	bool cachedImporting;
 
     int numBlocksAtStartup;
 
@@ -105,6 +69,7 @@ private:
 
     void subscribeToCoreSignals();
     void unsubscribeFromCoreSignals();
+
 signals:
     void numConnectionsChanged(int count);
     void numBlocksChanged(int count, int countOfPeers);

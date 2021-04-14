@@ -1,9 +1,8 @@
-#include <QApplication>
-
 #include "splashscreen.h"
 #include "clientversion.h"
 #include "util.h"
 
+#include <QApplication>
 #include <QPainter>
 
 SplashScreen::SplashScreen(const QPixmap &pixmap, Qt::WindowFlags f) :
@@ -27,7 +26,7 @@ SplashScreen::SplashScreen(const QPixmap &pixmap, Qt::WindowFlags f) :
 
     // load the bitmap for writing some text over it
     QPixmap newPixmap;
-    if(GetBoolArg("-testnet")) {
+    if(GetBoolArg("-testnet", false)) {
         newPixmap     = QPixmap(":/images/splash");
     }
     else {

@@ -1,0 +1,9 @@
+Building Lycancoin
+
+See doc/readme-qt.rst for instructions on building lycancoin-qt,
+the intended-for-end-users, nice-graphical-interface, reference
+implementation of Lycancoin.
+
+See doc/build-*.txt for instructions on building lycancoin,
+the intended-for-services, no-graphical-interface, reference
+implementation of Lycancoin.
