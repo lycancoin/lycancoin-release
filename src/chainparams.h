@@ -39,12 +39,16 @@ public:
         MAIN,
         TESTNET,
         REGTEST,
+        
+        MAX_NETWORK_TYPES
     };
 
     enum Base58Type {
         PUBKEY_ADDRESS,
         SCRIPT_ADDRESS,
         SECRET_KEY,
+        EXT_PUBLIC_KEY,
+        EXT_SECRET_KEY,
 
         MAX_BASE58_TYPES
     };
@@ -60,7 +64,7 @@ public:
     const string& DataDir() const { return strDataDir; }
     virtual Network NetworkID() const = 0;
     const vector<CDNSSeedData>& DNSSeeds() const { return vSeeds; }
-    int Base58Prefix(Base58Type type) const { return base58Prefixes[type]; }
+    const std::vector<unsigned char> &Base58Prefix(Base58Type type) const { return base58Prefixes[type]; }
     virtual const vector<CAddress>& FixedSeeds() const = 0;
     int RPCPort() const { return nRPCPort; }
 protected:
@@ -76,7 +80,7 @@ protected:
     int nSubsidyHalvingInterval;
     string strDataDir;
     vector<CDNSSeedData> vSeeds;
-    int base58Prefixes[MAX_BASE58_TYPES];
+    std::vector<unsigned char> base58Prefixes[MAX_BASE58_TYPES];
 };
 
 /**
@@ -97,6 +101,10 @@ bool SelectParamsFromCommandLine();
 inline bool TestNet() {
     // Note: it's deliberate that this returns "false" for regression test mode.
     return Params().NetworkID() == CChainParams::TESTNET;
+}
+
+inline bool RegTest() {
+    return Params().NetworkID() == CChainParams::REGTEST;
 }
 
 #endif

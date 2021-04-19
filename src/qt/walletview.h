@@ -17,6 +17,7 @@ class TransactionView;
 class OverviewPage;
 class AddressBookPage;
 class SendCoinsDialog;
+class SendCoinsRecipient;
 class SignVerifyMessageDialog;
 class Notificator;
 class RPCConsole;
@@ -45,12 +46,12 @@ public:
     */
     void setClientModel(ClientModel *clientModel);
     /** Set the wallet model.
-        The wallet model represents a bitcoin wallet, and offers access to the list of transactions, address book and sending
+        The wallet model represents a lycancoin wallet, and offers access to the list of transactions, address book and sending
         functionality.
     */
     void setWalletModel(WalletModel *walletModel);
 
-    bool handleURI(const QString &uri);
+    bool handlePaymentRequest(const SendCoinsRecipient& recipient);
 
     void showOutOfSyncWarning(bool fShow);
 
@@ -126,6 +127,10 @@ public slots:
     void unlockWallet();
 
     void setEncryptionStatus();
+    
+signals:
+    /** Signal that we want to show the main window */
+    void showNormalIfMinimized();
 };
 
 #endif // WALLETVIEW_H

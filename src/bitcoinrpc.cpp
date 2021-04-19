@@ -213,6 +213,7 @@ static const CRPCCommand vRPCCommands[] =
     { "getmininginfo",          &getmininginfo,          true,   		false },
     { "getnewaddress",          &getnewaddress,          true,   		false },
     { "getaccountaddress",      &getaccountaddress,      true,   		false },
+    { "getrawchangeaddress",    &getrawchangeaddress,    true,       false },
     { "setaccount",             &setaccount,             true,   		false },
     { "getaccount",             &getaccount,             false,  		false },
     { "getaddressesbyaccount",  &getaddressesbyaccount,  true,   		false },
@@ -482,7 +483,7 @@ bool HTTPAuthorized(map<string, string>& mapHeaders)
         return false;
     string strUserPass64 = strAuth.substr(6); boost::trim(strUserPass64);
     string strUserPass = DecodeBase64(strUserPass64);
-    return strUserPass == strRPCUserColonPass;
+    return TimingResistantEqual(strUserPass, strRPCUserColonPass);
 }
 //
 // JSON-RPC protocol.  Lycancoin speaks version 1.0 for maximum compatibility,
@@ -1208,6 +1209,7 @@ Array RPCConvertValues(const std::string &strMethod, const std::vector<std::stri
     if (strMethod == "importprivkey"          && n > 2) ConvertTo<bool>(params[2]);
     if (strMethod == "verifychain"            && n > 0) ConvertTo<boost::int64_t>(params[0]);
     if (strMethod == "verifychain"            && n > 1) ConvertTo<boost::int64_t>(params[1]);
+    if (strMethod == "keypoolrefill"          && n > 0) ConvertTo<boost::int64_t>(params[0]);
 
     return params;
 }
