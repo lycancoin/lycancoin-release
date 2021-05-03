@@ -133,7 +133,7 @@ leveldb/libleveldb.a:
 -include obj/*.P
 -include obj-test/*.P
 
-obj/scrypt.o: scrypt.c
+obj/scrypt.o: scrypt.cpp
 	gcc -c $(CFLAGS) -MMD -o $@ $<
 	@cp $(@:%.o=%.d) $(@:%.o=%.P); \
 	  sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \

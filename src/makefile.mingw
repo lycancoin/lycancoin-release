@@ -117,7 +117,7 @@ DEFS += $(addprefix -I,$(CURDIR)/leveldb/helpers)
 leveldb/libleveldb.a:
 	cd leveldb && $(MAKE) CC=$(CC) CXX=$(CXX) OPT="$(CFLAGS)" TARGET_OS=NATIVE_WINDOWS libleveldb.a libmemenv.a && cd ..
 
-obj/scrypt.o: scrypt.c
+obj/scrypt.o: scrypt.cpp
 	gcc -c $(CFLAGS) -o $@ $^
 
 obj/%.o: %.cpp $(HEADERS)
