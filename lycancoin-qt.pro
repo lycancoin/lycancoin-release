@@ -333,6 +333,11 @@ SOURCES += src/qt/qrcodedialog.cpp
 FORMS += src/qt/forms/qrcodedialog.ui
 }
 
+contains(USE_SSE2, 1) {
+SOURCES += src/scrypt-sse2.cpp
+DEFINES += USE_SSE2
+}
+
 # Todo: Remove this line when switching to Qt5, as that option was removed
 CODECFORTR = UTF-8
 

@@ -52,9 +52,9 @@ unsigned int nCoinCacheSize = 5000;
 bool fHaveGUI = false;
 
 /** Fees smaller than this (in satoshi) are considered zero fee (for transaction creation) */
-int64 CTransaction::nMinTxFee = 10000000;  // Override with -mintxfee
+int64 CTransaction::nMinTxFee = 10000;  // Override with -mintxfee
 /** Fees smaller than this (in satoshi) are considered zero fee (for relaying) */
-int64 CTransaction::nMinRelayTxFee = 10000000;
+int64 CTransaction::nMinRelayTxFee = 10000;
 
 CMedianFilter<int> cPeerBlockCounts(8, 0); // Amount of blocks that other nodes claim to have
 
@@ -1312,8 +1312,7 @@ unsigned int ComputeMinWork(unsigned int nBase, int64 nTime)
 
     CBigNum bnResult;
     bnResult.SetCompact(nBase);
-    if (bnResult > bnLimit)
-        bnResult = bnLimit;
+    while (nTime > 0 && bnResult < bnLimit)
     {
         // Maximum 400% adjustment...
         bnResult *= 4;
@@ -2526,7 +2525,6 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CDiskBlockPos* dbp)
     CBlockIndex* pindexPrev = NULL;
     int nHeight = 0;
     if (hash != Params().HashGenesisBlock()) {
-    	
     map<uint256, CBlockIndex*>::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
     if (mi == mapBlockIndex.end())
         return state.DoS(10, error("AcceptBlock() : prev block not found"));
@@ -2572,7 +2570,7 @@ bool AcceptBlock(CBlock& block, CValidationState& state, CDiskBlockPos* dbp)
                 return state.DoS(100, error("AcceptBlock() : block height mismatch in coinbase"));
         }
     }
-    }
+}
     
     // Write block to history file
     try {
