@@ -1,16 +1,16 @@
 #include "intro.h"
 #include "ui_intro.h"
+
 #include "util.h"
 
+#include <boost/filesystem.hpp>
 #include <QFileDialog>
 #include <QSettings>
 #include <QMessageBox>
 
-#include <boost/filesystem.hpp>
-
 /* Minimum free space (in bytes) needed for data directory */
-static const uint64 GB_BYTES = 1000000000LL;
-static const uint64 BLOCK_CHAIN_SIZE = 10LL * GB_BYTES;
+static const uint64_t GB_BYTES = 1000000000LL;
+static const uint64_t BLOCK_CHAIN_SIZE = 10LL * GB_BYTES;
 
 /* Check free space asynchronously to prevent hanging the UI thread.
    Up to one request to check a path is in flight to this thread; when the check()
@@ -54,7 +54,7 @@ void FreespaceChecker::check()
     namespace fs = boost::filesystem;
     QString dataDirStr = intro->getPathToCheck();
     fs::path dataDir = fs::path(dataDirStr.toStdString());
-    uint64 freeBytesAvailable = 0;
+    uint64_t freeBytesAvailable = 0;
     int replyStatus = ST_OK;
     QString replyMessage = tr("A new data directory will be created.");
 
@@ -142,7 +142,7 @@ QString Intro::getDefaultDataDirectory()
 
 void Intro::pickDataDirectory(bool fIsTestnet)
 {
-    namespace fs = boost::filesystem;;
+    namespace fs = boost::filesystem;
     QSettings settings;
     /* If data directory provided on command line, no need to look at settings
        or show a picking dialog */
@@ -174,8 +174,8 @@ void Intro::pickDataDirectory(bool fIsTestnet)
                 fs::create_directory(dataDir.toStdString());
                 break;
             } catch(fs::filesystem_error &e) {
-                QMessageBox::critical(0, QObject::tr("Lycancoin"),
-                                      QObject::tr("Error: Specified data directory \"%1\" can not be created.").arg(dataDir));
+                QMessageBox::critical(0, tr("Lycancoin"),
+                    tr("Error: Specified data directory \"%1\" can not be created.").arg(dataDir));
                 /* fall through, back to choosing screen */
             }
         }
@@ -226,7 +226,7 @@ void Intro::on_dataDirectory_textChanged(const QString &dataDirStr)
 
 void Intro::on_ellipsisButton_clicked()
 {
-    QString dir = QFileDialog::getExistingDirectory(0, "Choose data directory", ui->dataDirectory->text());
+    QString dir = QDir::toNativeSeparators(QFileDialog::getExistingDirectory(0, "Choose data directory", ui->dataDirectory->text()));
     if(!dir.isEmpty())
         ui->dataDirectory->setText(dir);
 }

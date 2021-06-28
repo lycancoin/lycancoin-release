@@ -1,55 +1,56 @@
 ---
-name: "lycancoin"
+name: "bitcoin"
 suites:
-- "lucid"
+- "precise"
 architectures:
 - "i386"
 - "amd64"
 packages: 
-- "libdb4.8++-dev"
 - "qt4-qmake"
 - "libqt4-dev"
 - "libboost-system-dev"
 - "libboost-filesystem-dev"
 - "libboost-program-options-dev"
 - "libboost-thread-dev"
+- "libboost-test-dev"
 - "libssl-dev"
 - "git-core"
 - "unzip"
 - "pkg-config"
-- "libpng12-dev"
-reference_datetime: "2011-01-30 00:00:00"
+- "autoconf2.13"
+- "libtool"
+- "automake"
+- "faketime"
+- "bsdmainutils"
+reference_datetime: "2013-06-01 00:00:00"
 remotes:
-- "url": "https://github.com/litecoin-project/litecoin.git"
-  "dir": "litecoin"
+- "url": "https://github.com/lycancoin/lycancoin-release.git"
+  "dir": "lycancoin-release"
 files:
-- "miniupnpc-1.6.tar.gz"
-- "qrencode-3.2.0.tar.bz2"
+- "bitcoin-deps-linux32-gitian-r1.zip"
+- "bitcoin-deps-linux64-gitian-r1.zip"
 script: |
-  INSTDIR="$HOME/install"
-  export LIBRARY_PATH="$INSTDIR/lib"
+  STAGING="$HOME/install"
+  OPTFLAGS='-O2'
+  BINDIR="${OUTDIR}/bin/${GBUILD_BITS}" # 32/64 bit build specific output directory
+  export LIBRARY_PATH="$STAGING/lib"
+  mkdir -p ${BINDIR}
   #
-  tar xzf miniupnpc-1.6.tar.gz
-  cd miniupnpc-1.6
-  INSTALLPREFIX=$INSTDIR make $MAKEOPTS install
-  cd ..
+  mkdir -p $STAGING
+  cd $STAGING
+  tar xzfm ../build/bitcoin-deps-linux${GBUILD_BITS}-gitian-r1.tar.gz
+  cd ../build
   #
-  tar xjf qrencode-3.2.0.tar.bz2
-  cd qrencode-3.2.0
-  ./configure --prefix=$INSTDIR --enable-static --disable-shared
-  make $MAKEOPTS install
-  cd ..
-  #
-  cd litecoin
-  mkdir -p $OUTDIR/src
-  git archive HEAD | tar -x -C $OUTDIR/src
-  cp $OUTDIR/src/doc/README.md $OUTDIR
-  cp $OUTDIR/src/COPYING $OUTDIR
-  cd src
-  make -f makefile.unix STATIC=1 OPENSSL_INCLUDE_PATH="$INSTDIR/include" OPENSSL_LIB_PATH="$INSTDIR/lib" $MAKEOPTS litecoind USE_UPNP=0 DEBUGFLAGS= USE_SSE2=1
-  mkdir -p $OUTDIR/bin/$GBUILD_BITS
-  install -s litecoind $OUTDIR/bin/$GBUILD_BITS
-  cd ..
-  qmake INCLUDEPATH="$INSTDIR/include" LIBS="-L$INSTDIR/lib" RELEASE=1 USE_QRCODE=1 USE_SSE2=1
+  cd bitcoin
+  export TAR_OPTIONS=--mtime=`echo $REFERENCE_DATETIME | awk '{ print $1 }'`
+  ./autogen.sh
+  ./configure --prefix=$STAGING --bindir=$BINDIR --with-protoc-bindir=$STAGING/host/bin --disable-maintainer-mode --disable-dependency-tracking PKG_CONFIG_PATH="$STAGING/lib/pkgconfig" CPPFLAGS="-I$STAGING/include ${OPTFLAGS}" LDFLAGS="-L$STAGING/lib ${OPTFLAGS}" CXXFLAGS="-frandom-seed=bitcoin ${OPTFLAGS}"
+  make dist
+  mkdir -p distsrc
+  cd distsrc
+  tar --strip-components=1 -xf ../bitcoin-*.tar.*
+  ./configure --prefix=$STAGING --bindir=$BINDIR --with-protoc-bindir=$STAGING/host/bin --disable-maintainer-mode --disable-dependency-tracking PKG_CONFIG_PATH="$STAGING/lib/pkgconfig" CPPFLAGS="-I$STAGING/include ${OPTFLAGS}" LDFLAGS="-L$STAGING/lib ${OPTFLAGS}" CXXFLAGS="-frandom-seed=bitcoin ${OPTFLAGS}"
   make $MAKEOPTS
-  install litecoin-qt $OUTDIR/bin/$GBUILD_BITS
+  make $MAKEOPTS install-strip
+  mkdir -p $OUTDIR/src
+  cp ../bitcoin-*.tar.* $OUTDIR/src

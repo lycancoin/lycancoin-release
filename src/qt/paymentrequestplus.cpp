@@ -3,16 +3,15 @@
 // with some extra methods
 //
 
-#include <QDateTime>
-#include <QDebug>
-#include <QSslCertificate>
-
-#include <openssl/x509.h>
-#include <openssl/x509_vfy.h>
+#include "paymentrequestplus.h"
 
 #include <stdexcept>
 
-#include "paymentrequestplus.h"
+#include <openssl/x509.h>
+#include <openssl/x509_vfy.h>
+#include <QDateTime>
+#include <QDebug>
+#include <QSslCertificate>
 
 class SSLVerifyError : public std::runtime_error
 {
@@ -75,12 +74,11 @@ bool PaymentRequestPlus::getMerchant(X509_STORE* certStore, QString& merchant) c
         digestAlgorithm = EVP_sha1();
     }
     else if (paymentRequest.pki_type() == "none") {
-        if (fDebug)
-            qDebug() << "PaymentRequestPlus::getMerchant : Payment request: pki_type == none";
+        qDebug() << "PaymentRequestPlus::getMerchant : Payment request: pki_type == none";
         return false;
     }
     else {
-        qDebug() << "PaymentRequestPlus::getMerchant : Payment request: unknown pki_type " << paymentRequest.pki_type().c_str();
+        qDebug() << "PaymentRequestPlus::getMerchant : Payment request: unknown pki_type " << QString::fromStdString(paymentRequest.pki_type());
         return false;
     }
 
@@ -152,7 +150,7 @@ bool PaymentRequestPlus::getMerchant(X509_STORE* certStore, QString& merchant) c
         // Valid cert; check signature:
         payments::PaymentRequest rcopy(paymentRequest); // Copy
         rcopy.set_signature(std::string(""));
-        std::string data_to_verify;                 // Everything but the signature
+        std::string data_to_verify;                     // Everything but the signature
         rcopy.SerializeToString(&data_to_verify);
 
         EVP_MD_CTX ctx;

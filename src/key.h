@@ -3,15 +3,17 @@
 // Copyright (c) 2011-2012 Litecoin Developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #ifndef BITCOIN_KEY_H
 #define BITCOIN_KEY_H
 
-#include <vector>
-
 #include "allocators.h"
+#include "hash.h"
 #include "serialize.h"
 #include "uint256.h"
-#include "hash.h"
+
+#include <stdexcept>
+#include <vector>
 
 // secp256k1:
 // const unsigned int PRIVATE_KEY_SIZE = 279;
@@ -205,7 +207,8 @@ public:
     }
     
     friend bool operator==(const CKey &a, const CKey &b) {
-        return a.fCompressed == b.fCompressed && memcmp(&a.vch[0], &b.vch[0], 32);
+        return a.fCompressed == b.fCompressed && a.size() == b.size() &&
+               memcmp(&a.vch[0], &b.vch[0], a.size()) == 0;
     }
 
     // Initialize using begin and end iterators to byte data.
@@ -262,6 +265,9 @@ public:
     
         // Derive BIP32 child key.
     bool Derive(CKey& keyChild, unsigned char ccChild[32], unsigned int nChild, const unsigned char cc[32]) const;
+
+    // Load private key and check that public key matches.
+    bool Load(CPrivKey &privkey, CPubKey &vchPubKey, bool fSkipCheck);
 };
 
 struct CExtPubKey {

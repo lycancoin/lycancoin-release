@@ -1,18 +1,29 @@
 #ifndef WALLETMODEL_H
 #define WALLETMODEL_H
 
-#include <QObject>
+#include "paymentrequestplus.h"
+#include "walletmodeltransaction.h"
 
 #include "allocators.h" /* for SecureString */
-#include "wallet.h"
-#include "walletmodeltransaction.h"
-#include "paymentrequestplus.h"
 
-class OptionsModel;
+#include <map>
+#include <vector>
+
+#include <QObject>
+
 class AddressTableModel;
+class OptionsModel;
+class RecentRequestsTableModel;
 class TransactionTableModel;
-class CWallet;
 class WalletModelTransaction;
+
+class CCoinControl;
+class CKeyID;
+class COutPoint;
+class COutput;
+class CPubKey;
+class CWallet;
+class uint256;
 
 QT_BEGIN_NAMESPACE
 class QTimer;
@@ -21,15 +32,54 @@ QT_END_NAMESPACE
 class SendCoinsRecipient
 {
 public:
-    SendCoinsRecipient() : amount(0) { }
+    explicit SendCoinsRecipient() : amount(0), nVersion(SendCoinsRecipient::CURRENT_VERSION) { }
+    explicit SendCoinsRecipient(const QString &addr, const QString &label, quint64 amount, const QString &message):
+        address(addr), label(label), amount(amount), message(message), nVersion(SendCoinsRecipient::CURRENT_VERSION) {}
 
     QString address;
     QString label;
     qint64 amount;
+    QString message;
 
     // If from a payment request, paymentRequest.IsInitialized() will be true
     PaymentRequestPlus paymentRequest;
-    QString authenticatedMerchant; // Empty if no authentication or invalid signature/cert/etc.
+    // Empty if no authentication or invalid signature/cert/etc.
+    QString authenticatedMerchant;
+
+    static const int CURRENT_VERSION = 1;
+    int nVersion;
+
+    IMPLEMENT_SERIALIZE
+    (
+        SendCoinsRecipient* pthis = const_cast<SendCoinsRecipient*>(this);
+
+        std::string sAddress = pthis->address.toStdString();
+        std::string sLabel = pthis->label.toStdString();
+        std::string sMessage = pthis->message.toStdString();
+        std::string sPaymentRequest;
+        if (!fRead && pthis->paymentRequest.IsInitialized())
+            pthis->paymentRequest.SerializeToString(&sPaymentRequest);
+        std::string sAuthenticatedMerchant = pthis->authenticatedMerchant.toStdString();
+
+        READWRITE(pthis->nVersion);
+        nVersion = pthis->nVersion;
+        READWRITE(sAddress);
+        READWRITE(sLabel);
+        READWRITE(amount);
+        READWRITE(sMessage);
+        READWRITE(sPaymentRequest);
+        READWRITE(sAuthenticatedMerchant);
+
+        if (fRead)
+        {
+            pthis->address = QString::fromStdString(sAddress);
+            pthis->label = QString::fromStdString(sLabel);
+            pthis->message = QString::fromStdString(sMessage);
+            if (!sPaymentRequest.empty())
+                pthis->paymentRequest.parse(QByteArray::fromRawData(sPaymentRequest.data(), sPaymentRequest.size()));
+            pthis->authenticatedMerchant = QString::fromStdString(sAuthenticatedMerchant);
+        }
+    )
 };
 
 /** Interface to Lycancoin wallet from Qt view code. */
@@ -50,8 +100,7 @@ public:
         AmountWithFeeExceedsBalance,
         DuplicateAddress,
         TransactionCreationFailed, // Error returned when wallet is still locked
-        TransactionCommitFailed,
-        Aborted
+        TransactionCommitFailed
     };
 
     enum EncryptionStatus
@@ -64,8 +113,9 @@ public:
     OptionsModel *getOptionsModel();
     AddressTableModel *getAddressTableModel();
     TransactionTableModel *getTransactionTableModel();
+    RecentRequestsTableModel *getRecentRequestsTableModel();
 
-    qint64 getBalance() const;
+    qint64 getBalance(const CCoinControl *coinControl = NULL) const;
     qint64 getUnconfirmedBalance() const;
     qint64 getImmatureBalance() const;
     int getNumTransactions() const;
@@ -77,13 +127,13 @@ public:
     // Return status record for SendCoins, contains error id + information
     struct SendCoinsReturn
     {
-        SendCoinsReturn(StatusCode status):
+        SendCoinsReturn(StatusCode status = OK):
             status(status) {}
         StatusCode status;
     };
 
     // prepare transaction for getting txfee before sending coins
-    SendCoinsReturn prepareTransaction(WalletModelTransaction &transaction);
+    SendCoinsReturn prepareTransaction(WalletModelTransaction &transaction, const CCoinControl *coinControl = NULL);
 
     // Send coins to a list of recipients
     SendCoinsReturn sendCoins(WalletModelTransaction &transaction);
@@ -118,6 +168,18 @@ public:
 
     UnlockContext requestUnlock();
 
+    bool getPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const;
+    void getOutputs(const std::vector<COutPoint>& vOutpoints, std::vector<COutput>& vOutputs);
+    void listCoins(std::map<QString, std::vector<COutput> >& mapCoins) const;
+
+    bool isLockedCoin(uint256 hash, unsigned int n) const;
+    void lockCoin(COutPoint& output);
+    void unlockCoin(COutPoint& output);
+    void listLockedCoins(std::vector<COutPoint>& vOutpts);
+
+    void loadReceiveRequests(std::vector<std::string>& vReceiveRequests);
+    bool saveReceiveRequest(const std::string &sAddress, const int64_t nId, const std::string &sRequest);
+
 private:
     CWallet *wallet;
 
@@ -127,6 +189,7 @@ private:
 
     AddressTableModel *addressTableModel;
     TransactionTableModel *transactionTableModel;
+    RecentRequestsTableModel *recentRequestsTableModel;
 
     // Cache some values to be able to detect changes
     qint64 cachedBalance;

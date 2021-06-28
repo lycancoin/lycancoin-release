@@ -3,6 +3,8 @@
 
 #include <QDialog>
 
+class AddressTableModel;
+
 namespace Ui {
     class EditAddressDialog;
 }
@@ -26,7 +28,7 @@ public:
         EditSendingAddress
     };
 
-    explicit EditAddressDialog(Mode mode, QWidget *parent = 0);
+    explicit EditAddressDialog(Mode mode, QWidget *parent);
     ~EditAddressDialog();
 
     void setModel(AddressTableModel *model);

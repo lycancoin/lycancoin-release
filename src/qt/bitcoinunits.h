@@ -1,8 +1,8 @@
 #ifndef BITCOINUNITS_H
 #define BITCOINUNITS_H
 
-#include <QString>
 #include <QAbstractListModel>
+#include <QString>
 
 /** Lycancoin unit definitions. Encapsulates parsing and formatting
    and serves as list model for drop-down selection boxes.

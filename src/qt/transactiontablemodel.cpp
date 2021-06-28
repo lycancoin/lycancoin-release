@@ -1,23 +1,27 @@
 #include "transactiontablemodel.h"
 
-#include "guiutil.h"
-#include "transactionrecord.h"
-#include "guiconstants.h"
-#include "transactiondesc.h"
-#include "walletmodel.h"
-#include "optionsmodel.h"
 #include "addresstablemodel.h"
 #include "bitcoinunits.h"
+#include "guiconstants.h"
+#include "guiutil.h"
+#include "optionsmodel.h"
+#include "transactiondesc.h"
+#include "transactionrecord.h"
+#include "walletmodel.h"
+
+#include "main.h"
+#include "sync.h"
+#include "uint256.h"
+#include "util.h"
 
 #include "wallet.h"
-#include "ui_interface.h"
 
-#include <QList>
 #include <QColor>
-#include <QTimer>
-#include <QIcon>
 #include <QDateTime>
 #include <QDebug>
+#include <QIcon>
+#include <QList>
+#include <QTimer>
 
 // Amount column is right-aligned it contains numbers
 static int column_alignments[] = {
@@ -250,9 +254,9 @@ void TransactionTableModel::updateTransaction(const QString &hash, int status)
 
 void TransactionTableModel::updateConfirmations()
 {
-    if(nBestHeight != cachedNumBlocks)
+    if(chainActive.Height() != cachedNumBlocks)
     {
-        cachedNumBlocks = nBestHeight;
+        cachedNumBlocks = chainActive.Height();
         // Blocks came in since last poll.
         // Invalidate status (number of confirmations) and (possibly) description
         //  for all rows. Qt is smart enough to only actually request the data for the
@@ -278,38 +282,40 @@ QString TransactionTableModel::formatTxStatus(const TransactionRecord *wtx) cons
 {
     QString status;
 
-    switch(wtx->status.status)
-    {
-    case TransactionStatus::OpenUntilBlock:
-        status = tr("Open for %n more block(s)","",wtx->status.open_for);
-        break;
-    case TransactionStatus::OpenUntilDate:
-        status = tr("Open until %1").arg(GUIUtil::dateTimeStr(wtx->status.open_for));
-        break;
-    case TransactionStatus::Offline:
-        status = tr("Offline (%1 confirmations)").arg(wtx->status.depth);
-        break;
-    case TransactionStatus::Unconfirmed:
-        status = tr("Unconfirmed (%1 of %2 confirmations)").arg(wtx->status.depth).arg(TransactionRecord::NumConfirmations);
-        break;
-    case TransactionStatus::HaveConfirmations:
-        status = tr("Confirmed (%1 confirmations)").arg(wtx->status.depth);
-        break;
-    }
     if(wtx->type == TransactionRecord::Generated)
     {
         switch(wtx->status.maturity)
         {
         case TransactionStatus::Immature:
-            status += "\n" + tr("Mined balance will be available when it matures in %n more block(s)", "", wtx->status.matures_in);
+            status = tr("Immature (%1 confirmations, will be available after %2)").arg(wtx->status.depth).arg(wtx->status.depth + wtx->status.matures_in);
             break;
         case TransactionStatus::Mature:
+            status = tr("Confirmed (%1 confirmations)").arg(wtx->status.depth);
             break;
         case TransactionStatus::MaturesWarning:
-            status += "\n" + tr("This block was not received by any other nodes and will probably not be accepted!");
+            status = tr("This block was not received by any other nodes and will probably not be accepted!");
             break;
         case TransactionStatus::NotAccepted:
-            status += "\n" + tr("Generated but not accepted");
+            status = tr("Generated but not accepted");
+            break;
+        }
+    } else {
+        switch(wtx->status.status)
+        {
+        case TransactionStatus::OpenUntilBlock:
+            status = tr("Open for %n more block(s)","",wtx->status.open_for);
+            break;
+        case TransactionStatus::OpenUntilDate:
+            status = tr("Open until %1").arg(GUIUtil::dateTimeStr(wtx->status.open_for));
+            break;
+        case TransactionStatus::Offline:
+            status = tr("Offline (%1 confirmations)").arg(wtx->status.depth);
+            break;
+        case TransactionStatus::Unconfirmed:
+            status = tr("Unconfirmed (%1 of %2 confirmations)").arg(wtx->status.depth).arg(TransactionRecord::NumConfirmations);
+            break;
+        case TransactionStatus::HaveConfirmations:
+            status = tr("Confirmed (%1 confirmations)").arg(wtx->status.depth);
             break;
         }
     }

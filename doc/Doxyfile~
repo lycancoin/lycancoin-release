@@ -871,16 +871,16 @@ HTML_FILE_EXTENSION    = .html
 # for the proper inclusion of any scripts and style sheets that doxygen 
 # needs, which is dependent on the configuration options used. 
 # It is adviced to generate a default header using "doxygen -w html 
-# header.html zmbter.html stylesheet.css YourConfigFile" and then modify 
+# header.html footer.html stylesheet.css YourConfigFile" and then modify 
 # that header. Note that the header is subject to change so you typically 
 # have to redo this when upgrading to a newer version of doxygen or when
 # changing the value of configuration settings such as GENERATE_TREEVIEW!
 
 HTML_HEADER            = 
 
-# The HTML_FOOTER tag can be used to specify a personal HTML zmbter for 
+# The HTML_FOOTER tag can be used to specify a personal HTML footer for 
 # each generated HTML page. If it is left blank doxygen will generate a 
-# standard zmbter.
+# standard footer.
 
 HTML_FOOTER            = 
 
@@ -927,7 +927,7 @@ HTML_COLORSTYLE_SAT    = 100
 
 HTML_COLORSTYLE_GAMMA  = 80
 
-# If the HTML_TIMESTAMP tag is set to YES then the zmbter of each generated HTML 
+# If the HTML_TIMESTAMP tag is set to YES then the footer of each generated HTML 
 # page will contain the date and time when the page was generated. Setting 
 # this to NO can help when comparing the output of multiple runs.
 

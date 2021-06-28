@@ -10,20 +10,15 @@
 #include <QStackedWidget>
 
 class BitcoinGUI;
-class TransactionTableModel;
 class ClientModel;
-class WalletModel;
-class TransactionView;
 class OverviewPage;
-class AddressBookPage;
+class ReceiveCoinsDialog;
 class SendCoinsDialog;
 class SendCoinsRecipient;
-class SignVerifyMessageDialog;
-class Notificator;
-class RPCConsole;
+class TransactionView;
+class WalletModel;
 
 QT_BEGIN_NAMESPACE
-class QLabel;
 class QModelIndex;
 QT_END_NAMESPACE
 
@@ -36,8 +31,9 @@ QT_END_NAMESPACE
 class WalletView : public QStackedWidget
 {
     Q_OBJECT
+
 public:
-    explicit WalletView(QWidget *parent, BitcoinGUI *_gui);
+    explicit WalletView(QWidget *parent);
     ~WalletView();
 
     void setBitcoinGUI(BitcoinGUI *gui);
@@ -46,7 +42,7 @@ public:
     */
     void setClientModel(ClientModel *clientModel);
     /** Set the wallet model.
-        The wallet model represents a lycancoin wallet, and offers access to the list of transactions, address book and sending
+        The wallet model represents a bitcoin wallet, and offers access to the list of transactions, address book and sending
         functionality.
     */
     void setWalletModel(WalletModel *walletModel);
@@ -56,53 +52,21 @@ public:
     void showOutOfSyncWarning(bool fShow);
 
 private:
-    BitcoinGUI *gui;
     ClientModel *clientModel;
     WalletModel *walletModel;
 
     OverviewPage *overviewPage;
     QWidget *transactionsPage;
-    AddressBookPage *addressBookPage;
-    AddressBookPage *receiveCoinsPage;
+    ReceiveCoinsDialog *receiveCoinsPage;
     SendCoinsDialog *sendCoinsPage;
-    SignVerifyMessageDialog *signVerifyMessageDialog;
-
-    QLabel *labelEncryptionIcon;
-    QLabel *labelConnectionsIcon;
-    QLabel *labelBlocksIcon;
-    QLabel *progressBarLabel;
-
-    QAction *overviewAction;
-    QAction *historyAction;
-    QAction *quitAction;
-    QAction *sendCoinsAction;
-    QAction *addressBookAction;
-    QAction *signMessageAction;
-    QAction *verifyMessageAction;
-    QAction *aboutAction;
-    QAction *receiveCoinsAction;
-    QAction *optionsAction;
-    QAction *toggleHideAction;
-    QAction *exportAction;
-    QAction *encryptWalletAction;
-    QAction *backupWalletAction;
-    QAction *changePassphraseAction;
-    QAction *aboutQtAction;
-    QAction *openRPCConsoleAction;
 
     TransactionView *transactionView;
-
-    /** Create the main UI actions. */
-    void createActions();
-    /** Create the menu bar and sub-menus. */
 
 public slots:
     /** Switch to overview (home) page */
     void gotoOverviewPage();
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
-    /** Switch to address book page */
-    void gotoAddressBookPage();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
@@ -116,7 +80,7 @@ public slots:
     /** Show incoming transaction notification for new transactions.
         The new items are those between start and end inclusive, under the given parent item.
     */
-    void incomingTransaction(const QModelIndex& parent, int start, int /*end*/);
+    void processNewTransaction(const QModelIndex& parent, int start, int /*end*/);
     /** Encrypt the wallet */
     void encryptWallet(bool status);
     /** Backup the wallet */
@@ -125,12 +89,24 @@ public slots:
     void changePassphrase();
     /** Ask for passphrase to unlock wallet temporarily */
     void unlockWallet();
-
-    void setEncryptionStatus();
     
+    /** Show used sending addresses */
+    void usedSendingAddresses();
+    /** Show used receiving addresses */
+    void usedReceivingAddresses();
+
+    /** Re-emit encryption status signal */
+    void updateEncryptionStatus();
+
 signals:
     /** Signal that we want to show the main window */
     void showNormalIfMinimized();
+    /**  Fired when a message should be reported to the user */
+    void message(const QString &title, const QString &message, unsigned int style);
+    /** Encryption status of wallet changed */
+    void encryptionStatusChanged(int status);
+    /** Notify that a new transaction appeared */
+    void incomingTransaction(const QString& date, int unit, qint64 amount, const QString& type, const QString& address);
 };
 
 #endif // WALLETVIEW_H

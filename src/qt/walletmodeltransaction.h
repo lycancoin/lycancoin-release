@@ -3,7 +3,13 @@
 
 #include "walletmodel.h"
 
+#include <QObject>
+
 class SendCoinsRecipient;
+
+class CReserveKey;
+class CWallet;
+class CWalletTx;
 
 /** Data model for a walletmodel transaction. */
 class WalletModelTransaction
@@ -29,8 +35,6 @@ private:
     CWalletTx *walletTransaction;
     CReserveKey *keyChange;
     qint64 fee;
-
-public slots:
 
 };
 

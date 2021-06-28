@@ -1,18 +1,20 @@
 #include "bitcoinamountfield.h"
 
-#include "qvaluecombobox.h"
 #include "bitcoinunits.h"
 #include "guiconstants.h"
+#include "qvaluecombobox.h"
 
 #include <QApplication>
+#include <QDoubleSpinBox>
 #include <QHBoxLayout>
 #include <QKeyEvent>
-#include <QDoubleSpinBox>
 
 #include <qmath.h> // for qPow()
 
-BitcoinAmountField::BitcoinAmountField(QWidget *parent):
-        QWidget(parent), amount(0), currentUnit(-1)
+BitcoinAmountField::BitcoinAmountField(QWidget *parent) :
+    QWidget(parent),
+    amount(0),
+    currentUnit(-1)
 {
     amount = new QDoubleSpinBox(this);
     amount->setLocale(QLocale::c());
@@ -111,7 +113,8 @@ bool BitcoinAmountField::eventFilter(QObject *object, QEvent *event)
 QWidget *BitcoinAmountField::setupTabChain(QWidget *prev)
 {
     QWidget::setTabOrder(prev, amount);
-    return amount;
+    QWidget::setTabOrder(amount, unit);
+    return unit;
 }
 
 qint64 BitcoinAmountField::value(bool *valid_out) const
@@ -130,9 +133,10 @@ void BitcoinAmountField::setValue(qint64 value)
     setText(BitcoinUnits::format(currentUnit, value));
 }
 
-void BitcoinAmountField::setReadOnly(bool fReadeOnly)
+void BitcoinAmountField::setReadOnly(bool fReadOnly)
 {
-    // TODO ...
+    amount->setReadOnly(fReadOnly);
+    unit->setEnabled(!fReadOnly);
 }
 
 void BitcoinAmountField::unitChanged(int idx)

@@ -3,18 +3,19 @@
 
 #include <QDialog>
 
-namespace Ui {
-    class AddressBookPage;
-}
 class AddressTableModel;
 class OptionsModel;
 
+namespace Ui {
+    class AddressBookPage;
+}
+
 QT_BEGIN_NAMESPACE
-class QTableView;
 class QItemSelection;
-class QSortFilterProxyModel;
 class QMenu;
 class QModelIndex;
+class QSortFilterProxyModel;
+class QTableView;
 QT_END_NAMESPACE
 
 /** Widget that shows a list of sending or receiving addresses.
@@ -30,15 +31,14 @@ public:
     };
 
     enum Mode {
-        ForSending, /**< Open address book to pick address for sending */
+        ForSelection, /**< Open address book to pick address */
         ForEditing  /**< Open address book for editing */
     };
 
-    explicit AddressBookPage(Mode mode, Tabs tab, QWidget *parent = 0);
+    explicit AddressBookPage(Mode mode, Tabs tab, QWidget *parent);
     ~AddressBookPage();
 
     void setModel(AddressTableModel *model);
-    void setOptionsModel(OptionsModel *optionsModel);
     const QString &getReturnValue() const { return returnValue; }
 
 public slots:
@@ -47,7 +47,6 @@ public slots:
 private:
     Ui::AddressBookPage *ui;
     AddressTableModel *model;
-    OptionsModel *optionsModel;
     Mode mode;
     Tabs tab;
     QString returnValue;
@@ -61,12 +60,6 @@ private slots:
     void on_newAddress_clicked();
     /** Copy address of currently selected address entry to clipboard */
     void on_copyAddress_clicked();
-    void on_signMessage_clicked();
-    void on_verifyMessage_clicked();
-    /** Open send coins dialogue for currently selected address (no button) */
-    void onSendCoinsAction();
-    /** Generate a QR Code from the currently selected address */
-    void on_showQRCode_clicked();
      /** Copy label of currently selected address entry to clipboard (no button) */
     void onCopyLabelAction();
     /** Edit currently selected address entry (no button) */
@@ -83,8 +76,6 @@ private slots:
     void selectNewAddress(const QModelIndex &parent, int begin, int /*end*/);
 
 signals:
-    void signMessage(QString addr);
-    void verifyMessage(QString addr);
     void sendCoins(QString addr);
 };
 

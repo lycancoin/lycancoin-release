@@ -188,6 +188,8 @@ EOF
     if [ "$?" = 0 ]; then
         PLATFORM_LIBS="$PLATFORM_LIBS -ltcmalloc"
     fi
+    
+    rm -f $CXXOUTPUT 2>/dev/null
 fi
 
 PLATFORM_CCFLAGS="$PLATFORM_CCFLAGS $COMMON_FLAGS"

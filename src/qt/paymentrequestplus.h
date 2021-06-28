@@ -1,12 +1,13 @@
 #ifndef PAYMENTREQUESTPLUS_H
 #define PAYMENTREQUESTPLUS_H
 
+#include "paymentrequest.pb.h"
+
+#include "base58.h"
+
 #include <QByteArray>
 #include <QList>
 #include <QString>
-
-#include "base58.h"
-#include "paymentrequest.pb.h"
 
 //
 // Wraps dumb protocol buffer paymentRequest
