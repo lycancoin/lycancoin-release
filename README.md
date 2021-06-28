@@ -1,6 +1,5 @@
 Lycancoin (LYC)
-Version 1.1.2.3
-Added Kimoto Gravity Well & Patch
+Version 1.1.2.7
 
 http://www.lycancoin.org
 
@@ -10,7 +9,7 @@ Copyright (c) 2014-2021 Lycancoin Developers
 
 What is Lycancoin?
 ----------------
-Lycancoin is a cryptocurrency for lycanthropy & werewolf enthusiasts. It was designed as part of a 3 coin set which includes Vampirecoin and Zombiecoin.
+Lycancoin is a cryptocurrency for lycanthropy & werewolf enthusiasts.
 
 Lycancoin software is freeware based on open source code providing fast transactions, a scrypt-based mining algorithm and an incredible pre-existing support network of mining technology; compatible with most scrypt-based mining hardware and software.
 
