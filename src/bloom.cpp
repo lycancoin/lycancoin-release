@@ -15,8 +15,6 @@
 
 using namespace std;
 
-static const unsigned char bit_mask[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
-
 CBloomFilter::CBloomFilter(unsigned int nElements, double nFPRate, unsigned int nTweakIn, unsigned char nFlagsIn) :
 // The ideal size for a bloom filter with a given number of elements and false positive rate is:
 // - nElements * log(fp rate) / ln(2)^2
@@ -47,7 +45,7 @@ void CBloomFilter::insert(const vector<unsigned char>& vKey)
     {
         unsigned int nIndex = Hash(i, vKey);
         // Sets bit nIndex of vData
-        vData[nIndex >> 3] |= bit_mask[7 & nIndex];
+        vData[nIndex >> 3] |= (1 << (7 & nIndex));
     }
     isEmpty = false;
 }
@@ -76,7 +74,7 @@ bool CBloomFilter::contains(const vector<unsigned char>& vKey) const
     {
         unsigned int nIndex = Hash(i, vKey);
         // Checks bit nIndex of vData
-        if (!(vData[nIndex >> 3] & bit_mask[7 & nIndex]))
+        if (!(vData[nIndex >> 3] & (1 << (7 & nIndex))))
             return false;
     }
     return true;
@@ -96,12 +94,19 @@ bool CBloomFilter::contains(const uint256& hash) const
     return contains(data);
 }
 
+void CBloomFilter::clear()
+{
+    vData.assign(vData.size(),0);
+    isFull = false;
+    isEmpty = true;
+}
+
 bool CBloomFilter::IsWithinSizeConstraints() const
 {
     return vData.size() <= MAX_BLOOM_FILTER_SIZE && nHashFuncs <= MAX_HASH_FUNCS;
 }
 
-bool CBloomFilter::IsRelevantAndUpdate(const CTransaction& tx, const uint256& hash)
+bool CBloomFilter::IsRelevantAndUpdate(const CTransaction& tx)
 {
     bool fFound = false;
     // Match if the filter contains the hash of tx
@@ -110,6 +115,7 @@ bool CBloomFilter::IsRelevantAndUpdate(const CTransaction& tx, const uint256& ha
         return true;
     if (isEmpty)
         return false;
+    const uint256& hash = tx.GetHash();
     if (contains(hash))
         fFound = true;
 

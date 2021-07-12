@@ -20,6 +20,18 @@
 #include "json/json_spirit_writer_template.h"
 
 class CBlockIndex;
+class CNetAddr;
+
+class AcceptedConnection
+{
+public:
+    virtual ~AcceptedConnection() {}
+
+    virtual std::iostream& stream() = 0;
+    virtual std::string peer_address_to_string() const = 0;
+    virtual void close() = 0;
+};
+
 class CReserveKey;
 
 /* Start RPC threads */
@@ -50,6 +62,9 @@ void RPCTypeCheck(const json_spirit::Object& o,
   Overrides previous timer <name> (if any).
  */
 void RPCRunLater(const std::string& name, boost::function<void(void)> func, int64_t nSeconds);
+
+//! Convert boost::asio address to CNetAddr
+extern CNetAddr BoostAsioToCNetAddr(boost::asio::ip::address address);
 
 typedef json_spirit::Value(*rpcfn_type)(const json_spirit::Array& params, bool fHelp);
 
@@ -105,7 +120,6 @@ extern int64_t nWalletUnlockTime;
 extern int64_t AmountFromValue(const json_spirit::Value& value);
 extern json_spirit::Value ValueFromAmount(int64_t amount);
 extern double GetDifficulty(const CBlockIndex* blockindex = NULL);
-extern std::string HexBits(unsigned int nBits);
 extern std::string HelpRequiringPassphrase();
 extern std::string HelpExampleCli(std::string methodname, std::string args);
 extern std::string HelpExampleRpc(std::string methodname, std::string args);
@@ -129,10 +143,13 @@ extern json_spirit::Value setgenerate(const json_spirit::Array& params, bool fHe
 extern json_spirit::Value getnetworkhashps(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value gethashespersec(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value getmininginfo(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value prioritisetransaction(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value getworkex(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value getwork(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value getblocktemplate(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value submitblock(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value estimatefee(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value estimatepriority(const json_spirit::Array& params, bool fHelp);
 
 extern json_spirit::Value getnewaddress(const json_spirit::Array& params, bool fHelp); // in rpcwallet.cpp
 extern json_spirit::Value getaccountaddress(const json_spirit::Array& params, bool fHelp);
@@ -166,6 +183,9 @@ extern json_spirit::Value walletlock(const json_spirit::Array& params, bool fHel
 extern json_spirit::Value encryptwallet(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value validateaddress(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value getinfo(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getwalletinfo(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getblockchaininfo(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value getnetworkinfo(const json_spirit::Array& params, bool fHelp);
 
 extern json_spirit::Value getrawtransaction(const json_spirit::Array& params, bool fHelp); // in rcprawtransaction.cpp
 extern json_spirit::Value listunspent(const json_spirit::Array& params, bool fHelp);

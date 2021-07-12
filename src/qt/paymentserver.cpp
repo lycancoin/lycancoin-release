@@ -44,6 +44,7 @@
 #include <QUrlQuery>
 #endif
 
+using namespace std;
 using namespace boost;
 
 const int BITCOIN_IPC_CONNECT_TIMEOUT = 1000; // milliseconds
@@ -89,7 +90,7 @@ static QList<QString> savedPaymentRequests;
 
 static void ReportInvalidCertificate(const QSslCertificate& cert)
 {
-    qDebug() << "ReportInvalidCertificate : Payment server found an invalid certificate: " << cert.subjectInfo(QSslCertificate::CommonName);
+    qWarning() << "ReportInvalidCertificate : Payment server found an invalid certificate: " << cert.subjectInfo(QSslCertificate::CommonName);
 }
 
 //
@@ -160,7 +161,7 @@ void PaymentServer::LoadRootCAs(X509_STORE* _store)
             continue;
         }
     }
-    qDebug() << "PaymentServer::LoadRootCAs : Loaded " << nRootCerts << " root certificates";
+    qWarning() << "PaymentServer::LoadRootCAs : Loaded " << nRootCerts << " root certificates";
 
     // Project for another day:
     // Fetch certificate revocation lists, and add them to certStore.
@@ -177,6 +178,9 @@ void PaymentServer::LoadRootCAs(X509_STORE* _store)
 // If the server isn't already running, startup continues,
 // and the items in savedPaymentRequest will be handled
 // when uiReady() is called.
+//
+// Warning: ipcSendCommandLine() is called early in init,
+// so don't use "emit message()", but "QMessageBox::"!
 //
 bool PaymentServer::ipcParseCommandLine(int argc, char* argv[])
 {
@@ -195,10 +199,10 @@ bool PaymentServer::ipcParseCommandLine(int argc, char* argv[])
             {
                 CBitcoinAddress address(r.address.toStdString());
 
-                SelectParams(CChainParams::MAIN);
+                SelectParams(CBaseChainParams::MAIN);
                 if (!address.IsValid())
                 {
-                    SelectParams(CChainParams::TESTNET);
+                    SelectParams(CBaseChainParams::TESTNET);
                 }
             }
         }
@@ -210,16 +214,16 @@ bool PaymentServer::ipcParseCommandLine(int argc, char* argv[])
             if (readPaymentRequest(arg, request))
             {
                 if (request.getDetails().network() == "main")
-                    SelectParams(CChainParams::MAIN);
+                    SelectParams(CBaseChainParams::MAIN);
                 else
-                    SelectParams(CChainParams::TESTNET);
+                    SelectParams(CBaseChainParams::TESTNET);
             }
         }
         else
         {
             // Printing to debug.log is about the best we can do here, the
             // GUI hasn't started yet so we can't pop up a message box.
-            qDebug() << "PaymentServer::ipcSendCommandLine : Payment request file does not exist: " << arg;
+            qWarning() << "PaymentServer::ipcSendCommandLine : Payment request file does not exist: " << arg;
         }
     }
     return true;
@@ -273,7 +277,7 @@ PaymentServer::PaymentServer(QObject* parent, bool startLocalServer) :
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
     // Install global event filter to catch QFileOpenEvents
-    // on Mac: sent when you click bitcoin: links
+    // on Mac: sent when you click lycancoin: links
     // other OSes: helpful when dealing with payment request files (in the future)
     if (parent)
         parent->installEventFilter(this);
@@ -378,7 +382,7 @@ void PaymentServer::handleURIOrFile(const QString& s)
         return;
     }
 
-    if (s.startsWith(BITCOIN_IPC_PREFIX, Qt::CaseInsensitive)) // Lycancoin: URI
+    if (s.startsWith(BITCOIN_IPC_PREFIX, Qt::CaseInsensitive)) // lycancoin: URI
     {
 #if QT_VERSION < 0x050000
         QUrl uri(s);
@@ -399,7 +403,7 @@ void PaymentServer::handleURIOrFile(const QString& s)
             }
             else
             {
-                qDebug() << "PaymentServer::handleURIOrFile : Invalid URL: " << fetchUrl;
+                qWarning() << "PaymentServer::handleURIOrFile : Invalid URL: " << fetchUrl;
                 emit message(tr("URI handling"),
                     tr("Payment request fetch URL is invalid: %1").arg(fetchUrl.toString()),
                     CClientUIInterface::ICON_WARNING);
@@ -411,7 +415,15 @@ void PaymentServer::handleURIOrFile(const QString& s)
         {
             SendCoinsRecipient recipient;
             if (GUIUtil::parseBitcoinURI(s, &recipient))
-                emit receivedPaymentRequest(recipient);
+            {
+                CBitcoinAddress address(recipient.address.toStdString());
+                if (!address.IsValid()) {
+                    emit message(tr("URI handling"), tr("Invalid payment address %1").arg(recipient.address),
+                        CClientUIInterface::MSG_ERROR);
+                }
+                else
+                    emit receivedPaymentRequest(recipient);
+            }
             else
                 emit message(tr("URI handling"),
                     tr("URI can not be parsed! This can be caused by an invalid Lycancoin address or malformed URI parameters."),
@@ -425,12 +437,14 @@ void PaymentServer::handleURIOrFile(const QString& s)
     {
         PaymentRequestPlus request;
         SendCoinsRecipient recipient;
-        if (readPaymentRequest(s, request) && processPaymentRequest(request, recipient))
-            emit receivedPaymentRequest(recipient);
-        else
+        if (!readPaymentRequest(s, request))
+        {
             emit message(tr("Payment request file handling"),
-                tr("Payment request file can not be read or processed! This can be caused by an invalid payment request file."),
+                tr("Payment request file can not be read! This can be caused by an invalid payment request file."),
                 CClientUIInterface::ICON_WARNING);
+        }
+        else if (processPaymentRequest(request, recipient))
+            emit receivedPaymentRequest(recipient);
 
         return;
     }
@@ -462,13 +476,13 @@ bool PaymentServer::readPaymentRequest(const QString& filename, PaymentRequestPl
     QFile f(filename);
     if (!f.open(QIODevice::ReadOnly))
     {
-        qDebug() << "PaymentServer::readPaymentRequest : Failed to open " << filename;
+        qWarning() << "PaymentServer::readPaymentRequest : Failed to open " << filename;
         return false;
     }
 
     if (f.size() > MAX_PAYMENT_REQUEST_SIZE)
     {
-        qDebug() << "PaymentServer::readPaymentRequest : " << filename << " too large";
+        qWarning() << "PaymentServer::readPaymentRequest : " << filename << " too large";
         return false;
     }
 
@@ -481,6 +495,34 @@ bool PaymentServer::processPaymentRequest(PaymentRequestPlus& request, SendCoins
 {
     if (!optionsModel)
         return false;
+
+    if (request.IsInitialized()) {
+        const payments::PaymentDetails& details = request.getDetails();
+
+        // Payment request network matches client network?
+        if (details.network() != Params().NetworkIDString())
+        {
+            emit message(tr("Payment request rejected"), tr("Payment request network doesn't match client network."),
+                CClientUIInterface::MSG_ERROR);
+
+            return false;
+        }
+
+        // Expired payment request?
+        if (details.has_expires() && (int64_t)details.expires() < GetTime())
+        {
+            emit message(tr("Payment request rejected"), tr("Payment request has expired."),
+                CClientUIInterface::MSG_ERROR);
+
+            return false;
+        }
+    }
+    else {
+        emit message(tr("Payment request error"), tr("Payment request is not initialized."),
+            CClientUIInterface::MSG_ERROR);
+
+        return false;
+    }
 
     recipient.paymentRequest = request;
     recipient.message = GUIUtil::HtmlEscape(request.getDetails().memo());
@@ -497,11 +539,11 @@ bool PaymentServer::processPaymentRequest(PaymentRequestPlus& request, SendCoins
             // Append destination address
             addresses.append(QString::fromStdString(CBitcoinAddress(dest).ToString()));
         }
-        else if (!recipient.authenticatedMerchant.isEmpty()){
-            // Insecure payments to custom Lycancoin addresses are not supported
+        else if (!recipient.authenticatedMerchant.isEmpty()) {
+            // Insecure payments to custom lycancoin addresses are not supported
             // (there is no good way to tell the user where they are paying in a way
             // they'd have a chance of understanding).
-            emit message(tr("Payment request error"),
+            emit message(tr("Payment request rejected"),
                 tr("Unverified payment requests to custom payment scripts are unsupported."),
                 CClientUIInterface::MSG_ERROR);
             return false;
@@ -509,12 +551,11 @@ bool PaymentServer::processPaymentRequest(PaymentRequestPlus& request, SendCoins
 
         // Extract and check amounts
         CTxOut txOut(sendingTo.second, sendingTo.first);
-        if (txOut.IsDust(CTransaction::nMinRelayTxFee)) {
-            QString msg = tr("Requested payment amount of %1 is too small (considered dust).")
-                .arg(BitcoinUnits::formatWithUnit(optionsModel->getDisplayUnit(), sendingTo.second));
+        if (txOut.IsDust(CTransaction::minRelayTxFee)) {
+            emit message(tr("Payment request error"), tr("Requested payment amount of %1 is too small (considered dust).")
+                .arg(BitcoinUnits::formatWithUnit(optionsModel->getDisplayUnit(), sendingTo.second)),
+                CClientUIInterface::MSG_ERROR);
 
-            qDebug() << "PaymentServer::processPaymentRequest : " << msg;
-            emit message(tr("Payment request error"), msg, CClientUIInterface::MSG_ERROR);
             return false;
         }
 
@@ -581,9 +622,9 @@ void PaymentServer::fetchPaymentACK(CWallet* wallet, SendCoinsRecipient recipien
             refund_to->set_script(&s[0], s.size());
         }
         else {
-            // This should never happen, because sending coins should have just unlocked the wallet
-            // and refilled the keypool
-            qDebug() << "PaymentServer::fetchPaymentACK : Error getting refund key, refund_to not set";
+            // This should never happen, because sending coins should have
+            // just unlocked the wallet and refilled the keypool.
+            qWarning() << "PaymentServer::fetchPaymentACK : Error getting refund key, refund_to not set";
         }
     }
 
@@ -594,8 +635,8 @@ void PaymentServer::fetchPaymentACK(CWallet* wallet, SendCoinsRecipient recipien
         netManager->post(netRequest, serData);
     }
     else {
-        // This should never happen, either:
-        qDebug() << "PaymentServer::fetchPaymentACK : Error serializing payment message";
+        // This should never happen, either.
+        qWarning() << "PaymentServer::fetchPaymentACK : Error serializing payment message";
     }
 }
 
@@ -608,7 +649,7 @@ void PaymentServer::netRequestFinished(QNetworkReply* reply)
             .arg(reply->request().url().toString())
             .arg(reply->errorString());
 
-        qDebug() << "PaymentServer::netRequestFinished : " << msg;
+        qWarning() << "PaymentServer::netRequestFinished : " << msg;
         emit message(tr("Payment request error"), msg, CClientUIInterface::MSG_ERROR);
         return;
     }
@@ -620,17 +661,15 @@ void PaymentServer::netRequestFinished(QNetworkReply* reply)
     {
         PaymentRequestPlus request;
         SendCoinsRecipient recipient;
-        if (request.parse(data) && processPaymentRequest(request, recipient))
+        if (!request.parse(data))
         {
-            emit receivedPaymentRequest(recipient);
-        }
-        else
-        {
-            qDebug() << "PaymentServer::netRequestFinished : Error processing payment request";
+            qWarning() << "PaymentServer::netRequestFinished : Error parsing payment request";
             emit message(tr("Payment request error"),
-                tr("Payment request can not be parsed or processed!"),
+                tr("Payment request can not be parsed!"),
                 CClientUIInterface::MSG_ERROR);
         }
+        else if (processPaymentRequest(request, recipient))
+            emit receivedPaymentRequest(recipient);
 
         return;
     }
@@ -642,7 +681,7 @@ void PaymentServer::netRequestFinished(QNetworkReply* reply)
             QString msg = tr("Bad response from server %1")
                 .arg(reply->request().url().toString());
 
-            qDebug() << "PaymentServer::netRequestFinished : " << msg;
+            qWarning() << "PaymentServer::netRequestFinished : " << msg;
             emit message(tr("Payment request error"), msg, CClientUIInterface::MSG_ERROR);
         }
         else
@@ -658,7 +697,7 @@ void PaymentServer::reportSslErrors(QNetworkReply* reply, const QList<QSslError>
 
     QString errString;
     foreach (const QSslError& err, errs) {
-        qDebug() << "PaymentServer::reportSslErrors : " << err;
+        qWarning() << "PaymentServer::reportSslErrors : " << err;
         errString += err.errorString() + "\n";
     }
     emit message(tr("Network request error"), errString, CClientUIInterface::MSG_ERROR);

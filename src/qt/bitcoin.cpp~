@@ -3,7 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "bitcoin-config.h"
+#include "config/bitcoin-config.h"
 #endif
 
 #include "bitcoingui.h"
@@ -15,6 +15,7 @@
 #include "optionsmodel.h"
 #include "splashscreen.h"
 #include "utilitydialog.h"
+#include "winshutdownmonitor.h"
 #ifdef ENABLE_WALLET
 #include "paymentserver.h"
 #include "walletmodel.h"
@@ -25,7 +26,9 @@
 #include "rpcserver.h"
 #include "ui_interface.h"
 #include "util.h"
+// #ifdef ENABLE_WALLET
 #include "wallet.h"
+// #endif
 
 #include <stdint.h>
 
@@ -77,6 +80,12 @@ static std::string Translate(const char* psz)
 static void initTranslations(QTranslator &qtTranslatorBase, QTranslator &qtTranslator, QTranslator &translatorBase, QTranslator &translator)
 {
     QSettings settings;
+    
+    // Remove old translators
+    QApplication::removeTranslator(&qtTranslatorBase);
+    QApplication::removeTranslator(&qtTranslator);
+    QApplication::removeTranslator(&translatorBase);
+    QApplication::removeTranslator(&translator);
 
     // Get desired locale (e.g. "de_DE")
     // 1) System default language
@@ -117,15 +126,15 @@ static void initTranslations(QTranslator &qtTranslatorBase, QTranslator &qtTrans
 #if QT_VERSION < 0x050000
 void DebugMessageHandler(QtMsgType type, const char *msg)
 {
-    Q_UNUSED(type);
-    LogPrint("qt", "GUI: %s\n", msg);
+    const char *category = (type == QtDebugMsg) ? "qt" : NULL;
+    LogPrint(category, "GUI: %s\n", msg);
 }
 #else
 void DebugMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &msg)
 {
-    Q_UNUSED(type);
     Q_UNUSED(context);
-    LogPrint("qt", "GUI: %s\n", qPrintable(msg));
+    const char *category = (type == QtDebugMsg) ? "qt" : NULL;
+    LogPrint(category, "GUI: %s\n", msg.toStdString());
 }
 #endif
 
@@ -180,6 +189,9 @@ public:
 
     /// Get process return value
     int getReturnValue() { return returnValue; }
+    
+    /// Get window identifier of QMainWindow (BitcoinGUI)
+    WId getMainWinId() const;
 
 public slots:
     void initializeResult(int retval);
@@ -376,9 +388,6 @@ void BitcoinApplication::initializeResult(int retval)
     returnValue = retval ? 0 : 1;
     if(retval)
     {
-        // Miscellaneous initialization after core is initialized
-        optionsModel->Upgrade(); // Must be done after AppInit2
-
 #ifdef ENABLE_WALLET
         PaymentServer::LoadRootCAs();
         paymentServer->setOptionsModel(optionsModel);
@@ -439,24 +448,22 @@ void BitcoinApplication::handleRunawayException(const QString &message)
     ::exit(1);
 }
 
+WId BitcoinApplication::getMainWinId() const
+{
+    if (!window)
+        return 0;
+
+    return window->winId();
+}
+
 #ifndef BITCOIN_QT_TEST
 int main(int argc, char *argv[])
 {
-    bool fSelParFromCLFailed = false;
+	 SetupEnvironment();
+
     /// 1. Parse command-line options. These take precedence over anything else.
     // Command-line options take precedence:
     ParseParameters(argc, argv);
-    // Check for -testnet or -regtest parameter (TestNet() calls are only valid after this clause)
-    if (!SelectParamsFromCommandLine()) {
-        fSelParFromCLFailed = true;
-    }
-#ifdef ENABLE_WALLET
-    // Parse URIs on command line -- this can affect TestNet() / RegTest() mode
-    if (!PaymentServer::ipcParseCommandLine(argc, argv))
-        exit(0);
-#endif
-
-    bool isaTestNet = TestNet() || RegTest();
 
     // Do not refer to data directory yet, this can be overridden by Intro::pickDataDirectory
 
@@ -483,12 +490,9 @@ int main(int argc, char *argv[])
     /// 3. Application identification
     // must be set before OptionsModel is initialized or translations are loaded,
     // as it is used to locate QSettings
-    QApplication::setOrganizationName("Lycancoin");
-    QApplication::setOrganizationDomain("Lycancoin.org");
-    if (isaTestNet) // Separate UI settings for testnets
-        QApplication::setApplicationName("Lycancoin-Qt-testnet");
-    else
-        QApplication::setApplicationName("Lycancoin-Qt");
+    QApplication::setOrganizationName(QAPP_ORG_NAME);
+    QApplication::setOrganizationDomain(QAPP_ORG_DOMAIN);
+    QApplication::setApplicationName(QAPP_APP_NAME_DEFAULT);
 
     /// 4. Initialization of translations, so that intro dialog is in user's language
     // Now that QSettings are accessible, initialize translations
@@ -498,33 +502,60 @@ int main(int argc, char *argv[])
 
     // Show help message immediately after parsing command-line options (for "-lang") and setting locale,
     // but before showing splash screen.
-    if (mapArgs.count("-?") || mapArgs.count("--help"))
+    if (mapArgs.count("-?") || mapArgs.count("-help") || mapArgs.count("-version"))
     {
-        HelpMessageDialog help(NULL);
+        HelpMessageDialog help(NULL, mapArgs.count("-version"));
         help.showOrPrint();
-        return 1;
-    }
-    // Now that translations are initialized, check for earlier errors and show a translatable error message
-    if (fSelParFromCLFailed) {
-        QMessageBox::critical(0, QObject::tr("Lycancoin"), QObject::tr("Error: Invalid combination of -regtest and -testnet."));
         return 1;
     }
 
     /// 5. Now that settings and translations are available, ask user for data directory
     // User language is set up: pick a data directory
-    Intro::pickDataDirectory(isaTestNet);
+    Intro::pickDataDirectory();
 
     /// 6. Determine availability of data directory and parse Lycancoin.conf
+    /// - Do not call GetDataDir(true) before this step finishes
     if (!boost::filesystem::is_directory(GetDataDir(false)))
     {
         QMessageBox::critical(0, QObject::tr("Lycancoin"),
                               QObject::tr("Error: Specified data directory \"%1\" does not exist.").arg(QString::fromStdString(mapArgs["-datadir"])));
         return 1;
     }
-    ReadConfigFile(mapArgs, mapMultiArgs);
+    try {
+        ReadConfigFile(mapArgs, mapMultiArgs);
+    } catch(std::exception &e) {
+        QMessageBox::critical(0, QObject::tr("Lycancoin"),
+                              QObject::tr("Error: Cannot parse configuration file: %1. Only use key=value syntax.").arg(e.what()));
+        return false;
+    }
+    
+    /// 7. Determine network (and switch to network specific options)
+    // - Do not call Params() before this step
+    // - Do this after parsing the configuration file, as the network can be switched there
+    // - QSettings() will use the new application name after this, resulting in network-specific settings
+    // - Needs to be done before createOptionsModel
+
+    // Check for -testnet or -regtest parameter (Params() calls are only valid after this clause)
+    if (!SelectParamsFromCommandLine()) {
+        QMessageBox::critical(0, QObject::tr("Bitcoin"), QObject::tr("Error: Invalid combination of -regtest and -testnet."));
+        return 1;
+    }
+#ifdef ENABLE_WALLET
+    // Parse URIs on command line -- this can affect Params()
+    if (!PaymentServer::ipcParseCommandLine(argc, argv))
+        exit(0);
+#endif
+    bool isaTestNet = Params().NetworkID() != CBaseChainParams::MAIN;
+    // Allow for separate UI settings for testnets
+    if (isaTestNet)
+        QApplication::setApplicationName(QAPP_APP_NAME_TESTNET);
+    else
+        QApplication::setApplicationName(QAPP_APP_NAME_DEFAULT);
+    // Re-initialize translations after changing application name (language in network-specific settings can be different)
+    initTranslations(qtTranslatorBase, qtTranslator, translatorBase, translator);
 
 #ifdef ENABLE_WALLET
-    /// 7. URI IPC sending
+    /// 8. URI IPC sending
     // - Do this early as we don't want to bother initializing if we are just calling IPC
     // - Do this *after* setting up the data directory, as the data directory hash is used in the name
     // of the server.
@@ -538,13 +569,18 @@ int main(int argc, char *argv[])
     app.createPaymentServer();
 #endif
 
-    /// 8. Main GUI initialization
+    /// 9. Main GUI initialization
     // Install global event filter that makes sure that long tooltips can be word-wrapped
     app.installEventFilter(new GUIUtil::ToolTipToRichTextFilter(TOOLTIP_WRAP_THRESHOLD, &app));
-    // Install qDebug() message handler to route to debug.log
 #if QT_VERSION < 0x050000
+    // Install qDebug() message handler to route to debug.log    
     qInstallMsgHandler(DebugMessageHandler);
 #else
+#if defined(Q_OS_WIN)
+    // Install global event filter for processing Windows session related Windows messages (WM_QUERYENDSESSION and WM_ENDSESSION)
+    qApp->installNativeEventFilter(new WinShutdownMonitor());
+#endif
+    // Install qDebug() message handler to route to debug.log
     qInstallMessageHandler(DebugMessageHandler);
 #endif
     // Load GUI settings from QSettings
@@ -560,6 +596,9 @@ int main(int argc, char *argv[])
     {
         app.createWindow(isaTestNet);
         app.requestInitialize();
+#if defined(Q_OS_WIN) && QT_VERSION >= 0x050000
+        WinShutdownMonitor::registerShutdownBlockReason(QObject::tr("Lycancoin Core did not yet exit safely..."), (HWND)app.getMainWinId());
+#endif
         app.exec();
         app.requestShutdown();
         app.exec();

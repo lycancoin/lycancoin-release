@@ -1,6 +1,7 @@
 #include "transactionrecord.h"
 
 #include "base58.h"
+#include "timedata.h"
 #include "wallet.h"
 
 #include <stdint.h>
@@ -146,6 +147,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet *
 
 void TransactionRecord::updateStatus(const CWalletTx &wtx)
 {
+    AssertLockHeld(cs_main);    
     // Determine transaction status
 
     // Find the block the tx is in
@@ -160,9 +162,11 @@ void TransactionRecord::updateStatus(const CWalletTx &wtx)
         (wtx.IsCoinBase() ? 1 : 0),
         wtx.nTimeReceived,
         idx);
-    status.confirmed = wtx.IsTrusted();
+    status.countsForBalance = wtx.IsTrusted() && !(wtx.GetBlocksToMaturity() > 0);
     status.depth = wtx.GetDepthInMainChain();
     status.cur_num_blocks = chainActive.Height();
+    
+    status.hasConflicting = false;
 
     if (!IsFinalTx(wtx, chainActive.Height() + 1))
     {
@@ -177,29 +181,12 @@ void TransactionRecord::updateStatus(const CWalletTx &wtx)
             status.open_for = wtx.nLockTime;
         }
     }
-    else
-    {
-        if (GetAdjustedTime() - wtx.nTimeReceived > 2 * 60 && wtx.GetRequestCount() == 0)
-        {
-            status.status = TransactionStatus::Offline;
-        }
-        else if (status.depth < NumConfirmations)
-        {
-            status.status = TransactionStatus::Unconfirmed;
-        }
-        else
-        {
-            status.status = TransactionStatus::HaveConfirmations;
-        }
-    }
-
     // For generated transactions, determine maturity
-    if(type == TransactionRecord::Generated)
+    else if(type == TransactionRecord::Generated)
     {
-        int64_t nCredit = wtx.GetCredit(true);
-        if (nCredit == 0)
+        if (wtx.GetBlocksToMaturity() > 0)
         {
-            status.maturity = TransactionStatus::Immature;
+            status.status = TransactionStatus::Immature;
 
             if (wtx.IsInMainChain())
             {
@@ -207,23 +194,50 @@ void TransactionRecord::updateStatus(const CWalletTx &wtx)
 
                 // Check if the block was requested by anyone
                 if (GetAdjustedTime() - wtx.nTimeReceived > 2 * 60 && wtx.GetRequestCount() == 0)
-                    status.maturity = TransactionStatus::MaturesWarning;
+                    status.status = TransactionStatus::MaturesWarning;
             }
             else
             {
-                status.maturity = TransactionStatus::NotAccepted;
+                status.status = TransactionStatus::NotAccepted;
             }
         }
         else
         {
-            status.maturity = TransactionStatus::Mature;
+            status.status = TransactionStatus::Confirmed;
         }
     }
+    else
+    {
+        if (status.depth < 0)
+        {
+            status.status = TransactionStatus::Conflicted;
+            status.hasConflicting = !(wtx.GetConflicts(false).empty());
+        }
+        else if (GetAdjustedTime() - wtx.nTimeReceived > 2 * 60 && wtx.GetRequestCount() == 0)
+        {
+            status.status = TransactionStatus::Offline;
+        }
+        else if (status.depth == 0)
+        {
+            status.status = TransactionStatus::Unconfirmed;
+            status.hasConflicting = !(wtx.GetConflicts(false).empty());
+        }
+        else if (status.depth < RecommendedNumConfirmations)
+        {
+            status.status = TransactionStatus::Confirming;
+        }
+        else
+        {
+            status.status = TransactionStatus::Confirmed;
+        }
+    } 
 }
 
-bool TransactionRecord::statusUpdateNeeded()
+bool TransactionRecord::statusUpdateNeeded(int64_t nConflictsReceived)
 {
-    return status.cur_num_blocks != chainActive.Height();
+    AssertLockHeld(cs_main);    
+    return (status.cur_num_blocks != chainActive.Height() ||
+            status.cur_num_conflicts != nConflictsReceived);
 }
 
 QString TransactionRecord::getTxID() const

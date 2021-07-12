@@ -16,12 +16,12 @@ BitcoinAmountField::BitcoinAmountField(QWidget *parent) :
     amount(0),
     currentUnit(-1)
 {
+	 nSingleStep = 100000; // satoshis
+    
     amount = new QDoubleSpinBox(this);
     amount->setLocale(QLocale::c());
-    amount->setDecimals(8);
     amount->installEventFilter(this);
     amount->setMaximumWidth(170);
-    amount->setSingleStep(0.001);
 
     QHBoxLayout *layout = new QHBoxLayout(this);
     layout->addWidget(amount);
@@ -156,12 +156,8 @@ void BitcoinAmountField::unitChanged(int idx)
     // Set max length after retrieving the value, to prevent truncation
     amount->setDecimals(BitcoinUnits::decimals(currentUnit));
     amount->setMaximum(qPow(10, BitcoinUnits::amountDigits(currentUnit)) - qPow(10, -amount->decimals()));
-
-    if (currentUnit == BitcoinUnits::uBTC)
-        amount->setSingleStep(0.01);
-    else
-        amount->setSingleStep(0.001);
-
+    amount->setSingleStep((double)nSingleStep / (double)BitcoinUnits::factor(currentUnit));
+    
     if (valid)
     {
         // If value was valid, re-place it in the widget with the new unit
@@ -178,4 +174,10 @@ void BitcoinAmountField::unitChanged(int idx)
 void BitcoinAmountField::setDisplayUnit(int newUnit)
 {
     unit->setValue(newUnit);
+}
+
+void BitcoinAmountField::setSingleStep(qint64 step)
+{
+    nSingleStep = step;
+    unitChanged(unit->currentIndex());
 }

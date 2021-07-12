@@ -4,7 +4,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "rpcserver.h"
-#include "rpcclient.h"
 #include "init.h"
 #include "main.h"
 #include "noui.h"
@@ -71,26 +70,34 @@ bool AppInit(int argc, char* argv[])
             fprintf(stderr, "Error: Specified data directory \"%s\" does not exist.\n", mapArgs["-datadir"].c_str());
             return false;
         }
-        ReadConfigFile(mapArgs, mapMultiArgs);
-        // Check for -testnet or -regtest parameter (TestNet() calls are only valid after this clause)
+        try
+        {
+            ReadConfigFile(mapArgs, mapMultiArgs);
+        } catch(std::exception &e) {
+            fprintf(stderr,"Error reading configuration file: %s\n", e.what());
+            return false;
+        }
+        // Check for -testnet or -regtest parameter (Params() calls are only valid after this clause)
         if (!SelectParamsFromCommandLine()) {
             fprintf(stderr, "Error: Invalid combination of -regtest and -testnet.\n");
             return false;
         }
 
-        if (mapArgs.count("-?") || mapArgs.count("--help"))
+        if (mapArgs.count("-?") || mapArgs.count("-help") || mapArgs.count("-version"))
         {
-            // First part of help message is specific to bitcoind / RPC client
-            std::string strUsage = _("Lycancoin Core Daemon") + " " + _("version") + " " + FormatFullVersion() + "\n\n" +
-                _("Usage:") + "\n" +
-                  "  lycancoind [options]                     " + _("Start Lycancoin server") + "\n" +
-                _("Usage (deprecated, use lycancoin-cli):") + "\n" +
-                  "  lycancoind [options] <command> [params]  " + _("Send command to Lycancoin server") + "\n" +
-                  "  lycancoind [options] help                " + _("List commands") + "\n" +
-                  "  lycancoind [options] help <command>      " + _("Get help for a command") + "\n";
+            std::string strUsage = _("Lycancoin Core Daemon") + " " + _("version") + " " + FormatFullVersion() + "\n";
 
-            strUsage += "\n" + HelpMessage(HMM_BITCOIND);
-            strUsage += "\n" + HelpMessageCli(false);
+            if (mapArgs.count("-version"))
+            {
+                strUsage += LicenseInfo();
+            }
+            else
+            {
+                strUsage += "\n" + _("Usage:") + "\n" +
+                      "  lycancoind [options]                     " + _("Start Lycancoin Core Daemon") + "\n";
+
+                strUsage += "\n" + HelpMessage(HMM_BITCOIND);
+            }
 
             fprintf(stdout, "%s", strUsage.c_str());
             return false;
@@ -104,8 +111,8 @@ bool AppInit(int argc, char* argv[])
 
         if (fCommandLine)
         {
-            int ret = CommandLineRPC(argc, argv);
-            exit(ret);
+            fprintf(stderr, "Error: There is no RPC client functionality in lycancoind anymore. Use the lycancoin-cli utility instead.\n");
+            exit(1);
         }
 #ifndef WIN32
         fDaemon = GetBoolArg("-daemon", false);
@@ -167,15 +174,10 @@ bool AppInit(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-    bool fRet = false;
+	 SetupEnvironment();
 
     // Connect Lycancoind signal handlers
     noui_connect();
 
-    fRet = AppInit(argc, argv);
-
-    if (fRet && fDaemon)
-        return 0;
-
-    return (fRet ? 0 : 1);
+    return (AppInit(argc, argv) ? 0 : 1);
 }

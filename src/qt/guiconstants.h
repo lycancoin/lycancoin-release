@@ -19,6 +19,10 @@ static const int STATUSBAR_ICONSIZE = 16;
 #define COLOR_NEGATIVE QColor(255, 0, 0)
 /* Transaction list -- bare address (without label) */
 #define COLOR_BAREADDRESS QColor(140, 140, 140)
+/* Transaction list -- has conflicting transactions */
+#define COLOR_HASCONFLICTING QColor(Qt::white);
+/* Transaction list -- has conflicting transactions - background */
+#define COLOR_HASCONFLICTING_BG QColor(192, 0, 0)
 
 /* Tooltips longer than this (in characters) are converted into rich text,
    so that they can be word-wrapped.
@@ -36,5 +40,10 @@ static const int MAX_PAYMENT_REQUEST_SIZE = 50000; // bytes
 
 /* Number of frames in spinner animation */
 #define SPINNER_FRAMES 35
+
+#define QAPP_ORG_NAME "Lycancoin"
+#define QAPP_ORG_DOMAIN "lycancoin.org"
+#define QAPP_APP_NAME_DEFAULT "Lycancoin-Qt"
+#define QAPP_APP_NAME_TESTNET "Lycancoin-Qt-testnet"
 
 #endif // GUICONSTANTS_H

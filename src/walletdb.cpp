@@ -11,8 +11,6 @@
 #include "sync.h"
 #include "wallet.h"
 
-#include <inttypes.h>
-
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 
@@ -353,9 +351,7 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             CWalletTx wtx;
             ssValue >> wtx;
             CValidationState state;
-            if (CheckTransaction(wtx, state) && (wtx.GetHash() == hash) && state.IsValid())
-                wtx.BindWallet(pwallet);
-            else
+            if (!(CheckTransaction(wtx, state) && (wtx.GetHash() == hash) && state.IsValid()))
                 return false;
 
             // Undo serialize changes in 31600
@@ -381,10 +377,10 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             if (wtx.nOrderPos == -1)
                 wss.fAnyUnordered = true;
 
-            pwallet->mapWallet[hash] = wtx;
+            pwallet->AddToWallet(wtx, true);
             //// debug print
             //LogPrintf("LoadWallet  %s\n", wtx.GetHash().ToString());
-            //LogPrintf(" %12"PRId64"  %s  %s  %s\n",
+            //LogPrintf(" %12d  %s  %s  %s\n",
             //    wtx.vout[0].nValue,
             //    DateTimeStrFormat("%Y-%m-%dT%H:%M:%S", wtx.GetBlockTime()),
             //    wtx.hashBlock.ToString(),
@@ -682,6 +678,90 @@ DBErrors CWalletDB::LoadWallet(CWallet* pwallet)
     return result;
 }
 
+DBErrors CWalletDB::FindWalletTx(CWallet* pwallet, vector<uint256>& vTxHash, vector<CWalletTx>& vWtx)
+{
+    pwallet->vchDefaultKey = CPubKey();
+    CWalletScanState wss;
+    bool fNoncriticalErrors = false;
+    DBErrors result = DB_LOAD_OK;
+
+    try {
+        LOCK(pwallet->cs_wallet);
+        int nMinVersion = 0;
+        if (Read((string)"minversion", nMinVersion))
+        {
+            if (nMinVersion > CLIENT_VERSION)
+                return DB_TOO_NEW;
+            pwallet->LoadMinVersion(nMinVersion);
+        }
+
+        // Get cursor
+        Dbc* pcursor = GetCursor();
+        if (!pcursor)
+        {
+            LogPrintf("Error getting wallet database cursor\n");
+            return DB_CORRUPT;
+        }
+
+        while (true)
+        {
+            // Read next record
+            CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+            CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+            int ret = ReadAtCursor(pcursor, ssKey, ssValue);
+            if (ret == DB_NOTFOUND)
+                break;
+            else if (ret != 0)
+            {
+                LogPrintf("Error reading next record from wallet database\n");
+                return DB_CORRUPT;
+            }
+
+            string strType;
+            ssKey >> strType;
+            if (strType == "tx") {
+                uint256 hash;
+                ssKey >> hash;
+
+                CWalletTx wtx;
+                ssValue >> wtx;
+
+                vTxHash.push_back(hash);
+                vWtx.push_back(wtx);
+            }
+        }
+        pcursor->close();
+    }
+    catch (boost::thread_interrupted) {
+        throw;
+    }
+    catch (...) {
+        result = DB_CORRUPT;
+    }
+
+    if (fNoncriticalErrors && result == DB_LOAD_OK)
+        result = DB_NONCRITICAL_ERROR;
+
+    return result;
+}
+
+DBErrors CWalletDB::ZapWalletTx(CWallet* pwallet, vector<CWalletTx>& vWtx)
+{
+    // build list of wallet TXs
+    vector<uint256> vTxHash;
+    DBErrors err = FindWalletTx(pwallet, vTxHash, vWtx);
+    if (err != DB_LOAD_OK)
+        return err;
+
+    // erase each wallet TX
+    BOOST_FOREACH (uint256& hash, vTxHash) {
+        if (!EraseTx(hash))
+            return DB_CORRUPT;
+    }
+
+    return DB_LOAD_OK;
+}
+
 void ThreadFlushWalletDB(const string& strFile)
 {
     // Make this thread recognisable as the wallet flushing thread
@@ -736,7 +816,7 @@ void ThreadFlushWalletDB(const string& strFile)
                         bitdb.CheckpointLSN(strFile);
 
                         bitdb.mapFileUseCount.erase(mi++);
-                        LogPrint("db", "Flushed wallet.dat %"PRId64"ms\n", GetTimeMillis() - nStart);
+                        LogPrint("db", "Flushed wallet.dat %dms\n", GetTimeMillis() - nStart);
                     }
                 }
             }
@@ -797,7 +877,7 @@ bool CWalletDB::Recover(CDBEnv& dbenv, std::string filename, bool fOnlyKeys)
     // Set -rescan so any missing transactions will be
     // found.
     int64_t now = GetTime();
-    std::string newFilename = strprintf("wallet.%"PRId64".bak", now);
+    std::string newFilename = strprintf("wallet.%d.bak", now);
 
     int result = dbenv.dbenv.dbrename(NULL, filename.c_str(), NULL,
                                       newFilename.c_str(), DB_AUTO_COMMIT);
@@ -816,7 +896,7 @@ bool CWalletDB::Recover(CDBEnv& dbenv, std::string filename, bool fOnlyKeys)
         LogPrintf("Salvage(aggressive) found no records in %s.\n", newFilename);
         return false;
     }
-    LogPrintf("Salvage(aggressive) found %"PRIszu" records\n", salvagedData.size());
+    LogPrintf("Salvage(aggressive) found %u records\n", salvagedData.size());
 
     bool fSuccess = allOK;
     Db* pdbCopy = new Db(&dbenv.dbenv, 0);

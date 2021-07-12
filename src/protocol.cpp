@@ -6,6 +6,7 @@
 
 #include "protocol.h"
 
+#include "chainparams.h"
 #include "util.h"
 
 #ifndef WIN32

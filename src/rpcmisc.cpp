@@ -9,6 +9,7 @@
 #include "net.h"
 #include "netbase.h"
 #include "rpcserver.h"
+#include "timedata.h"
 #include "util.h"
 #ifdef ENABLE_WALLET
 #include "wallet.h"
@@ -21,10 +22,10 @@
 #include "json/json_spirit_utils.h"
 #include "json/json_spirit_value.h"
 
-using namespace std;
 using namespace boost;
 using namespace boost::assign;
 using namespace json_spirit;
+using namespace std;
 
 Value getinfo(const Array& params, bool fHelp)
 {
@@ -46,8 +47,9 @@ Value getinfo(const Array& params, bool fHelp)
             "  \"testnet\": true|false,      (boolean) if the server is using testnet or not\n"
             "  \"keypoololdest\": xxxxxx,    (numeric) the timestamp (seconds since GMT epoch) of the oldest pre-generated key in the key pool\n"
             "  \"keypoolsize\": xxxx,        (numeric) how many new keys are pre-generated\n"
-            "  \"paytxfee\": x.xxxx,         (numeric) the transaction fee set in lyc\n"
             "  \"unlocked_until\": ttt,      (numeric) the timestamp in seconds since epoch (midnight Jan 1 1970 GMT) that the wallet is unlocked for transfers, or 0 if the wallet is locked\n"
+            "  \"paytxfee\": x.xxxx,         (numeric) the transaction fee set in lyc/kb\n"
+            "  \"relayfee\": x.xxxx,         (numeric) minimum relay fee for non-free transactions in lyc/kb\n"            
             "  \"errors\": \"...\"           (string) any error messages\n"
             "}\n"
             "\nExamples:\n"
@@ -68,20 +70,21 @@ Value getinfo(const Array& params, bool fHelp)
     }
 #endif
     obj.push_back(Pair("blocks",        (int)chainActive.Height()));
-    obj.push_back(Pair("timeoffset",    (boost::int64_t)GetTimeOffset()));
+    obj.push_back(Pair("timeoffset",    GetTimeOffset()));
     obj.push_back(Pair("connections",   (int)vNodes.size()));
     obj.push_back(Pair("proxy",         (proxy.first.IsValid() ? proxy.first.ToStringIPPort() : string())));
     obj.push_back(Pair("difficulty",    (double)GetDifficulty()));
-    obj.push_back(Pair("testnet",       TestNet()));
+    obj.push_back(Pair("testnet",       Params().NetworkID() == CBaseChainParams::TESTNET));
 #ifdef ENABLE_WALLET
     if (pwalletMain) {
-        obj.push_back(Pair("keypoololdest", (boost::int64_t)pwalletMain->GetOldestKeyPoolTime()));
+        obj.push_back(Pair("keypoololdest", pwalletMain->GetOldestKeyPoolTime()));
         obj.push_back(Pair("keypoolsize",   (int)pwalletMain->GetKeyPoolSize()));
     }
-    obj.push_back(Pair("paytxfee",      ValueFromAmount(nTransactionFee)));
     if (pwalletMain && pwalletMain->IsCrypted())
-        obj.push_back(Pair("unlocked_until", (boost::int64_t)nWalletUnlockTime));
+        obj.push_back(Pair("unlocked_until", nWalletUnlockTime));
+    obj.push_back(Pair("paytxfee",      ValueFromAmount(payTxFee.GetFeePerK())));
 #endif
+    obj.push_back(Pair("relayfee",      ValueFromAmount(CTransaction::minRelayTxFee.GetFeePerK())));
     obj.push_back(Pair("errors",        GetWarnings("statusbar")));
     return obj;
 }
@@ -174,7 +177,7 @@ Value validateaddress(const Array& params, bool fHelp)
 //
 // Used by addmultisigaddress / createmultisig:
 //
-CScript _createmultisig(const Array& params)
+CScript _createmultisig_redeemScript(const Array& params)
 {
     int nRequired = params[0].get_int();
     const Array& keys = params[1].get_array();
@@ -185,7 +188,7 @@ CScript _createmultisig(const Array& params)
     if ((int)keys.size() < nRequired)
         throw runtime_error(
             strprintf("not enough keys supplied "
-                      "(got %"PRIszu" keys, but need at least %d to redeem)", keys.size(), nRequired));
+                      "(got %u keys, but need at least %d to redeem)", keys.size(), nRequired));
     std::vector<CPubKey> pubkeys;
     pubkeys.resize(keys.size());
     for (unsigned int i = 0; i < keys.size(); i++)
@@ -226,6 +229,11 @@ CScript _createmultisig(const Array& params)
     }
     CScript result;
     result.SetMultisig(nRequired, pubkeys);
+    
+    if (result.size() > MAX_SCRIPT_ELEMENT_SIZE)
+        throw runtime_error(
+                strprintf("redeemScript exceeds size limit: %d > %d", result.size(), MAX_SCRIPT_ELEMENT_SIZE));
+
     return result;
 }
 
@@ -255,13 +263,13 @@ Value createmultisig(const Array& params, bool fHelp)
             "\nCreate a multisig address from 2 addresses\n"
             + HelpExampleCli("createmultisig", "2 \"[\\\"LQHhoZafBCSs6Zj7wJmq2p8s58Tg1hzPXF\\\",\\\"LPfXZuRgygVBut2CkfGzsViVmCVg1BXQ4G\\\"]\"") +
             "\nAs a json rpc call\n"
-            + HelpExampleRpc("icreatemultisig", "2, \"[\\\"LQHhoZafBCSs6Zj7wJmq2p8s58Tg1hzPXF\\\",\\\"LPfXZuRgygVBut2CkfGzsViVmCVg1BXQ4G\\\"]\"")
+            + HelpExampleRpc("createmultisig", "2, \"[\\\"16sSauSf5pF2UkUwvKGq4qjNRzBZYqgEL5\\\",\\\"171sgjn4YtPu27adkKGrdDwzRTxnRkBfKV\\\"]\"")
         ;
         throw runtime_error(msg);
     }
 
     // Construct using pay-to-script-hash:
-    CScript inner = _createmultisig(params);
+    CScript inner = _createmultisig_redeemScript(params);
     CScriptID innerID = inner.GetID();
     CBitcoinAddress address(innerID);
 

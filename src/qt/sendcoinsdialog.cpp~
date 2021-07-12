@@ -55,7 +55,7 @@ SendCoinsDialog::SendCoinsDialog(QWidget *parent) :
     QAction *clipboardAfterFeeAction = new QAction(tr("Copy after fee"), this);
     QAction *clipboardBytesAction = new QAction(tr("Copy bytes"), this);
     QAction *clipboardPriorityAction = new QAction(tr("Copy priority"), this);
-    QAction *clipboardLowOutputAction = new QAction(tr("Copy low output"), this);
+    QAction *clipboardLowOutputAction = new QAction(tr("Copy dust"), this);
     QAction *clipboardChangeAction = new QAction(tr("Copy change"), this);
     connect(clipboardQuantityAction, SIGNAL(triggered()), this, SLOT(coinControlClipboardQuantity()));
     connect(clipboardAmountAction, SIGNAL(triggered()), this, SLOT(coinControlClipboardAmount()));
@@ -327,9 +327,10 @@ QWidget *SendCoinsDialog::setupTabChain(QWidget *prev)
             prev = entry->setupTabChain(prev);
         }
     }
-    QWidget::setTabOrder(prev, ui->addButton);
-    QWidget::setTabOrder(ui->addButton, ui->sendButton);
-    return ui->sendButton;
+    QWidget::setTabOrder(prev, ui->sendButton);
+    QWidget::setTabOrder(ui->sendButton, ui->clearButton);
+    QWidget::setTabOrder(ui->clearButton, ui->addButton);
+    return ui->addButton;
 }
 
 void SendCoinsDialog::setAddress(const QString &address)
@@ -378,26 +379,8 @@ void SendCoinsDialog::pasteEntry(const SendCoinsRecipient &rv)
 
 bool SendCoinsDialog::handlePaymentRequest(const SendCoinsRecipient &rv)
 {
-    QString strSendCoins = tr("Send Coins");
-    if (rv.paymentRequest.IsInitialized()) {
-        // Expired payment request?
-        const payments::PaymentDetails& details = rv.paymentRequest.getDetails();
-        if (details.has_expires() && (int64_t)details.expires() < GetTime())
-        {
-            emit message(strSendCoins, tr("Payment request expired"),
-                CClientUIInterface::MSG_WARNING);
-            return false;
-        }
-    }
-    else {
-        CBitcoinAddress address(rv.address.toStdString());
-        if (!address.IsValid()) {
-            emit message(strSendCoins, tr("Invalid payment address %1").arg(rv.address),
-                CClientUIInterface::MSG_WARNING);
-            return false;
-        }
-    }
-
+    // Just paste the entry, all pre-checks
+    // are done in paymentserver.cpp.
     pasteEntry(rv);
     return true;
 }

@@ -14,9 +14,15 @@
 #include <utility>
 #include <vector>
 
-class CBigNum;
 class CCoins;
 class uint256;
+
+// -dbcache default (MiB)
+static const int64_t nDefaultDbCache = 100;
+// max. -dbcache in (MiB)
+static const int64_t nMaxDbCache = sizeof(void*) > 4 ? 4096 : 1024;
+// min. -dbcache in (MiB)
+static const int64_t nMinDbCache = 4;
 
 /** CCoinsView backed by the LevelDB coin database (chainstate/) */
 class CCoinsViewDB : public CCoinsView
@@ -45,7 +51,6 @@ private:
     void operator=(const CBlockTreeDB&);
 public:
     bool WriteBlockIndex(const CDiskBlockIndex& blockindex);
-    bool WriteBestInvalidWork(const CBigNum& bnBestInvalidWork);
     bool ReadBlockFileInfo(int nFile, CBlockFileInfo &fileinfo);
     bool WriteBlockFileInfo(int nFile, const CBlockFileInfo &fileinfo);
     bool ReadLastBlockFile(int &nFile);

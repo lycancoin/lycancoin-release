@@ -16,6 +16,7 @@
 
 #include <QComboBox>
 #include <QDateTimeEdit>
+#include <QDesktopServices>
 #include <QDoubleValidator>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -24,7 +25,9 @@
 #include <QMenu>
 #include <QPoint>
 #include <QScrollBar>
+#include <QSignalMapper>
 #include <QTableView>
+#include <QUrl>
 #include <QVBoxLayout>
 
 TransactionView::TransactionView(QWidget *parent) :
@@ -133,8 +136,12 @@ TransactionView::TransactionView(QWidget *parent) :
     contextMenu->addAction(copyTxIDAction);
     contextMenu->addAction(editLabelAction);
     contextMenu->addAction(showDetailsAction);
+    
+    mapperThirdPartyTxUrls = new QSignalMapper(this);
 
     // Connect actions
+    connect(mapperThirdPartyTxUrls, SIGNAL(mapped(QString)), this, SLOT(openThirdPartyTxUrl(QString)));
+    
     connect(dateWidget, SIGNAL(activated(int)), this, SLOT(chooseDate(int)));
     connect(typeWidget, SIGNAL(activated(int)), this, SLOT(chooseType(int)));
     connect(addressWidget, SIGNAL(textChanged(QString)), this, SLOT(changedPrefix(QString)));
@@ -164,6 +171,7 @@ void TransactionView::setModel(WalletModel *model)
 
         transactionProxyModel->setSortRole(Qt::EditRole);
 
+        transactionView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);        
         transactionView->setModel(transactionProxyModel);
         transactionView->setAlternatingRowColors(true);
         transactionView->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -172,15 +180,31 @@ void TransactionView::setModel(WalletModel *model)
         transactionView->sortByColumn(TransactionTableModel::Status, Qt::DescendingOrder);
         transactionView->verticalHeader()->hide();
 
-        transactionView->horizontalHeader()->resizeSection(TransactionTableModel::Status, 23);
-        transactionView->horizontalHeader()->resizeSection(TransactionTableModel::Date, 120);
-        transactionView->horizontalHeader()->resizeSection(TransactionTableModel::Type, 120);
-#if QT_VERSION < 0x050000
-        transactionView->horizontalHeader()->setResizeMode(TransactionTableModel::ToAddress, QHeaderView::Stretch);
-#else
-        transactionView->horizontalHeader()->setSectionResizeMode(TransactionTableModel::ToAddress, QHeaderView::Stretch);
-#endif  
-        transactionView->horizontalHeader()->resizeSection(TransactionTableModel::Amount, 100);
+        transactionView->setColumnWidth(TransactionTableModel::Status, STATUS_COLUMN_WIDTH);
+        transactionView->setColumnWidth(TransactionTableModel::Date, DATE_COLUMN_WIDTH);
+        transactionView->setColumnWidth(TransactionTableModel::Type, TYPE_COLUMN_WIDTH);
+        transactionView->setColumnWidth(TransactionTableModel::Amount, AMOUNT_MINIMUM_COLUMN_WIDTH);
+
+        columnResizingFixer = new GUIUtil::TableViewLastColumnResizingFixer(transactionView, AMOUNT_MINIMUM_COLUMN_WIDTH, MINIMUM_COLUMN_WIDTH);
+
+        if (model->getOptionsModel())
+        {
+            // Add third party transaction URLs to context menu
+            QStringList listUrls = model->getOptionsModel()->getThirdPartyTxUrls().split("|", QString::SkipEmptyParts);
+            for (int i = 0; i < listUrls.size(); ++i)
+            {
+                QString host = QUrl(listUrls[i].trimmed(), QUrl::StrictMode).host();
+                if (!host.isEmpty())
+                {
+                    QAction *thirdPartyTxUrlAction = new QAction(host, this); // use host as menu item label
+                    if (i == 0)
+                        contextMenu->addSeparator();
+                    contextMenu->addAction(thirdPartyTxUrlAction);
+                    connect(thirdPartyTxUrlAction, SIGNAL(triggered()), mapperThirdPartyTxUrls, SLOT(map()));
+                    mapperThirdPartyTxUrls->setMapping(thirdPartyTxUrlAction, listUrls[i].trimmed());
+                }
+            }
+        }    
     }
 }
 
@@ -281,7 +305,7 @@ void TransactionView::exportClicked()
     writer.addColumn(tr("Type"), TransactionTableModel::Type, Qt::EditRole);
     writer.addColumn(tr("Label"), 0, TransactionTableModel::LabelRole);
     writer.addColumn(tr("Address"), 0, TransactionTableModel::AddressRole);
-    writer.addColumn(tr("Amount"), 0, TransactionTableModel::FormattedAmountRole);
+    writer.addColumn(BitcoinUnits::getAmountColumnTitle(model->getOptionsModel()->getDisplayUnit()), 0, TransactionTableModel::FormattedAmountRole);
     writer.addColumn(tr("ID"), 0, TransactionTableModel::TxIDRole);
 
     if(!writer.write()) {
@@ -381,6 +405,15 @@ void TransactionView::showDetails()
     }
 }
 
+void TransactionView::openThirdPartyTxUrl(QString url)
+{
+    if(!transactionView || !transactionView->selectionModel())
+        return;
+    QModelIndexList selection = transactionView->selectionModel()->selectedRows(0);
+    if(!selection.isEmpty())
+         QDesktopServices::openUrl(QUrl::fromUserInput(url.replace("%s", selection.at(0).data(TransactionTableModel::TxHashRole).toString())));
+}
+
 QWidget *TransactionView::createDateRangeWidget()
 {
     dateRangeWidget = new QFrame();
@@ -434,4 +467,12 @@ void TransactionView::focusTransaction(const QModelIndex &idx)
     transactionView->scrollTo(targetIdx);
     transactionView->setCurrentIndex(targetIdx);
     transactionView->setFocus();
+}
+
+// We override the virtual resizeEvent of the QWidget to adjust tables column
+// sizes as the tables width is proportional to the dialogs width.
+void TransactionView::resizeEvent(QResizeEvent* event)
+{
+    QWidget::resizeEvent(event);
+    columnResizingFixer->stretchColumnWidth(TransactionTableModel::ToAddress);
 }

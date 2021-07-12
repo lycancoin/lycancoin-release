@@ -45,10 +45,14 @@ public:
         AmountRole,
         /** Unique identifier */
         TxIDRole,
+        /** Transaction hash */
+        TxHashRole,
         /** Is transaction confirmed? */
         ConfirmedRole,
         /** Formatted amount, without brackets when unconfirmed */
-        FormattedAmountRole
+        FormattedAmountRole,
+        /** Transaction status (TransactionRecord::Status) */
+        StatusRole
     };
 
     int rowCount(const QModelIndex &parent) const;
@@ -61,7 +65,6 @@ private:
     WalletModel *walletModel;
     QStringList columns;
     TransactionTablePriv *priv;
-    int cachedNumBlocks;
 
     QString lookupAddress(const std::string &address, bool tooltip) const;
     QVariant addressColor(const TransactionRecord *wtx) const;
@@ -78,6 +81,8 @@ public slots:
     void updateTransaction(const QString &hash, int status);
     void updateConfirmations();
     void updateDisplayUnit();
+    /** Updates the column title to "Amount (DisplayUnit)" and emits headerDataChanged() signal for table headers to react. */
+    void updateAmountColumnTitle();
 
     friend class TransactionTablePriv;
 };

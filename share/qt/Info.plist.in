@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist SYSTEM "file://localhost/System/Library/DTDs/PropertyList.dtd">
-<plist version="0.9">
+<plist version="1.1.2.8">
 <dict>
+  <key>LSMinimumSystemVersion</key>
+  <string>10.6.0</string>
+
+  <key>LSArchitecturePriority</key>
+  <array>
+    <string>x86_64</string>
+  </array>
+
   <key>CFBundleIconFile</key>
   <string>bitcoin.icns</string>
 
@@ -9,20 +17,20 @@
   <string>APPL</string>
 
   <key>CFBundleGetInfoString</key>
-  <string>$VERSION, Copyright © 2009-$YEAR The Lycancoin developers</string>
-  
+  <string>@CLIENT_VERSION_MAJOR@.@CLIENT_VERSION_MINOR@.@CLIENT_VERSION_REVISION@, Copyright © 2009-@COPYRIGHT_YEAR@ The Bitcoin Core developers</string>
+
   <key>CFBundleShortVersionString</key>
-  <string>$VERSION</string>
-  
+  <string>@CLIENT_VERSION_MAJOR@.@CLIENT_VERSION_MINOR@.@CLIENT_VERSION_REVISION@</string>
+
   <key>CFBundleVersion</key>
-  <string>$VERSION</string>
- 
- <key>CFBundleSignature</key>
+  <string>@CLIENT_VERSION_MAJOR@.@CLIENT_VERSION_MINOR@.@CLIENT_VERSION_REVISION@</string>
+
+  <key>CFBundleSignature</key>
   <string>????</string>
-  
+
   <key>CFBundleExecutable</key>
   <string>Lycancoin-Qt</string>
-  
+
   <key>CFBundleIdentifier</key>
   <string>org.lycancoin.Lycancoin-Qt</string>
 
@@ -32,10 +40,10 @@
       <key>CFBundleTypeRole</key>
       <string>Editor</string>
       <key>CFBundleURLName</key>
-      <string>org.bitcoin.BitcoinPayment</string>
+      <string>org.lycancoin.lycancoinPayment</string>
       <key>CFBundleURLSchemes</key>
       <array>
-        <string>bitcoin</string>
+        <string>lycancoin</string>
       </array>
     </dict>
   </array>
@@ -44,9 +52,9 @@
   <array>
     <dict>
       <key>UTTypeIdentifier</key>
-      <string>org.bitcoin.paymentrequest</string>
+      <string>org.lycancoin.paymentrequest</string>
       <key>UTTypeDescription</key>
-      <string>Bitcoin payment request</string>
+      <string>Lycancoin payment request</string>
       <key>UTTypeConformsTo</key>
       <array>
         <string>public.data</string>
@@ -54,10 +62,10 @@
       <key>UTTypeTagSpecification</key>
       <dict>
         <key>public.mime-type</key>
-        <string>application/x-bitcoin-payment-request</string>
+        <string>application/x-lycancoin-payment-request</string>
         <key>public.filename-extension</key>
         <array>
-           <string>bitcoinpaymentrequest</string>
+          <string>lycancoinpaymentrequest</string>
         </array>
       </dict>
     </dict>
@@ -70,17 +78,20 @@
       <string>Editor</string>
       <key>LSItemContentTypes</key>
       <array>
-        <string>org.bitcoin.paymentrequest</string>
+        <string>org.lycancoin.paymentrequest</string>
       </array>
       <key>LSHandlerRank</key>
       <string>Owner</string>
     </dict>
   </array>
-  
+
   <key>NSPrincipalClass</key>
     <string>NSApplication</string>
 
   <key>NSHighResolutionCapable</key>
     <string>True</string>
+
+  <key>LSApplicationCategoryType</key>
+    <string>public.app-category.finance</string>
 </dict>
 </plist>

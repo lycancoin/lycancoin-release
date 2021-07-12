@@ -170,6 +170,7 @@ public:
 
     bool getPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const;
     void getOutputs(const std::vector<COutPoint>& vOutpoints, std::vector<COutput>& vOutputs);
+    bool isSpent(const COutPoint& outpoint) const;
     void listCoins(std::map<QString, std::vector<COutput> >& mapCoins) const;
 
     bool isLockedCoin(uint256 hash, unsigned int n) const;
@@ -225,6 +226,9 @@ signals:
 
     // Coins sent: from wallet, to recipient, in (serialized) transaction:
     void coinsSent(CWallet* wallet, SendCoinsRecipient recipient, QByteArray transaction);
+
+    // Show progress dialog e.g. for rescan
+    void showProgress(const QString &title, int nProgress);
 
 public slots:
     /* Wallet status might have changed */

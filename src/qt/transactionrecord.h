@@ -15,38 +15,50 @@ class TransactionStatus
 {
 public:
     TransactionStatus():
-        confirmed(false), sortKey(""), maturity(Mature),
-        matures_in(0), status(Offline), depth(0), open_for(0), cur_num_blocks(-1)
-    { }
-
-    enum Maturity
+        countsForBalance(false),
+        sortKey(""),
+        matures_in(0),
+        status(Offline),
+        hasConflicting(false),
+        depth(0),
+        open_for(0),
+        cur_num_blocks(-1),
+        cur_num_conflicts(-1)
     {
-        Immature,
-        Mature,
-        MaturesWarning, /**< Transaction will likely not mature because no nodes have confirmed */
-        NotAccepted
-    };
+    }
 
     enum Status {
-        OpenUntilDate,
-        OpenUntilBlock,
-        Offline,
-        Unconfirmed,
-        HaveConfirmations
+        Confirmed,          /**< Have 6 or more confirmations (normal tx) or fully mature (mined tx) **/
+        /// Normal (sent/received) transactions
+        OpenUntilDate,      /**< Transaction not yet final, waiting for date */
+        OpenUntilBlock,     /**< Transaction not yet final, waiting for block */
+        Offline,            /**< Not sent to any other nodes **/
+        Unconfirmed,        /**< Not yet mined into a block **/
+        Confirming,         /**< Confirmed, but waiting for the recommended number of confirmations **/
+        Conflicted,         /**< Conflicts with other transaction or mempool **/
+        /// Generated (mined) transactions
+        Immature,           /**< Mined but waiting for maturity */
+        MaturesWarning,     /**< Transaction will likely not mature because no nodes have confirmed */
+        NotAccepted         /**< Mined but not accepted */
     };
 
-    bool confirmed;
+    /// Transaction counts towards available balance
+    bool countsForBalance;
+    /// Sorting key based on status
     std::string sortKey;
 
     /** @name Generated (mined) transactions
        @{*/
-    Maturity maturity;
     int matures_in;
     /**@}*/
 
     /** @name Reported status
        @{*/
     Status status;
+    
+    // Has conflicting transactions spending same prevout
+    bool hasConflicting;    
+    
     qint64 depth;
     qint64 open_for; /**< Timestamp if status==OpenUntilDate, otherwise number
                       of additional blocks that need to be mined before
@@ -55,6 +67,10 @@ public:
 
     /** Current number of blocks (to know whether cached status is still valid) */
     int cur_num_blocks;
+    
+    /** Number of conflicts received into wallet as of last status update */
+    int64_t cur_num_conflicts;    
+    
 };
 
 /** UI model for a transaction. A core transaction can be represented by multiple UI transactions if it has
@@ -74,8 +90,8 @@ public:
         SendToSelf
     };
 
-    /** Number of confirmation needed for transaction */
-    static const int NumConfirmations = 6;
+    /** Number of confirmation recommended for accepting a transaction */
+    static const int RecommendedNumConfirmations = 6;
 
     TransactionRecord():
             hash(), time(0), type(Other), address(""), debit(0), credit(0), idx(0)
@@ -129,7 +145,7 @@ public:
 
     /** Return whether a status update is needed.
      */
-    bool statusUpdateNeeded();
+    bool statusUpdateNeeded(int64_t nConflictsReceived);
 };
 
 #endif // TRANSACTIONRECORD_H

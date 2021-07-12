@@ -16,6 +16,8 @@
 #include <vector>
 #include <openssl/bn.h>
 
+signed char HexDigit(char c);
+
 /** Errors thrown by the bignum class */
 class bignum_error : public std::runtime_error
 {

@@ -2,7 +2,7 @@
 #define CLIENTVERSION_H
 
 #if defined(HAVE_CONFIG_H)
-#include "bitcoin-config.h"
+#include "config/bitcoin-config.h"
 #else
 
 //
@@ -13,7 +13,7 @@
 #define CLIENT_VERSION_MAJOR       1
 #define CLIENT_VERSION_MINOR       1
 #define CLIENT_VERSION_REVISION    2
-#define CLIENT_VERSION_BUILD       7
+#define CLIENT_VERSION_BUILD       8
 
 // Set to true for release, false for prerelease or test build
 #define CLIENT_VERSION_IS_RELEASE  true

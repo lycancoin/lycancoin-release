@@ -6,11 +6,11 @@
 #include "chainparams.h"
 
 #include "assert.h"
-#include "main.h"
 #include "util.h"
 
 #include <boost/assign/list_of.hpp>
 
+using namespace std;
 using namespace boost::assign;
 
 //
@@ -25,6 +25,8 @@ unsigned int pnSeed[] =
 class CMainParams : public CChainParams {
 public:
     CMainParams() {
+        networkID = CBaseChainParams::MAIN;
+        strNetworkID = "main";
         // The message start string is designed to be unlikely to occur in normal data.
         // The characters are rarely used upper ASCII, not valid as UTF-8, and produce
         // a large 4-byte int at any alignment.
@@ -34,9 +36,14 @@ public:
         pchMessageStart[3] = 0xdd;
         vAlertPubKey = ParseHex("04fc9702847840aaf195de8442ebecedf5b095cdbb9bc716bda9110971b28a49e0ead8564ff0db22209e0374782c093bb899692d524e9d6a6956e7c5ecbcd68284");
         nDefaultPort = 58862;
-        nRPCPort = 58861;
-        bnProofOfWorkLimit = CBigNum(~uint256(0) >> 20); // starting difficulty is 1 / 2^12
+        bnProofOfWorkLimit = ~uint256(0) >> 20;
         nSubsidyHalvingInterval = 800000;
+        nEnforceBlockUpgradeMajority = 12960;
+        nRejectBlockOutdatedMajority = 16416;
+        nToCheckBlockUpgradeMajority = 17280;
+        nMinerThreads = 0;
+        nTargetTimespan = 2 * 60 * 60; // Lycancoin: 2 hour
+        nTargetSpacing = 150; // Lycancoin: 2.5 minute blocks
 
         // Build the genesis block. Note that the output of the genesis coinbase cannot
         // be spent as it did not originally exist in the database.
@@ -47,10 +54,10 @@ public:
         //     CTxOut(nValue=50.00000000, scriptPubKey=0x5F1DF16B2B704C8A578D0B)
         //   vMerkleTree: 4a5e1e
         const char* pszTimestamp = "Lycancoin Build V.1.0 January 22, 2014";
-        CTransaction txNew;
+        CMutableTransaction txNew;
         txNew.vin.resize(1);
         txNew.vout.resize(1);
-        txNew.vin[0].scriptSig = CScript() << 486604799 << CBigNum(4) << vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
+        txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum(4) << vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
         txNew.vout[0].nValue = 0;
         txNew.vout[0].scriptPubKey = CScript() << 0x0 << OP_CHECKSIG;
         genesis.vtx.push_back(txNew);
@@ -90,20 +97,15 @@ public:
             addr.nTime = GetTime() - GetRand(nOneWeek) - nOneWeek;
             vFixedSeeds.push_back(addr);
         }
+        fRequireRPCPassword = true;
+        fMiningRequiresPeers = true;
+        fDefaultCheckMemPool = false;
+        fAllowMinDifficultyBlocks = false;
+        fRequireStandard = true;
+        fMineBlocksOnDemand = false;
     }
-
-    virtual const CBlock& GenesisBlock() const { return genesis; }
-    virtual Network NetworkID() const { return CChainParams::MAIN; }
-
-    virtual const vector<CAddress>& FixedSeeds() const {
-        return vFixedSeeds;
-    }
-protected:
-    CBlock genesis;
-    vector<CAddress> vFixedSeeds;
 };
 static CMainParams mainParams;
-
 
 //
 // Testnet (v3)
@@ -111,6 +113,8 @@ static CMainParams mainParams;
 class CTestNetParams : public CMainParams {
 public:
     CTestNetParams() {
+        networkID = CBaseChainParams::TESTNET;
+        strNetworkID = "test";
         // The message start string is designed to be unlikely to occur in normal data.
         // The characters are rarely used upper ASCII, not valid as UTF-8, and produce
         // a large 4-byte int at any alignment.
@@ -120,17 +124,22 @@ public:
         pchMessageStart[3] = 0x07;
         vAlertPubKey = ParseHex("04302390343f91cc401d56d68b123028bf52e5fca1939df127f63c6467cdf9c8e2c14b61104cf817d0b780da337893ecc4aaff1309e536162dabbdb45200ca2b0a");
         nDefaultPort = 18333;
-        nRPCPort = 18332;
-        strDataDir = "testnet3";
+        nEnforceBlockUpgradeMajority = 51;
+        nRejectBlockOutdatedMajority = 75;
+        nToCheckBlockUpgradeMajority = 100;
+        nMinerThreads = 0;
+        nTargetTimespan = 14 * 24 * 60 * 60; // two weeks
+        nTargetSpacing = 10 * 60;
 
         // Modify the testnet genesis block so the timestamp is valid for a later start.
         genesis.nTime = 1296688602;
         genesis.nNonce = 414098458;
         hashGenesisBlock = genesis.GetHash();
-//        assert(hashGenesisBlock == uint256("000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"));
+//        assert(hashGenesisBlock == uint256("0x000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"));
 
         vFixedSeeds.clear();
         vSeeds.clear();
+        vSeeds.push_back(CDNSSeedData("alexykot.me", "testnet-seed.alexykot.me"));
         vSeeds.push_back(CDNSSeedData("bitcoin.petertodd.org", "testnet-seed.bitcoin.petertodd.org"));
         vSeeds.push_back(CDNSSeedData("bluematt.me", "testnet-seed.bluematt.me"));
 
@@ -140,11 +149,15 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = list_of(0x04)(0x35)(0x87)(0xCF);
         base58Prefixes[EXT_SECRET_KEY] = list_of(0x04)(0x35)(0x83)(0x94);
 
+        fRequireRPCPassword = true;
+        fMiningRequiresPeers = true;
+        fDefaultCheckMemPool = false;
+        fAllowMinDifficultyBlocks = true;
+        fRequireStandard = false;
+        fMineBlocksOnDemand = false;
     }
-    virtual Network NetworkID() const { return CChainParams::TESTNET; }
 };
 static CTestNetParams testNetParams;
-
 
 //
 // Regression test
@@ -152,43 +165,56 @@ static CTestNetParams testNetParams;
 class CRegTestParams : public CTestNetParams {
 public:
     CRegTestParams() {
+        networkID = CBaseChainParams::REGTEST;
+        strNetworkID = "regtest";
         pchMessageStart[0] = 0xfa;
         pchMessageStart[1] = 0xbf;
         pchMessageStart[2] = 0xb5;
         pchMessageStart[3] = 0xda;
         nSubsidyHalvingInterval = 150;
-        bnProofOfWorkLimit = CBigNum(~uint256(0) >> 1);
+        nEnforceBlockUpgradeMajority = 750;
+        nRejectBlockOutdatedMajority = 950;
+        nToCheckBlockUpgradeMajority = 1000;
+        nMinerThreads = 1;
+        nTargetTimespan = 14 * 24 * 60 * 60; // two weeks
+        nTargetSpacing = 10 * 60;
+        bnProofOfWorkLimit = ~uint256(0) >> 1;
         genesis.nTime = 1296688602;
         genesis.nBits = 0x207fffff;
         genesis.nNonce = 2;
         hashGenesisBlock = genesis.GetHash();
         nDefaultPort = 18444;
-        strDataDir = "regtest";
 //        assert(hashGenesisBlock == uint256("0x0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"));
 
         vSeeds.clear();  // Regtest mode doesn't have any DNS seeds.
-    }
 
-    virtual bool RequireRPCPassword() const { return false; }
-    virtual Network NetworkID() const { return CChainParams::REGTEST; }
+        fRequireRPCPassword = false;
+        fMiningRequiresPeers = false;
+        fDefaultCheckMemPool = true;
+        fAllowMinDifficultyBlocks = true;
+        fRequireStandard = false;
+        fMineBlocksOnDemand = true;
+    }
 };
 static CRegTestParams regTestParams;
 
-static CChainParams *pCurrentParams = &mainParams;
+static CChainParams *pCurrentParams = 0;
 
 const CChainParams &Params() {
+    assert(pCurrentParams);
     return *pCurrentParams;
 }
 
-void SelectParams(CChainParams::Network network) {
+void SelectParams(CBaseChainParams::Network network) {
+    SelectBaseParams(network);
     switch (network) {
-        case CChainParams::MAIN:
+        case CBaseChainParams::MAIN:
             pCurrentParams = &mainParams;
             break;
-        case CChainParams::TESTNET:
+        case CBaseChainParams::TESTNET:
             pCurrentParams = &testNetParams;
             break;
-        case CChainParams::REGTEST:
+        case CBaseChainParams::REGTEST:
             pCurrentParams = &regTestParams;
             break;
         default:
@@ -198,19 +224,9 @@ void SelectParams(CChainParams::Network network) {
 }
 
 bool SelectParamsFromCommandLine() {
-    bool fRegTest = GetBoolArg("-regtest", false);
-    bool fTestNet = GetBoolArg("-testnet", false);
-
-    if (fTestNet && fRegTest) {
+    if (!SelectBaseParamsFromCommandLine())
         return false;
-    }
-
-    if (fRegTest) {
-        SelectParams(CChainParams::REGTEST);
-    } else if (fTestNet) {
-        SelectParams(CChainParams::TESTNET);
-    } else {
-        SelectParams(CChainParams::MAIN);
-    }
+    
+    SelectParams(BaseParams().NetworkID());
     return true;
 }

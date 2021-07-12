@@ -8,6 +8,7 @@
 #include "init.h"
 #include "net.h"
 #include "netbase.h"
+#include "timedata.h"
 #include "util.h"
 #include "wallet.h"
 #include "walletdb.h"
@@ -47,15 +48,24 @@ void WalletTxToJSON(const CWalletTx& wtx, Object& entry)
     entry.push_back(Pair("confirmations", confirms));
     if (wtx.IsCoinBase())
         entry.push_back(Pair("generated", true));
-    if (confirms)
+    if (confirms > 0)
     {
         entry.push_back(Pair("blockhash", wtx.hashBlock.GetHex()));
         entry.push_back(Pair("blockindex", wtx.nIndex));
-        entry.push_back(Pair("blocktime", (boost::int64_t)(mapBlockIndex[wtx.hashBlock]->nTime)));
+        entry.push_back(Pair("blocktime", (int64_t)(mapBlockIndex[wtx.hashBlock]->nTime)));
     }
-    entry.push_back(Pair("txid", wtx.GetHash().GetHex()));
-    entry.push_back(Pair("time", (boost::int64_t)wtx.GetTxTime()));
-    entry.push_back(Pair("timereceived", (boost::int64_t)wtx.nTimeReceived));
+    uint256 hash = wtx.GetHash();
+    entry.push_back(Pair("txid", hash.GetHex()));
+    Array conflicts;
+    BOOST_FOREACH(const uint256& conflict, wtx.GetConflicts())
+        conflicts.push_back(conflict.GetHex());
+    entry.push_back(Pair("walletconflicts", conflicts));
+    Array respends;
+    BOOST_FOREACH(const uint256& respend, wtx.GetConflicts(false))
+        respends.push_back(respend.GetHex());
+    entry.push_back(Pair("respendsobserved", respends));
+    entry.push_back(Pair("time", wtx.GetTxTime()));
+    entry.push_back(Pair("timereceived", (int64_t)wtx.nTimeReceived));
     BOOST_FOREACH(const PAIRTYPE(string,string)& item, wtx.mapValue)
         entry.push_back(Pair(item.first, item.second));
 }
@@ -313,7 +323,7 @@ Value sendtoaddress(const Array& params, bool fHelp)
             "                             to which you're sending the transaction. This is not part of the \n"
             "                             transaction, just kept in your wallet.\n"
             "\nResult:\n"
-            "\"transactionid\"  (string) The transaction id. (view at https://blockchain.info/tx/[transactionid])\n"
+            "\"transactionid\"  (string) The transaction id.\n"
             "\nExamples:\n"
             + HelpExampleCli("sendtoaddress", "\"LQHhoZafBCSs6Zj7wJmq2p8s58Tg1hzPXF\" 0.1")
             + HelpExampleCli("sendtoaddress", "\"LQHhoZafBCSs6Zj7wJmq2p8s58Tg1hzPXF\" 0.1 \"donation\" \"Werewolf\"")
@@ -336,7 +346,7 @@ Value sendtoaddress(const Array& params, bool fHelp)
 
         EnsureWalletIsUnlocked();
 
-    string strError = pwalletMain->SendMoneyToDestination(address.Get(), nAmount, wtx);
+    string strError = pwalletMain->SendMoney(address.Get(), nAmount, wtx);
     if (strError != "")
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
 
@@ -555,7 +565,7 @@ int64_t GetAccountBalance(CWalletDB& walletdb, const string& strAccount, int nMi
     for (map<uint256, CWalletTx>::iterator it = pwalletMain->mapWallet.begin(); it != pwalletMain->mapWallet.end(); ++it)
     {
         const CWalletTx& wtx = (*it).second;
-        if (!IsFinalTx(wtx))
+        if (!IsFinalTx(wtx) || wtx.GetBlocksToMaturity() > 0 || wtx.GetDepthInMainChain() < 0)
             continue;
 
         int64_t nReceived, nSent, nFee;
@@ -621,7 +631,7 @@ Value getbalance(const Array& params, bool fHelp)
         for (map<uint256, CWalletTx>::iterator it = pwalletMain->mapWallet.begin(); it != pwalletMain->mapWallet.end(); ++it)
         {
             const CWalletTx& wtx = (*it).second;
-            if (!wtx.IsTrusted())
+            if (!wtx.IsTrusted() || wtx.GetBlocksToMaturity() > 0)
                 continue;
 
             int64_t allFee;
@@ -741,7 +751,7 @@ Value sendfrom(const Array& params, bool fHelp)
             "                                     to which you're sending the transaction. This is not part of the transaction, \n"
             "                                     it is just kept in your wallet.\n"
             "\nResult:\n"
-            "\"transactionid\"        (string) The transaction id. (view at https://blockchain.info/tx/[transactionid])\n"
+            "\"transactionid\"        (string) The transaction id.\n"
             "\nExamples:\n"
             "\nSend 0.01 lyc from the default account to the address, must have at least 1 confirmation\n"
             + HelpExampleCli("sendfrom", "\"\" \"LQHhoZafBCSs6Zj7wJmq2p8s58Tg1hzPXF\" 0.01") +
@@ -775,7 +785,7 @@ Value sendfrom(const Array& params, bool fHelp)
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Account has insufficient funds");
 
     // Send
-    string strError = pwalletMain->SendMoneyToDestination(address.Get(), nAmount, wtx);
+    string strError = pwalletMain->SendMoney(address.Get(), nAmount, wtx);
     if (strError != "")
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
 
@@ -801,7 +811,7 @@ Value sendmany(const Array& params, bool fHelp)
             "4. \"comment\"             (string, optional) A comment\n"
             "\nResult:\n"
             "\"transactionid\"          (string) The transaction id for the send. Only 1 transaction is created regardless of \n"
-            "                                    the number of addresses. See https://blockchain.info/tx/[transactionid]\n"
+            "                                    the number of addresses.\n"
             "\nExamples:\n"
             "\nSend two amounts to two different addresses:\n"
             + HelpExampleCli("sendmany", "\"tabby\" \"{\\\"LQHhoZafBCSs6Zj7wJmq2p8s58Tg1hzPXF\\\":0.01,\\\"LPfXZuRgygVBut2CkfGzsViVmCVg1BXQ4G\\\":0.02}\"") +
@@ -865,7 +875,7 @@ Value sendmany(const Array& params, bool fHelp)
 }
 
 // Defined in rpcmisc.cpp
-extern CScript _createmultisig(const Array& params);
+extern CScript _createmultisig_redeemScript(const Array& params);
 
 Value addmultisigaddress(const Array& params, bool fHelp)
 {
@@ -909,7 +919,7 @@ Value addmultisigaddress(const Array& params, bool fHelp)
     if ((int)keys.size() < nRequired)
         throw runtime_error(
             strprintf("not enough keys supplied "
-                      "(got %"PRIszu" keys, but need at least %d to redeem)", keys.size(), nRequired));
+                      "(got %u keys, but need at least %d to redeem)", keys.size(), nRequired));
     std::vector<CPubKey> pubkeys;
     pubkeys.resize(keys.size());
     for (unsigned int i = 0; i < keys.size(); i++)
@@ -947,8 +957,7 @@ Value addmultisigaddress(const Array& params, bool fHelp)
     }
 
     // Construct using pay-to-script-hash:
-    CScript inner;
-    inner.SetMultisig(nRequired, pubkeys);
+    CScript inner = _createmultisig_redeemScript(params);
     CScriptID innerID = inner.GetID();
     pwalletMain->AddCScript(inner);
 
@@ -1179,7 +1188,9 @@ void ListTransactions(const CWalletTx& wtx, const string& strAccount, int nMinDe
                         entry.push_back(Pair("category", "generate"));
                 }
                 else
+                {
                     entry.push_back(Pair("category", "receive"));
+                }
                 entry.push_back(Pair("amount", ValueFromAmount(r.second)));
                 if (fLong)
                     WalletTxToJSON(wtx, entry);
@@ -1198,7 +1209,7 @@ void AcentryToJSON(const CAccountingEntry& acentry, const string& strAccount, Ar
         Object entry;
         entry.push_back(Pair("account", acentry.strAccount));
         entry.push_back(Pair("category", "move"));
-        entry.push_back(Pair("time", (boost::int64_t)acentry.nTime));
+        entry.push_back(Pair("time", acentry.nTime));
         entry.push_back(Pair("amount", ValueFromAmount(acentry.nCreditDebit)));
         entry.push_back(Pair("otheraccount", acentry.strOtherAccount));
         entry.push_back(Pair("comment", acentry.strComment));
@@ -1240,8 +1251,13 @@ Value listtransactions(const Array& params, bool fHelp)
             "                                          category of transactions.\n"
             "    \"blockindex\": n,          (numeric) The block index containing the transaction. Available for 'send' and 'receive'\n"
             "                                          category of transactions.\n"
-            "    \"txid\": \"transactionid\", (string) The transaction id (see https://blockchain.info/tx/[transactionid]. Available \n"
-            "                                          for 'send' and 'receive' category of transactions.\n"
+            "    \"txid\": \"transactionid\", (string) The transaction id. Available for 'send' and 'receive' category of transactions.\n"
+            "    \"walletconflicts\" : [\n"
+            "        \"conflictid\",  (string) Ids of transactions, including equivalent clones, that re-spend a txid input.\n"
+            "    ],\n"
+            "    \"respendsobserved\" : [\n"
+            "        \"respendid\",  (string) Ids of transactions, NOT equivalent clones, that re-spend a txid input. \"Double-spends.\"\n"
+            "    ],\n"            
             "    \"time\": xxx,              (numeric) The transaction time in seconds since epoch (midnight Jan 1 1970 GMT).\n"
             "    \"timereceived\": xxx,      (numeric) The time received in seconds since epoch (midnight Jan 1 1970 GMT). Available \n"
             "                                          for 'send' and 'receive' category of transactions.\n"
@@ -1355,11 +1371,14 @@ Value listaccounts(const Array& params, bool fHelp)
         string strSentAccount;
         list<pair<CTxDestination, int64_t> > listReceived;
         list<pair<CTxDestination, int64_t> > listSent;
+        int nDepth = wtx.GetDepthInMainChain();
+        if (wtx.GetBlocksToMaturity() > 0 || nDepth < 0)
+            continue;
         wtx.GetAmounts(listReceived, listSent, nFee, strSentAccount);
         mapAccountBalances[strSentAccount] -= nFee;
         BOOST_FOREACH(const PAIRTYPE(CTxDestination, int64_t)& s, listSent)
             mapAccountBalances[strSentAccount] -= s.second;
-        if (wtx.GetDepthInMainChain() >= nMinDepth)
+        if (nDepth >= nMinDepth)
         {
             BOOST_FOREACH(const PAIRTYPE(CTxDestination, int64_t)& r, listReceived)
                 if (pwalletMain->mapAddressBook.count(r.first))
@@ -1403,7 +1422,13 @@ Value listsinceblock(const Array& params, bool fHelp)
             "    \"blockhash\": \"hashvalue\",     (string) The block hash containing the transaction. Available for 'send' and 'receive' category of transactions.\n"
             "    \"blockindex\": n,          (numeric) The block index containing the transaction. Available for 'send' and 'receive' category of transactions.\n"
             "    \"blocktime\": xxx,         (numeric) The block time in seconds since epoch (1 Jan 1970 GMT).\n"
-            "    \"txid\": \"transactionid\",  (string) The transaction id (see https://blockchain.info/tx/[transactionid]. Available for 'send' and 'receive' category of transactions.\n"
+            "    \"txid\": \"transactionid\",  (string) The transaction id. Available for 'send' and 'receive' category of transactions.\n"
+            "    \"walletconflicts\" : [\n"
+            "        \"conflictid\",  (string) Ids of transactions, including equivalent clones, that re-spend a txid input.\n"
+            "    ],\n"
+            "    \"respendsobserved\" : [\n"
+            "        \"respendid\",  (string) Ids of transactions, NOT equivalent clones, that re-spend a txid input. \"Double-spends.\"\n"
+            "    ],\n"            
             "    \"time\": xxx,              (numeric) The transaction time in seconds since epoch (Jan 1 1970 GMT).\n"
             "    \"timereceived\": xxx,      (numeric) The time received in seconds since epoch (Jan 1 1970 GMT). Available for 'send' and 'receive' category of transactions.\n"
             "    \"comment\": \"...\",       (string) If a comment is associated with the transaction.\n"
@@ -1475,7 +1500,13 @@ Value gettransaction(const Array& params, bool fHelp)
             "  \"blockhash\" : \"hash\",  (string) The block hash\n"
             "  \"blockindex\" : xx,       (numeric) The block index\n"
             "  \"blocktime\" : ttt,       (numeric) The time in seconds since epoch (1 Jan 1970 GMT)\n"
-            "  \"txid\" : \"transactionid\",   (string) The transaction id, see also https://blockchain.info/tx/[transactionid]\n"
+            "  \"txid\" : \"transactionid\",   (string) The transaction id.\n"
+            "  \"walletconflicts\" : [\n"
+            "      \"conflictid\",  (string) Ids of transactions, including equivalent clones, that re-spend a txid input.\n"
+            "  ],\n"
+            "  \"respendsobserved\" : [\n"
+            "      \"respendid\",  (string) Ids of transactions, NOT equivalent clones, that re-spend a txid input. \"Double-spends.\"\n"
+            "  ],\n"            
             "  \"time\" : ttt,            (numeric) The transaction time in seconds since epoch (1 Jan 1970 GMT)\n"
             "  \"timereceived\" : ttt,    (numeric) The time received in seconds since epoch (1 Jan 1970 GMT)\n"
             "  \"details\" : [\n"
@@ -1519,7 +1550,7 @@ Value gettransaction(const Array& params, bool fHelp)
     entry.push_back(Pair("details", details));
     
     CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
-    ssTx << wtx;
+    ssTx << static_cast<CTransaction>(wtx);
     string strHex = HexStr(ssTx.begin(), ssTx.end());
     entry.push_back(Pair("hex", strHex));
 
@@ -1597,6 +1628,9 @@ Value walletpassphrase(const Array& params, bool fHelp)
             "\nArguments:\n"
             "1. \"passphrase\"     (string, required) The wallet passphrase\n"
             "2. timeout            (numeric, required) The time to keep the decryption key in seconds.\n"
+            "\nNote:\n"
+            "Issuing the walletpassphrase command while the wallet is already unlocked will set a new unlock\n"
+            "time that overrides the old one.\n"            
             "\nExamples:\n"
             "\nunlock the wallet for 60 seconds\n"
             + HelpExampleCli("walletpassphrase", "\"my pass phrase\" 60") +
@@ -1772,7 +1806,7 @@ Value lockunspent(const Array& params, bool fHelp)
         throw runtime_error(
             "lockunspent unlock [{\"txid\":\"txid\",\"vout\":n},...]\n"
             "\nUpdates list of temporarily unspendable outputs.\n"
-            "Temporarily lock (lock=true) or unlock (lock=false) specified transaction outputs.\n"
+            "Temporarily lock (unlock=false) or unlock (unlock=true) specified transaction outputs.\n"
             "A locked transaction output will not be chosen by automatic coin selection, when spending lycancoins.\n"
             "Locks are stored in memory only. Nodes start with zero locked outputs, and the locked output list\n"
             "is always cleared (by virtue of process exit) when a node stops or fails.\n"
@@ -1909,7 +1943,37 @@ Value settxfee(const Array& params, bool fHelp)
     if (params[0].get_real() != 0.0)
         nAmount = AmountFromValue(params[0]);        // rejects 0.0 amounts
 
-    nTransactionFee = nAmount;
+    payTxFee = CFeeRate(nAmount, 1000);
     return true;
 }
 
+Value getwalletinfo(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getwalletinfo\n"
+            "Returns an object containing various wallet state info.\n"
+            "\nResult:\n"
+            "{\n"
+            "  \"walletversion\": xxxxx,     (numeric) the wallet version\n"
+            "  \"balance\": xxxxxxx,         (numeric) the total lycancoin balance of the wallet\n"
+            "  \"txcount\": xxxxxxx,         (numeric) the total number of transactions in the wallet\n"
+            "  \"keypoololdest\": xxxxxx,    (numeric) the timestamp (seconds since GMT epoch) of the oldest pre-generated key in the key pool\n"
+            "  \"keypoolsize\": xxxx,        (numeric) how many new keys are pre-generated\n"
+            "  \"unlocked_until\": ttt,      (numeric) the timestamp in seconds since epoch (midnight Jan 1 1970 GMT) that the wallet is unlocked for transfers, or 0 if the wallet is locked\n"
+            "}\n"
+            "\nExamples:\n"
+            + HelpExampleCli("getwalletinfo", "")
+            + HelpExampleRpc("getwalletinfo", "")
+        );
+
+    Object obj;
+    obj.push_back(Pair("walletversion", pwalletMain->GetVersion()));
+    obj.push_back(Pair("balance",       ValueFromAmount(pwalletMain->GetBalance())));
+    obj.push_back(Pair("txcount",       (int)pwalletMain->mapWallet.size()));
+    obj.push_back(Pair("keypoololdest", pwalletMain->GetOldestKeyPoolTime()));
+    obj.push_back(Pair("keypoolsize",   (int)pwalletMain->GetKeyPoolSize()));
+    if (pwalletMain->IsCrypted())
+        obj.push_back(Pair("unlocked_until", nWalletUnlockTime));
+    return obj;
+}

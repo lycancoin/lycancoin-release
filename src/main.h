@@ -9,10 +9,9 @@
 #define BITCOIN_MAIN_H
 
 #if defined(HAVE_CONFIG_H)
-#include "bitcoin-config.h"
+#include "config/bitcoin-config.h"
 #endif
 
-#include "bignum.h"
 #include "chainparams.h"
 #include "coins.h"
 #include "core.h"
@@ -33,6 +32,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <cmath>
 
 class CBlockIndex;
 class CBloomFilter;
@@ -56,10 +56,12 @@ static const unsigned int DEFAULT_BLOCK_PRIORITY_SIZE = 50000;
 static const unsigned int MAX_STANDARD_TX_SIZE = 100000;
 /** The maximum allowed number of signature check operations in a block (network rule) */
 static const unsigned int MAX_BLOCK_SIGOPS = MAX_BLOCK_SIZE/50;
+/** Maxiumum number of signature check operations in an IsStandard() P2SH script */
+static const unsigned int MAX_P2SH_SIGOPS = 15;
 /** The maximum number of orphan transactions kept in memory */
 static const unsigned int MAX_ORPHAN_TRANSACTIONS = MAX_BLOCK_SIZE/100;
-/** The maximum number of orphan blocks kept in memory */
-static const unsigned int MAX_ORPHAN_BLOCKS = 750;
+/** Default for -maxorphanblocks, maximum number of orphan blocks kept in memory */
+static const unsigned int DEFAULT_MAX_ORPHAN_BLOCKS = 750;
 static const int FIX_RETARGET_HEIGHT = 24000; // First Fork
 /** The maximum size of a blk?????.dat file (since 0.8) */
 static const unsigned int MAX_BLOCKFILE_SIZE = 0x8000000; // 128 MiB
@@ -73,11 +75,12 @@ static const int COINBASE_MATURITY = 15;
 static const unsigned int LOCKTIME_THRESHOLD = 500000000; // Tue Nov  5 00:53:20 1985 UTC
 /** Maximum number of script-checking threads allowed */
 static const int MAX_SCRIPTCHECK_THREADS = 16;
-#ifdef USE_UPNP
-static const int fHaveUPnP = true;
-#else
-static const int fHaveUPnP = false;
-#endif
+/** -par default (number of script-checking threads, 0 = auto) */
+static const int DEFAULT_SCRIPTCHECK_THREADS = 0;
+/** Number of blocks that can be requested at any given time from a single peer. */
+static const int MAX_BLOCKS_IN_TRANSIT_PER_PEER = 128;
+/** Timeout in seconds before considering a block download peer unresponsive. */
+static const unsigned int BLOCK_DOWNLOAD_TIMEOUT = 60;
 
 /** "reject" message codes **/
 static const unsigned char REJECT_MALFORMED = 0x01;
@@ -91,12 +94,6 @@ static const unsigned char REJECT_CHECKPOINT = 0x43;
 
 
 extern CScript COINBASE_FLAGS;
-
-
-
-
-
-
 extern CCriticalSection cs_main;
 extern CTxMemPool mempool;
 extern std::map<uint256, CBlockIndex*> mapBlockIndex;
@@ -110,7 +107,6 @@ extern bool fBenchmark;
 extern int nScriptCheckThreads;
 extern bool fTxIndex;
 extern unsigned int nCoinCacheSize;
-extern bool fHaveGUI;
 
 // extern int64_t nMinimumInputValue;
 
@@ -128,11 +124,14 @@ struct CNodeStateStats;
 
 struct CBlockTemplate;
 
+/** Initialize respend bloom filter **/
+void InitRespendFilter();
+
 void RegisterWallet(CWalletInterface* pwalletIn);
 void UnregisterWallet(CWalletInterface* pwalletIn);
 /** Unregister all wallets from core */
 void UnregisterAllWallets();
-void SyncWithWallets(const uint256 &hash, const CTransaction& tx, const CBlock* pblock = NULL);
+void SyncWithWallets(const CTransaction& tx, const CBlock* pblock = NULL);
 
 void PushGetBlocks(CNode* pnode, CBlockIndex* pindexBegin, uint256 hashEnd);
 
@@ -152,22 +151,16 @@ bool InitBlockIndex();
 bool LoadBlockIndex();
 /** Unload database information */
 void UnloadBlockIndex();
-bool VerifyDB(int nCheckLevel, int nCheckDepth);
 void PrintBlockTree();
 bool ProcessMessages(CNode* pfrom);
 bool SendMessages(CNode* pto, bool fSendTrickle);
 /** Run an instance of the script checking thread */
 void ThreadScriptCheck();
-/** Check whether a block hash satisfies the proof-of-work requirement specified by nBits */
-bool CheckProofOfWork(uint256 hash, unsigned int nBits);
-unsigned int ComputeMinWork(unsigned int nBase, int64_t nTime);
-int GetNumBlocksOfPeers();
 bool IsInitialBlockDownload();
 std::string GetWarnings(std::string strFor);
 bool GetTransaction(const uint256 &hash, CTransaction &tx, uint256 &hashBlock, bool fAllowSlow = false);
 bool ActivateBestChain(CValidationState &state);
 int64_t GetBlockValue(int nHeight, int64_t nFees);
-unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock);
 
 void UpdateTime(CBlockHeader& block, const CBlockIndex* pindexPrev);
 
@@ -178,6 +171,8 @@ bool VerifySignature(const CCoins& txFrom, const CTransaction& txTo, unsigned in
 bool AbortNode(const std::string &msg);
 /** Get statistics from node state */
 bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats);
+/** Increase a node's misbehavior score. */
+void Misbehaving(NodeId nodeid, int howmuch);
 
 /** (try to) add transaction to memory pool **/
 bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransaction &tx, bool fLimitFree,
@@ -187,6 +182,7 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransa
 
 struct CNodeStateStats {
     int nMisbehavior;
+    int nSyncHeight;
 };
 
 struct CDiskBlockPos
@@ -264,10 +260,10 @@ int64_t GetMinFee(const CTransaction& tx, unsigned int nBytes, bool fAllowFree, 
 //   DUP CHECKSIG DROP ... repeated 100 times... OP_1
 //
 
-    /** Check for standard transaction types
-        @param[in] mapInputs    Map of previous transactions that have outputs we're spending
-        @return True if all inputs (scriptSigs) use only standard transaction forms
-    */
+/** Check for standard transaction types
+    @param[in] mapInputs    Map of previous transactions that have outputs we're spending
+    @return True if all inputs (scriptSigs) use only standard transaction forms
+*/
 bool AreInputsStandard(const CTransaction& tx, CCoinsViewCache& mapInputs);
 
 /** Count ECDSA signature operations the old-fashioned (pre-0.6) way
@@ -283,22 +279,15 @@ unsigned int GetLegacySigOpCount(const CTransaction& tx);
  */
 unsigned int GetP2SHSigOpCount(const CTransaction& tx, CCoinsViewCache& mapInputs);
 
-inline bool AllowFree(double dPriority)
-{
-    // Large (in bytes) low-priority (new, small-coin) transactions
-    // need a fee.
-    return dPriority > COIN * 576 / 250;
-}
-
 // Check whether all inputs of this transaction are valid (no double spends, scripts & sigs, amounts)
 // This does not modify the UTXO set. If pvChecks is not NULL, script checks are pushed onto it
 // instead of being performed inline.
 bool CheckInputs(const CTransaction& tx, CValidationState &state, CCoinsViewCache &view, bool fScriptChecks = true,
-                 unsigned int flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_STRICTENC,
+                 unsigned int flags = STANDARD_SCRIPT_VERIFY_FLAGS,
                  std::vector<CScriptCheck> *pvChecks = NULL);
 
 // Apply the effects of this transaction on the UTXO set represented by view
-void UpdateCoins(const CTransaction& tx, CValidationState &state, CCoinsViewCache &inputs, CTxUndo &txundo, int nHeight, const uint256 &txhash);
+void UpdateCoins(const CTransaction& tx, CValidationState &state, CCoinsViewCache &inputs, CTxUndo &txundo, int nHeight);
 
 // Context-independent validity checks
 bool CheckTransaction(const CTransaction& tx, CValidationState& state);
@@ -366,7 +355,7 @@ public:
             filein >> hashChecksum;
         }
         catch (std::exception &e) {
-            return error("%s : Deserialize or I/O error - %s", __PRETTY_FUNCTION__, e.what());
+            return error("%s : Deserialize or I/O error - %s", __func__, e.what());
         }
 
         // Verify checksum
@@ -412,6 +401,9 @@ public:
 /** A transaction with a merkle branch linking it to the block chain. */
 class CMerkleTx : public CTransaction
 {
+private:
+    int GetDepthInMainChainINTERNAL(CBlockIndex* &pindexRet) const;
+
 public:
     uint256 hashBlock;
     std::vector<uint256> vMerkleBranch;
@@ -450,9 +442,14 @@ public:
 
 
     int SetMerkleBranch(const CBlock* pblock=NULL);
+
+    // Return depth of transaction in blockchain:
+    // -1  : not in blockchain, and not in memory pool (conflicted transaction)
+    //  0  : in memory pool, waiting to be included in a block
+    // >=1 : this many blocks deep in the main chain
     int GetDepthInMainChain(CBlockIndex* &pindexRet) const;
     int GetDepthInMainChain() const { CBlockIndex *pindexRet; return GetDepthInMainChain(pindexRet); }
-    bool IsInMainChain() const { return GetDepthInMainChain() > 0; }
+    bool IsInMainChain() const { CBlockIndex *pindexRet; return GetDepthInMainChainINTERNAL(pindexRet) > 0; }
     int GetBlocksToMaturity() const;
     bool AcceptToMemoryPool(bool fLimitFree=true);
 };
@@ -578,11 +575,13 @@ bool ConnectBlock(CBlock& block, CValidationState& state, CBlockIndex* pindex, C
 bool AddToBlockIndex(CBlock& block, CValidationState& state, const CDiskBlockPos& pos);
 
 // Context-independent validity checks
+bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, bool fCheckPOW = true);
 bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW = true, bool fCheckMerkleRoot = true);
 
 // Store block on disk
 // if dbp is provided, the file is known to already reside on disk
-bool AcceptBlock(CBlock& block, CValidationState& state, CDiskBlockPos* dbp = NULL);
+bool AcceptBlock(CBlock& block, CValidationState& state, CBlockIndex **pindex, CDiskBlockPos* dbp = NULL);
+bool AcceptBlockHeader(CBlockHeader& block, CValidationState& state, CBlockIndex **ppindex= NULL);
 
 
 
@@ -670,6 +669,9 @@ public:
     
     // pointer to the index of the predecessor of this block
     CBlockIndex* pprev;
+    
+    // pointer to the index of some further predecessor of this block
+    CBlockIndex* pskip;
 
     // height of the entry in the chain. The genesis block has height 0
     int nHeight;
@@ -706,10 +708,11 @@ public:
     // (memory only) Sequencial id assigned to distinguish order in which blocks are received.
     uint32_t nSequenceId;
 
-    CBlockIndex()
+    void SetNull()
     {
         phashBlock = NULL;
         pprev = NULL;
+        pskip = NULL;
         nHeight = 0;
         nFile = 0;
         nDataPos = 0;
@@ -726,20 +729,15 @@ public:
         nBits          = 0;
         nNonce         = 0;
     }
+    
+    CBlockIndex()
+    {
+        SetNull();
+    }
 
     CBlockIndex(CBlockHeader& block)
     {
-        phashBlock = NULL;
-        pprev = NULL;
-        nHeight = 0;
-        nFile = 0;
-        nDataPos = 0;
-        nUndoPos = 0;
-        nChainWork = 0;
-        nTx = 0;
-        nChainTx = 0;
-        nStatus = 0;
-        nSequenceId = 0;
+        SetNull();
 
         nVersion       = block.nVersion;
         hashMerkleRoot = block.hashMerkleRoot;
@@ -789,18 +787,19 @@ public:
         return (int64_t)nTime;
     }
 
-    CBigNum GetBlockWork() const
+    uint256 GetBlockWork() const
     {
-        CBigNum bnTarget;
-        bnTarget.SetCompact(nBits);
-        if (bnTarget <= 0)
+        uint256 bnTarget;
+        bool fNegative;
+        bool fOverflow;
+        bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
+        if (fNegative || fOverflow || bnTarget == 0)
             return 0;
-        return (CBigNum(1)<<256) / (bnTarget+1);
-    }
-
-    bool CheckIndex() const
-    {
-        return true; // CheckProofOfWork(GetBlockHash(), nBits);
+        // We need to compute 2**256 / (bnTarget+1), but we can't represent 2**256
+        // as it's too large for a uint256. However, as 2**256 is at least as large
+        // as bnTarget+1, it is equal to ((2**256 - bnTarget - 1) / (bnTarget+1)) + 1,
+        // or ~bnTarget / (nTarget+1) + 1.
+        return (~bnTarget / (bnTarget + 1)) + 1;
     }
 
     enum { nMedianTimeSpan=11 };
@@ -819,27 +818,56 @@ public:
         return pbegin[(pend - pbegin)/2];
     }
 
-    int64_t GetMedianTime() const;
-
     /**
      * Returns true if there are nRequired or more blocks of minVersion or above
-     * in the last nToCheck blocks, starting at pstart and going backwards.
+     * in the last Params().ToCheckBlockUpgradeMajority() blocks, starting at pstart 
+     * and going backwards.
      */
     static bool IsSuperMajority(int minVersion, const CBlockIndex* pstart,
-                                unsigned int nRequired, unsigned int nToCheck);
+                                unsigned int nRequired);
                                 
     std::string ToString() const
     {
         return strprintf("CBlockIndex(pprev=%p, nHeight=%d, merkle=%s, hashBlock=%s)",
             pprev, nHeight,
-            hashMerkleRoot.ToString().c_str(),
-            GetBlockHash().ToString().c_str());
+            hashMerkleRoot.ToString(),
+            GetBlockHash().ToString());
     }
 
     void print() const
     {
-        LogPrintf("%s\n", ToString().c_str());
+        LogPrintf("%s\n", ToString());
     }
+    
+    // Check whether this block index entry is valid up to the passed validity level.
+    bool IsValid(enum BlockStatus nUpTo = BLOCK_VALID_TRANSACTIONS) const
+    {
+        assert(!(nUpTo & ~BLOCK_VALID_MASK)); // Only validity flags allowed.
+        if (nStatus & BLOCK_FAILED_MASK)
+            return false;
+        return ((nStatus & BLOCK_VALID_MASK) >= nUpTo);
+    }
+
+    // Raise the validity level of this block index entry.
+    // Returns true if the validity was changed.
+    bool RaiseValidity(enum BlockStatus nUpTo)
+    {
+        assert(!(nUpTo & ~BLOCK_VALID_MASK)); // Only validity flags allowed.
+        if (nStatus & BLOCK_FAILED_MASK)
+            return false;
+        if ((nStatus & BLOCK_VALID_MASK) < nUpTo) {
+            nStatus = (nStatus & ~BLOCK_VALID_MASK) | nUpTo;
+            return true;
+        }
+        return false;
+    }
+
+    // Build the skiplist pointer for this entry.
+    void BuildSkip();
+
+    // Efficiently find an ancestor of this block.
+    CBlockIndex* GetAncestor(int height);
+    const CBlockIndex* GetAncestor(int height) const;
 };
 
 /** Used to marshal pointers into hashes for db storage. */
@@ -898,14 +926,14 @@ public:
         std::string str = "CDiskBlockIndex(";
         str += CBlockIndex::ToString();
         str += strprintf("\n                hashBlock=%s, hashPrev=%s)",
-            GetBlockHash().ToString().c_str(),
-            hashPrev.ToString().c_str());
+            GetBlockHash().ToString(),
+            hashPrev.ToString());
         return str;
     }
 
     void print() const
     {
-        LogPrintf("%s\n", ToString().c_str());
+        LogPrintf("%s\n", ToString());
     }
 };
 
@@ -973,6 +1001,15 @@ public:
     std::string GetRejectReason() const { return strRejectReason; }
 };
 
+/** RAII wrapper for VerifyDB: Verify consistency of the block and coin databases */
+class CVerifyDB {
+public:
+
+    CVerifyDB();
+    ~CVerifyDB();
+    bool VerifyDB(int nCheckLevel, int nCheckDepth);
+};
+
 /** An in-memory indexed chain of blocks. */
 class CChain {
 private:
@@ -1028,13 +1065,13 @@ public:
 
     /** Find the last common block between this chain and a locator. */
     CBlockIndex *FindFork(const CBlockLocator &locator) const;
+    
+    /** Find the last common block between this chain and a block index entry. */
+    CBlockIndex *FindFork(CBlockIndex *pindex) const;
 };
 
 /** The currently-connected chain of blocks. */
 extern CChain chainActive;
-
-/** The currently best known chain of headers (some of which may be invalid). */
-extern CChain chainMostWork;
 
 /** Global variable that points to the active CCoinsView (protected by cs_main) */
 extern CCoinsViewCache *pcoinsTip;
@@ -1082,7 +1119,7 @@ public:
 
 class CWalletInterface {
 protected:
-    virtual void SyncTransaction(const uint256 &hash, const CTransaction &tx, const CBlock *pblock) =0;
+    virtual void SyncTransaction(const CTransaction &tx, const CBlock *pblock) =0;
     virtual void EraseFromWallet(const uint256 &hash) =0;
     virtual void SetBestChain(const CBlockLocator &locator) =0;
     virtual void UpdatedTransaction(const uint256 &hash) =0;

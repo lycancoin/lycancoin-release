@@ -10,10 +10,11 @@
 
 class CBlock;
 class CBlockIndex;
-class CBlockTemplate;
 class CReserveKey;
 class CScript;
 class CWallet;
+
+class CBlockTemplate;
 
 /** Run the miner threads */
 void GenerateBitcoins(bool fGenerate, CWallet* pwallet, int nThreads);

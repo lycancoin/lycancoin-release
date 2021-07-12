@@ -20,6 +20,7 @@ class WalletModel;
 
 QT_BEGIN_NAMESPACE
 class QModelIndex;
+class QProgressDialog;
 QT_END_NAMESPACE
 
 /*
@@ -61,6 +62,8 @@ private:
     SendCoinsDialog *sendCoinsPage;
 
     TransactionView *transactionView;
+    
+    QProgressDialog *progressDialog;
 
 public slots:
     /** Switch to overview (home) page */
@@ -97,6 +100,9 @@ public slots:
 
     /** Re-emit encryption status signal */
     void updateEncryptionStatus();
+    
+    /** Show progress dialog e.g. for rescan */
+    void showProgress(const QString &title, int nProgress);
 
 signals:
     /** Signal that we want to show the main window */

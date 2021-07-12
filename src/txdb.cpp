@@ -6,6 +6,7 @@
 #include "txdb.h"
 
 #include "core.h"
+#include "pow.h"
 #include "uint256.h"
 
 #include <stdint.h>
@@ -71,12 +72,6 @@ CBlockTreeDB::CBlockTreeDB(size_t nCacheSize, bool fMemory, bool fWipe) : CLevel
 bool CBlockTreeDB::WriteBlockIndex(const CDiskBlockIndex& blockindex)
 {
     return Write(make_pair('b', blockindex.GetBlockHash()), blockindex);
-}
-
-bool CBlockTreeDB::WriteBestInvalidWork(const CBigNum& bnBestInvalidWork)
-{
-	 // Obsolete; only written for backward compatibility.
-    return Write('I', bnBestInvalidWork);
 }
 
 bool CBlockTreeDB::WriteBlockFileInfo(int nFile, const CBlockFileInfo &info) {
@@ -149,7 +144,7 @@ bool CCoinsViewDB::GetStats(CCoinsStats &stats) {
             }
             pcursor->Next();
         } catch (std::exception &e) {
-            return error("%s : Deserialize or I/O error - %s", __PRETTY_FUNCTION__, e.what());
+            return error("%s : Deserialize or I/O error - %s", __func__, e.what());
         }
     }
     delete pcursor;
@@ -219,15 +214,15 @@ bool CBlockTreeDB::LoadBlockIndexGuts()
                 pindexNew->nStatus        = diskindex.nStatus;
                 pindexNew->nTx            = diskindex.nTx;
 
-                if (!pindexNew->CheckIndex())
-                    return error("LoadBlockIndex() : CheckIndex failed: %s", pindexNew->ToString());
+                if (!CheckProofOfWork(pindexNew->GetBlockHash(), pindexNew->nBits))
+                    return error("LoadBlockIndex() : CheckProofOfWork failed: %s", pindexNew->ToString());
 
                 pcursor->Next();
             } else {
                 break; // if shutdown requested or finished loading block index
             }
         } catch (std::exception &e) {
-            return error("%s : Deserialize or I/O error - %s", __PRETTY_FUNCTION__, e.what());
+            return error("%s : Deserialize or I/O error - %s", __func__, e.what());
         }
     }
     delete pcursor;

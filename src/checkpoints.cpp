@@ -14,8 +14,8 @@
 #include <boost/assign/list_of.hpp> // for 'map_list_of()'
 #include <boost/foreach.hpp>
 
-namespace Checkpoints
-{
+namespace Checkpoints {
+	
     typedef std::map<int, uint256> MapCheckpoints;
 
     // How many times we expect transactions after the last checkpoint to
@@ -23,7 +23,7 @@ namespace Checkpoints
     // every system. When reindexing from a fast disk with a slow CPU, it
     // can be up to 20, while when downloading from a slow network with a
     // fast multicore CPU, it won't be much higher than 1.
-    static const double fSigcheckVerificationFactor = 5.0;
+    static const double SIGCHECK_VERIFICATION_FACTOR = 5.0;
 
     struct CCheckpointData {
         const MapCheckpoints *mapCheckpoints;
@@ -85,9 +85,9 @@ namespace Checkpoints
     };
 
     const CCheckpointData &Checkpoints() {
-        if (Params().NetworkID() == CChainParams::TESTNET)
+        if (Params().NetworkID() == CBaseChainParams::TESTNET)
             return dataTestnet;
-        else if (Params().NetworkID() == CChainParams::MAIN)
+        else if (Params().NetworkID() == CBaseChainParams::MAIN)
             return data;
         else
             return dataRegtest;
@@ -95,26 +95,27 @@ namespace Checkpoints
     
     bool CheckBlock(int nHeight, const uint256& hash)
     {
-    	  if (!GetBoolArg("-checkpoints", true))
+        if (!fEnabled)
             return true;
 
-        MapCheckpoints& checkpoints = (TestNet() ? mapCheckpointsTestnet : mapCheckpoints);
+        const MapCheckpoints& checkpoints = *Checkpoints().mapCheckpoints;
 
         MapCheckpoints::const_iterator i = checkpoints.find(nHeight);
         if (i == checkpoints.end()) return true;
         return hash == i->second;
-}
+    }
 
     // Guess how far we are in the verification process at the given block index
-    double GuessVerificationProgress(CBlockIndex *pindex) {
+    double GuessVerificationProgress(CBlockIndex *pindex, bool fSigchecks) {
         if (pindex==NULL)
             return 0.0;
 
         int64_t nNow = time(NULL);
 
+        double fSigcheckVerificationFactor = fSigchecks ? SIGCHECK_VERIFICATION_FACTOR : 1.0;
         double fWorkBefore = 0.0; // Amount of work done before pindex
         double fWorkAfter = 0.0;  // Amount of work left after pindex (estimated)
-        // Work is defined as: 1.0 per transaction before the last checkoint, and
+        // Work is defined as: 1.0 per transaction before the last checkpoint, and
         // fSigcheckVerificationFactor per transaction after.
 
         const CCheckpointData &data = Checkpoints();
@@ -139,20 +140,20 @@ namespace Checkpoints
 
     int GetTotalBlocksEstimate()
     {
-    	  if (!GetBoolArg("-checkpoints", true))
+        if (!fEnabled)
             return 0;
-            
-        MapCheckpoints& checkpoints = (TestNet() ? mapCheckpointsTestnet : mapCheckpoints);
+
+        const MapCheckpoints& checkpoints = *Checkpoints().mapCheckpoints;
 
         return checkpoints.rbegin()->first;
     }
 
     CBlockIndex* GetLastCheckpoint(const std::map<uint256, CBlockIndex*>& mapBlockIndex)
     {
-        if (!GetBoolArg("-checkpoints", true))
+        if (!fEnabled)
             return NULL;
 
-        MapCheckpoints& checkpoints = (TestNet() ? mapCheckpointsTestnet : mapCheckpoints);
+        const MapCheckpoints& checkpoints = *Checkpoints().mapCheckpoints;
 
         BOOST_REVERSE_FOREACH(const MapCheckpoints::value_type& i, checkpoints)
         {
@@ -163,4 +164,5 @@ namespace Checkpoints
         }
         return NULL;
     }
-}
+
+} // namespace Checkpoints

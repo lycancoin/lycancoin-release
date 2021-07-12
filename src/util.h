@@ -8,7 +8,7 @@
 #define BITCOIN_UTIL_H
 
 #if defined(HAVE_CONFIG_H)
-#include "bitcoin-config.h"
+#include "config/bitcoin-config.h"
 #endif
 
 #include "compat.h"
@@ -17,7 +17,6 @@
 
 #include <cstdio>
 #include <exception>
-#include <inttypes.h>
 #include <map>
 #include <stdarg.h>
 #include <stdint.h>
@@ -34,7 +33,6 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/thread.hpp>
 
-class CNetAddr;
 class uint256;
 
 static const int64_t COIN = 100000000;
@@ -45,14 +43,6 @@ static const int64_t CENT = 1000000;
 #define UBEGIN(a)           ((unsigned char*)&(a))
 #define UEND(a)             ((unsigned char*)&((&(a))[1]))
 #define ARRAYLEN(array) (sizeof(array)/sizeof((array)[0]))
-
-/* Format characters for (s)size_t and ptrdiff_t (C99 standard) */
-#define PRIszx    "zx"
-#define PRIszu    "zu"
-#define PRIszd    "zd"
-#define PRIpdx    "tx"
-#define PRIpdu    "tu"
-#define PRIpdd    "td"
 
 // This is needed because the foreach macro can't get over the comma in pair<t1, t2>
 #define PAIRTYPE(t1, t2)    std::pair<t1, t2>
@@ -117,12 +107,13 @@ extern bool fPrintToConsole;
 extern bool fPrintToDebugLog;
 extern bool fServer;
 extern std::string strMiscWarning;
-extern bool fNoListen;
 extern bool fLogTimestamps;
+extern bool fLogIPs;
 extern volatile bool fReopenDebugLog;
 
 void RandAddSeed();
 void RandAddSeedPerfmon();
+void SetupEnvironment();
 
 /* Return true if log accepts specified category */
 bool LogAcceptCategory(const char* category);
@@ -167,16 +158,14 @@ static inline bool error(const char* format)
     return false;
 }
 
-void LogException(std::exception* pex, const char* pszThread);
-void PrintException(std::exception* pex, const char* pszThread);
 void PrintExceptionContinue(std::exception* pex, const char* pszThread);
-void ParseString(const std::string& str, char c, std::vector<std::string>& v);
 std::string FormatMoney(int64_t n, bool fPlus=false);
 bool ParseMoney(const std::string& str, int64_t& nRet);
 bool ParseMoney(const char* pszIn, int64_t& nRet);
 std::string SanitizeString(const std::string& str);
 std::vector<unsigned char> ParseHex(const char* psz);
 std::vector<unsigned char> ParseHex(const std::string& str);
+signed char HexDigit(char c);
 bool IsHex(const std::string& str);
 std::vector<unsigned char> DecodeBase64(const char* p, bool* pfInvalid = NULL);
 std::string DecodeBase64(const std::string& str);
@@ -187,10 +176,7 @@ std::string DecodeBase32(const std::string& str);
 std::string EncodeBase32(const unsigned char* pch, size_t len);
 std::string EncodeBase32(const std::string& str);
 void ParseParameters(int argc, const char*const argv[]);
-bool WildcardMatch(const char* psz, const char* mask);
-bool WildcardMatch(const std::string& str, const std::string& mask);
 void FileCommit(FILE *fileout);
-int GetFilesize(FILE* file);
 bool TruncateFile(FILE *file, unsigned int length);
 int RaiseFileDescriptorLimit(int nMinFD);
 void AllocateFileRange(FILE *file, unsigned int offset, unsigned int length);
@@ -213,11 +199,8 @@ uint64_t GetRand(uint64_t nMax);
 uint256 GetRandHash();
 int64_t GetTime();
 void SetMockTime(int64_t nMockTimeIn);
-int64_t GetAdjustedTime();
-int64_t GetTimeOffset();
 std::string FormatFullVersion();
 std::string FormatSubVersion(const std::string& name, int nClientVersion, const std::vector<std::string>& comments);
-void AddTimeData(const CNetAddr& ip, int64_t nTime);
 void runCommand(std::string strCommand);
 
 
@@ -230,7 +213,7 @@ void runCommand(std::string strCommand);
 
 inline std::string i64tostr(int64_t n)
 {
-    return strprintf("%"PRId64, n);
+    return strprintf("%d", n);
 }
 
 inline std::string itostr(int n)
@@ -260,6 +243,13 @@ inline int atoi(const std::string& str)
 {
     return atoi(str.c_str());
 }
+
+/**
+ * Convert string to signed 32-bit integer with strict parse error feedback.
+ * @returns true if the entire string could be parsed as valid integer,
+ *   false if not the entire string could be parsed or when overflow or underflow occured.
+ */
+bool ParseInt32(const std::string& str, int32_t *out);
 
 inline int roundint(double d)
 {
@@ -301,16 +291,10 @@ inline std::string HexStr(const T& vch, bool fSpaces=false)
     return HexStr(vch.begin(), vch.end(), fSpaces);
 }
 
-template<typename T>
-void PrintHex(const T pbegin, const T pend, const char* pszFormat="%s", bool fSpaces=true)
-{
-    LogPrintf(pszFormat, HexStr(pbegin, pend, fSpaces).c_str());
-}
-
-inline void PrintHex(const std::vector<unsigned char>& vch, const char* pszFormat="%s", bool fSpaces=true)
-{
-    LogPrintf(pszFormat, HexStr(vch, fSpaces).c_str());
-}
+/** Format a paragraph of text to a fixed width, adding spaces for
+ * indentation to any added line.
+ */
+std::string FormatParagraph(const std::string in, size_t width=79, size_t indent=0);
 
 inline int64_t GetPerformanceCounter()
 {
@@ -337,21 +321,7 @@ inline int64_t GetTimeMicros()
             boost::posix_time::ptime(boost::gregorian::date(1970,1,1))).total_microseconds();
 }
 
-inline std::string DateTimeStrFormat(const char* pszFormat, int64_t nTime)
-{
-    time_t n = nTime;
-    struct tm* ptmTime = gmtime(&n);
-    char pszTime[200];
-    strftime(pszTime, sizeof(pszTime), pszFormat, ptmTime);
-    return pszTime;
-}
-
-template<typename T>
-void skipspaces(T& it)
-{
-    while (isspace(*it))
-        ++it;
-}
+std::string DateTimeStrFormat(const char* pszFormat, int64_t nTime);
 
 inline bool IsSwitchChar(char c)
 {
@@ -563,10 +533,12 @@ template <typename Callable> void LoopForever(const char* name,  Callable func, 
         throw;
     }
     catch (std::exception& e) {
-        PrintException(&e, name);
+        PrintExceptionContinue(&e, name);
+        throw;
     }
     catch (...) {
-        PrintException(NULL, name);
+        PrintExceptionContinue(NULL, name);
+        throw;
     }
 }
 // .. and a wrapper that just calls func once
@@ -586,10 +558,12 @@ template <typename Callable> void TraceThread(const char* name,  Callable func)
         throw;
     }
     catch (std::exception& e) {
-        PrintException(&e, name);
+        PrintExceptionContinue(&e, name);
+        throw;
     }
     catch (...) {
-        PrintException(NULL, name);
+        PrintExceptionContinue(NULL, name);
+        throw;
     }
 }
 

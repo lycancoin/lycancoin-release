@@ -15,7 +15,7 @@ fi
 
 TIME=$(date '+%F %T %z')
 
-if [ -e "$(which git)" -a -d ".git" ]; then
+if [ -e "$(which git 2>/dev/null)" -a -d ".git" ]; then
     # clean 'dirty' status of touched files that haven't been modified
     git diff >/dev/null 2>/dev/null 
 

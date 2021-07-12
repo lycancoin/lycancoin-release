@@ -22,7 +22,8 @@ enum ChangeType
 {
     CT_NEW,
     CT_UPDATED,
-    CT_DELETED
+    CT_DELETED,
+    CT_GOT_CONFLICT
 };
 
 /** Signals for UI communication. */
@@ -95,6 +96,12 @@ public:
      * @note called with lock cs_mapAlerts held.
      */
     boost::signals2::signal<void (const uint256 &hash, ChangeType status)> NotifyAlertChanged;
+    
+    /** A wallet has been loaded. */
+    boost::signals2::signal<void (CWallet* wallet)> LoadWallet;
+    
+    /** Show progress e.g. for verifychain */
+    boost::signals2::signal<void (const std::string &title, int nProgress)> ShowProgress;
 };
 
 extern CClientUIInterface uiInterface;

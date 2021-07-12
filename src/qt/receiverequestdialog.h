@@ -7,10 +7,15 @@
 #include <QImage>
 #include <QLabel>
 
+class OptionsModel;
+
 namespace Ui {
     class ReceiveRequestDialog;
 }
-class OptionsModel;
+
+QT_BEGIN_NAMESPACE
+class QMenu;
+QT_END_NAMESPACE
 
 /* Label widget for QR code. This image can be dragged, dropped, copied and saved
  * to disk.
@@ -29,6 +34,10 @@ public slots:
 
 protected:
     virtual void mousePressEvent(QMouseEvent *event);
+    virtual void contextMenuEvent(QContextMenuEvent *event);
+
+private:
+    QMenu *contextMenu;
 };
 
 class ReceiveRequestDialog : public QDialog
