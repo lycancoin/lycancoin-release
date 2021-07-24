@@ -223,7 +223,7 @@ void CoinControlDialog::showMenu(const QPoint &point)
 // context menu action: copy amount
 void CoinControlDialog::copyAmount()
 {
-    GUIUtil::setClipboard(contextMenuItem->text(COLUMN_AMOUNT));
+    GUIUtil::setClipboard(BitcoinUnits::removeSpaces(contextMenuItem->text(COLUMN_AMOUNT)));
 }
 
 // context menu action: copy label
@@ -692,9 +692,9 @@ void CoinControlDialog::updateView()
             QString sAddress = "";
             if(ExtractDestination(out.tx->vout[out.i].scriptPubKey, outputAddress))
             {
-                sAddress = CBitcoinAddress(outputAddress).ToString().c_str();
+                sAddress = QString::fromStdString(CBitcoinAddress(outputAddress).ToString());
 
-                // if listMode or change => show bitcoin address. In tree mode, address is not shown again for direct wallet address outputs
+                // if listMode or change => show lycancoin address. In tree mode, address is not shown again for direct wallet address outputs
                 if (!treeMode || (!(sAddress == sWalletAddress)))
                     itemOutput->setText(COLUMN_ADDRESS, sAddress);
 
@@ -739,7 +739,7 @@ void CoinControlDialog::updateView()
 
             // transaction hash
             uint256 txhash = out.tx->GetHash();
-            itemOutput->setText(COLUMN_TXHASH, txhash.GetHex().c_str());
+            itemOutput->setText(COLUMN_TXHASH, QString::fromStdString(txhash.GetHex()));
 
             // vout index
             itemOutput->setText(COLUMN_VOUT_INDEX, QString::number(out.i));

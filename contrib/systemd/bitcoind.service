@@ -1,0 +1,17 @@
+[Unit]
+Description=Lycancoin's distributed currency daemon
+After=network.target
+
+[Service]
+User=lycancoind
+Group=lycancoind
+
+Type=forking
+PIDFile=/var/lib/lycancoind/lycancoind.pid
+ExecStart=/usr/bin/lycancoind -daemon -pid=/var/lib/lycancoind/lycancoind.pid -conf=/etc/lycancoind.conf -datadir=/var/lib/lycancoind
+
+Restart=always
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

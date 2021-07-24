@@ -3,15 +3,17 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <inttypes.h>
-
 #include "miner.h"
 
 #include "core.h"
 #include "main.h"
 #include "net.h"
 #include "pow.h"
+#include "util.h"
+#include "utilmoneystr.h"
 #include "wallet.h"
+
+#include <boost/thread.hpp>
 
 #include <openssl/sha.h>
 
@@ -76,14 +78,6 @@ public:
 
     COrphan(const CTransaction* ptxIn) : ptx(ptxIn), feeRate(0), dPriority(0)
     {
-    }
-
-    void print() const
-    {
-        LogPrintf("COrphan(hash=%s, dPriority=%.1f, fee=%s)\n",
-                  ptx->GetHash().ToString(), dPriority, feeRate.ToString());
-        BOOST_FOREACH(uint256 hash, setDependsOn)
-            LogPrintf("   setDependsOn %s\n", hash.ToString());
     }
 };
 
@@ -209,12 +203,13 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
                     nTotalIn += mempool.mapTx[txin.prevout.hash].GetTx().vout[txin.prevout.n].nValue;
                     continue;
                 }
-                const CCoins &coins = view.GetCoins(txin.prevout.hash);
+                const CCoins* coins = view.AccessCoins(txin.prevout.hash);
+                assert(coins);
 
-                int64_t nValueIn = coins.vout[txin.prevout.n].nValue;
+                int64_t nValueIn = coins->vout[txin.prevout.n].nValue;
                 nTotalIn += nValueIn;
 
-                int nConf = pindexPrev->nHeight - coins.nHeight + 1;
+                int nConf = pindexPrev->nHeight - coins->nHeight + 1;
 
                 dPriority += (double)nValueIn * nConf;
             }
@@ -349,7 +344,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
 
         // Fill in header
         pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
-        UpdateTime(*pblock, pindexPrev);
+        UpdateTime(pblock, pindexPrev);
         pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock);
         pblock->nNonce         = 0;
         pblocktemplate->vTxSigOps[0] = GetLegacySigOpCount(pblock->vtx[0]);
@@ -467,7 +462,7 @@ bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
     //// debug print
     LogPrintf("LycancoinMiner:\n");
     LogPrintf("proof-of-work found  \n  hash: %s  \ntarget: %s\n", hash.GetHex(), hashTarget.GetHex());
-    pblock->print();
+    LogPrintf("%s\n", pblock->ToString());
     LogPrintf("generated %s\n", FormatMoney(pblock->vtx[0].vout[0].nValue));
 
     // Found a solution
@@ -521,7 +516,10 @@ void static BitcoinMiner(CWallet *pwallet)
 
         auto_ptr<CBlockTemplate> pblocktemplate(CreateNewBlockWithKey(reservekey));
         if (!pblocktemplate.get())
-            return;
+            {
+                LogPrintf("Error in LycancoinMiner: Keypool ran out, please call keypoolrefill before restarting the mining thread\n");
+                return;
+            }
         CBlock *pblock = &pblocktemplate->block;
         IncrementExtraNonce(pblock, pindexPrev, nExtraNonce);
 
@@ -612,7 +610,7 @@ void static BitcoinMiner(CWallet *pwallet)
                 break;
 
             // Update nTime every few seconds
-            UpdateTime(*pblock, pindexPrev);
+            UpdateTime(pblock, pindexPrev);
             nBlockTime = ByteReverse(pblock->nTime);
             if (Params().AllowMinDifficultyBlocks())
             {

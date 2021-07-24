@@ -17,7 +17,11 @@
 #include "main.h" // for CTransaction::minTxFee and MAX_SCRIPTCHECK_THREADS
 #include "netbase.h"
 #include "txdb.h" // for -dbcache defaults
+#ifdef ENABLE_WALLET
+#include "wallet.h" // for CWallet::minTxFee
+#endif
 
+#include <boost/thread.hpp>
 #include <QDir>
 #include <QIntValidator>
 #include <QLocale>
@@ -49,15 +53,8 @@ OptionsDialog::OptionsDialog(QWidget *parent) :
     ui->proxyPort->setEnabled(false);
     ui->proxyPort->setValidator(new QIntValidator(1, 65535, this));
 
-    /** SOCKS version is only selectable for default proxy and is always 5 for IPv6 and Tor */
-    ui->socksVersion->setEnabled(false);
-    ui->socksVersion->addItem("5", 5);
-    ui->socksVersion->addItem("4", 4);
-    ui->socksVersion->setCurrentIndex(0);
-
     connect(ui->connectSocks, SIGNAL(toggled(bool)), ui->proxyIp, SLOT(setEnabled(bool)));
     connect(ui->connectSocks, SIGNAL(toggled(bool)), ui->proxyPort, SLOT(setEnabled(bool)));
-    connect(ui->connectSocks, SIGNAL(toggled(bool)), ui->socksVersion, SLOT(setEnabled(bool)));
 
     ui->proxyIp->installEventFilter(this);
 
@@ -177,7 +174,6 @@ void OptionsDialog::setMapper()
     mapper->addMapping(ui->connectSocks, OptionsModel::ProxyUse);
     mapper->addMapping(ui->proxyIp, OptionsModel::ProxyIP);
     mapper->addMapping(ui->proxyPort, OptionsModel::ProxyPort);
-    mapper->addMapping(ui->socksVersion, OptionsModel::ProxySocksVersion);
 
     /* Window */
 #ifndef Q_OS_MAC
@@ -188,7 +184,6 @@ void OptionsDialog::setMapper()
     /* Display */
     mapper->addMapping(ui->lang, OptionsModel::Language);
     mapper->addMapping(ui->unit, OptionsModel::DisplayUnit);
-    mapper->addMapping(ui->displayAddresses, OptionsModel::DisplayAddresses);
     mapper->addMapping(ui->thirdPartyTxUrls, OptionsModel::ThirdPartyTxUrls);
 }
 

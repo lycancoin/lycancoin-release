@@ -1,3 +1,7 @@
+// Copyright (c) 2011-2013 The Bitcoin developers
+// Distributed under the MIT/X11 software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #ifndef GUIUTIL_H
 #define GUIUTIL_H
 
@@ -9,6 +13,7 @@
 
 #include <boost/filesystem.hpp>
 
+class QValidatedLineEdit;
 class SendCoinsRecipient;
 
 QT_BEGIN_NAMESPACE
@@ -20,7 +25,7 @@ class QUrl;
 class QWidget;
 QT_END_NAMESPACE
 
-/** Utility functions used by the lycancoin-qt UI.
+/** Utility functions used by the Bitcoin Qt UI.
  */
 namespace GUIUtil
 {
@@ -28,18 +33,18 @@ namespace GUIUtil
     QString dateTimeStr(const QDateTime &datetime);
     QString dateTimeStr(qint64 nTime);
 
-    // Render addresses in monospace font
+    // Render Bitcoin addresses in monospace font
     QFont bitcoinAddressFont();
 
     // Set up widgets for address and amounts
-    void setupAddressWidget(QLineEdit *widget, QWidget *parent);
+    void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent);
     void setupAmountWidget(QLineEdit *widget, QWidget *parent);
 
-    // Parse "lycancoin:" URI into recipient object, return true on successful parsing
+    // Parse "bitcoin:" URI into recipient object, return true on successful parsing
     bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out);
     bool parseBitcoinURI(QString uri, SendCoinsRecipient *out);
     QString formatBitcoinURI(const SendCoinsRecipient &info);
-    
+
     // Returns true if given address+amount meets "dust" definition
     bool isDust(const QString& address, qint64 amount);
 
@@ -54,12 +59,11 @@ namespace GUIUtil
        @see  TransactionView::copyLabel, TransactionView::copyAmount, TransactionView::copyAddress
      */
     void copyEntryData(QAbstractItemView *view, int column, int role=Qt::EditRole);
-    
+
     void setClipboard(const QString& str);
 
-    /** Get save file name, mimics QFileDialog::getSaveFileName, except that it appends a default suffix
+    /** Get save filename, mimics QFileDialog::getSaveFileName, except that it appends a default suffix
         when no suffix is provided by the user.
-
       @param[in] parent  Parent window (or 0)
       @param[in] caption Window caption (or empty, for default)
       @param[in] dir     Starting directory (or empty, to default to documents directory)
@@ -81,10 +85,9 @@ namespace GUIUtil
      */
     QString getOpenFileName(QWidget *parent, const QString &caption, const QString &dir,
         const QString &filter,
-        QString *selectedSuffixOut);    
-    
-    /** Get connection type to call object slot in GUI thread with invokeMethod. The call will be blocking.
+        QString *selectedSuffixOut);
 
+    /** Get connection type to call object slot in GUI thread with invokeMethod. The call will be blocking.
        @returns If called from the GUI thread, return a Qt::DirectConnection.
                 If called from another thread, return a Qt::BlockingQueuedConnection.
     */
@@ -95,6 +98,9 @@ namespace GUIUtil
 
     // Open debug.log
     void openDebugLogfile();
+
+    // Replace invalid default fonts with known good ones
+    void SubstituteFonts();
 
     /** Qt event filter that intercepts ToolTipChange events, and replaces the tooltip with a rich text
       representation if needed. This assures that Qt can word-wrap long tooltip messages.
@@ -113,7 +119,7 @@ namespace GUIUtil
     private:
         int size_threshold;
     };
-    
+
     /**
      * Makes a QTableView last column feel as if it was being resized from its left border.
      * Also makes sure the column widths are never larger than the table's viewport.
@@ -155,7 +161,7 @@ namespace GUIUtil
 
     bool GetStartOnSystemStartup();
     bool SetStartOnSystemStartup(bool fAutoStart);
-    
+
     /** Save window size and position */
     void saveWindowGeometry(const QString& strSetting, QWidget *parent);
     /** Restore window size and position */
@@ -167,6 +173,14 @@ namespace GUIUtil
     /* Convert OS specific boost path to QString through UTF-8 */
     QString boostPathToQString(const boost::filesystem::path &path);
 
+    /* Convert seconds into a QString with days, hours, mins, secs */
+    QString formatDurationStr(int secs);
+
+    /* Format CNodeStats.nServices bitmask into a user-readable string */
+    QString formatServicesStr(quint64 mask);
+
+    /* Format a CNodeCombinedStats.dPingTime into a user-readable string or display N/A, if 0*/
+    QString formatPingTime(double dPingTime);
 } // namespace GUIUtil
 
 #endif // GUIUTIL_H

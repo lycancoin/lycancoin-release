@@ -1,11 +1,17 @@
+// Copyright (c) 2011-2013 The Bitcoin developers
+// Distributed under the MIT/X11 software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #include "guiutil.h"
 
 #include "bitcoinaddressvalidator.h"
 #include "bitcoinunits.h"
+#include "qvalidatedlineedit.h"
 #include "walletmodel.h"
 
 #include "core.h"
 #include "init.h"
+#include "main.h"
 #include "protocol.h"
 #include "util.h"
 
@@ -27,6 +33,8 @@
 #include "shlwapi.h"
 #endif
 
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
 #if BOOST_FILESYSTEM_VERSION >= 3
 #include <boost/filesystem/detail/utf8_codecvt_facet.hpp>
 #endif
@@ -55,6 +63,13 @@
 static boost::filesystem::detail::utf8_codecvt_facet utf8;
 #endif
 
+#if defined(Q_OS_MAC)
+extern double NSAppKitVersionNumber;
+#if !defined(NSAppKitVersionNumber10_9)
+#define NSAppKitVersionNumber10_9 1265
+#endif
+#endif
+
 namespace GUIUtil {
 
 QString dateTimeStr(const QDateTime &date)
@@ -78,11 +93,18 @@ QFont bitcoinAddressFont()
     return font;
 }
 
-void setupAddressWidget(QLineEdit *widget, QWidget *parent)
+void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent)
 {
-    widget->setMaxLength(BitcoinAddressValidator::MaxAddressLength);
-    widget->setValidator(new BitcoinAddressValidator(parent));
+    parent->setFocusProxy(widget);
+
     widget->setFont(bitcoinAddressFont());
+#if QT_VERSION >= 0x040700
+    // We don't want translators to use own addresses in translations
+    // and this is the only place, where this address is supplied.
+    widget->setPlaceholderText(QObject::tr("Enter a Bitcoin address (e.g. %1)").arg("1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L"));
+#endif
+    widget->setValidator(new BitcoinAddressEntryValidator(parent));
+    widget->setCheckValidator(new BitcoinAddressCheckValidator(parent));
 }
 
 void setupAmountWidget(QLineEdit *widget, QWidget *parent)
@@ -96,13 +118,18 @@ void setupAmountWidget(QLineEdit *widget, QWidget *parent)
 
 bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out)
 {
-    // return if URI is not valid or is no bitcoin URI
-    if(!uri.isValid() || uri.scheme() != QString("lycancoin"))
+    // return if URI is not valid or is no bitcoin: URI
+    if(!uri.isValid() || uri.scheme() != QString("bitcoin"))
         return false;
 
     SendCoinsRecipient rv;
     rv.address = uri.path();
+    // Trim any following forward slash which may have been added by the OS
+    if (rv.address.endsWith("/")) {
+        rv.address.truncate(rv.address.length() - 1);
+    }
     rv.amount = 0;
+
 #if QT_VERSION < 0x050000
     QList<QPair<QString, QString> > items = uri.queryItems();
 #else
@@ -152,13 +179,13 @@ bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out)
 
 bool parseBitcoinURI(QString uri, SendCoinsRecipient *out)
 {
-    // Convert lycancoin:// to lycancoin:
+    // Convert bitcoin:// to bitcoin:
     //
-    //    Cannot handle this later, because lycancoin:// will cause Qt to see the part after // as host,
-    //    which will lowercase it (and thus invalidate the address).
-    if(uri.startsWith("lycancoin://", Qt::CaseInsensitive))
+    //    Cannot handle this later, because bitcoin:// will cause Qt to see the part after // as host,
+    //    which will lower-case it (and thus invalidate the address).
+    if(uri.startsWith("bitcoin://", Qt::CaseInsensitive))
     {
-        uri.replace(0, 11, "lycancoin:");
+        uri.replace(0, 10, "bitcoin:");
     }
     QUrl uriInstance(uri);
     return parseBitcoinURI(uriInstance, out);
@@ -171,7 +198,7 @@ QString formatBitcoinURI(const SendCoinsRecipient &info)
 
     if (info.amount)
     {
-        ret += QString("?amount=%1").arg(BitcoinUnits::format(BitcoinUnits::BTC, info.amount));
+        ret += QString("?amount=%1").arg(BitcoinUnits::format(BitcoinUnits::BTC, info.amount, false, BitcoinUnits::separatorNever));
         paramCount++;
     }
 
@@ -197,7 +224,7 @@ bool isDust(const QString& address, qint64 amount)
     CTxDestination dest = CBitcoinAddress(address.toStdString()).Get();
     CScript script; script.SetDestination(dest);
     CTxOut txOut(amount, script);
-    return txOut.IsDust(CTransaction::minRelayTxFee);
+    return txOut.IsDust(::minRelayTxFee);
 }
 
 QString HtmlEscape(const QString& str, bool fMultiLine)
@@ -253,7 +280,7 @@ QString getSaveFileName(QWidget *parent, const QString &caption, const QString &
     /* Directly convert path to native OS path separators */
     QString result = QDir::toNativeSeparators(QFileDialog::getSaveFileName(parent, caption, myDir, filter, &selectedFilter));
 
-    /* Extract first suffix from filter pattern "Description (*.LYC)" or "Description (*.LYC *.LYC ...) */
+    /* Extract first suffix from filter pattern "Description (*.foo)" or "Description (*.foo *.bar ...) */
     QRegExp filter_re(".* \\(\\*\\.(.*)[ \\)]");
     QString selectedSuffix;
     if(filter_re.exactMatch(selectedFilter))
@@ -354,8 +381,29 @@ void openDebugLogfile()
         QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathDebug)));
 }
 
+void SubstituteFonts()
+{
+#if defined(Q_OS_MAC)
+// Background:
+// OSX's default font changed in 10.9 and QT is unable to find it with its
+// usual fallback methods when building against the 10.7 sdk or lower.
+// The 10.8 SDK added a function to let it find the correct fallback font.
+// If this fallback is not properly loaded, some characters may fail to
+// render correctly.
+//
+// Solution: If building with the 10.7 SDK or lower and the user's platform
+// is 10.9 or higher at runtime, substitute the correct font. This needs to
+// happen before the QApplication is created.
+#if defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_8
+    if (floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_9)
+        QFont::insertSubstitution(".Lucida Grande UI", "Lucida Grande");
+#endif
+#endif
+}
+
 ToolTipToRichTextFilter::ToolTipToRichTextFilter(int size_threshold, QObject *parent) :
-    QObject(parent), size_threshold(size_threshold)
+    QObject(parent),
+    size_threshold(size_threshold)
 {
 
 }
@@ -384,14 +432,15 @@ void TableViewLastColumnResizingFixer::connectViewHeadersSignals()
     connect(tableView->horizontalHeader(), SIGNAL(geometriesChanged()), this, SLOT(on_geometriesChanged()));
 }
 
-//we need to disconnect these while handling the resize events, otherwise we can enter infinite loops
+// We need to disconnect these while handling the resize events, otherwise we can enter infinite loops.
 void TableViewLastColumnResizingFixer::disconnectViewHeadersSignals()
 {
     disconnect(tableView->horizontalHeader(), SIGNAL(sectionResized(int,int,int)), this, SLOT(on_sectionResized(int,int,int)));
     disconnect(tableView->horizontalHeader(), SIGNAL(geometriesChanged()), this, SLOT(on_geometriesChanged()));
 }
 
-//setup the resize mode, handles compatibility for QT5 and below as the method signatures changed. (refactored here for readability)
+// Setup the resize mode, handles compatibility for Qt5 and below as the method signatures changed.
+// Refactored here for readability.
 void TableViewLastColumnResizingFixer::setViewHeaderResizeMode(int logicalIndex, QHeaderView::ResizeMode resizeMode)
 {
 #if QT_VERSION < 0x050000
@@ -431,7 +480,7 @@ int TableViewLastColumnResizingFixer::getAvailableWidthForColumn(int column)
     return nResult;
 }
 
-//make sure we don't make the columns wider than the table's viewport's width.
+// Make sure we don't make the columns wider than the tables viewport width.
 void TableViewLastColumnResizingFixer::adjustTableColumnsWidth()
 {
     disconnectViewHeadersSignals();
@@ -454,7 +503,7 @@ void TableViewLastColumnResizingFixer::stretchColumnWidth(int column)
     connectViewHeadersSignals();
 }
 
-//when a section is resized this is a slot-proxy for ajustAmountColumnWidth()
+// When a section is resized this is a slot-proxy for ajustAmountColumnWidth().
 void TableViewLastColumnResizingFixer::on_sectionResized(int logicalIndex, int oldSize, int newSize)
 {
     adjustTableColumnsWidth();
@@ -465,8 +514,8 @@ void TableViewLastColumnResizingFixer::on_sectionResized(int logicalIndex, int o
     }
 }
 
-//when the table's geometry is ready, we manually perform the Stretch of the "Message" column
-//as the "Stretch" resize mode does not allow for interactive resizing.
+// When the tabless geometry is ready, we manually perform the stretch of the "Message" column,
+// as the "Stretch" resize mode does not allow for interactive resizing.
 void TableViewLastColumnResizingFixer::on_geometriesChanged()
 {
     if ((getColumnsWidth() - this->tableView->horizontalHeader()->width()) != 0)
@@ -497,12 +546,12 @@ TableViewLastColumnResizingFixer::TableViewLastColumnResizingFixer(QTableView* t
 #ifdef WIN32
 boost::filesystem::path static StartupShortcutPath()
 {
-    return GetSpecialFolderPath(CSIDL_STARTUP) / "lycancoin.lnk";
+    return GetSpecialFolderPath(CSIDL_STARTUP) / "Bitcoin.lnk";
 }
 
 bool GetStartOnSystemStartup()
 {
-    // check for lycancoin.lnk
+    // check for Bitcoin.lnk
     return boost::filesystem::exists(StartupShortcutPath());
 }
 
@@ -561,7 +610,7 @@ bool SetStartOnSystemStartup(bool fAutoStart)
     return true;
 }
 
-#elif defined(LINUX)
+#elif defined(Q_OS_LINUX)
 
 // Follow the Desktop Application Autostart Spec:
 //  http://standards.freedesktop.org/autostart-spec/autostart-spec-latest.html
@@ -579,7 +628,7 @@ boost::filesystem::path static GetAutostartDir()
 
 boost::filesystem::path static GetAutostartFilePath()
 {
-    return GetAutostartDir() / "lycancoin.desktop";
+    return GetAutostartDir() / "bitcoin.desktop";
 }
 
 bool GetStartOnSystemStartup()
@@ -617,10 +666,10 @@ bool SetStartOnSystemStartup(bool fAutoStart)
         boost::filesystem::ofstream optionFile(GetAutostartFilePath(), std::ios_base::out|std::ios_base::trunc);
         if (!optionFile.good())
             return false;
-        // Write a lycancoin.desktop file to the autostart directory:
+        // Write a bitcoin.desktop file to the autostart directory:
         optionFile << "[Desktop Entry]\n";
         optionFile << "Type=Application\n";
-        optionFile << "Name=lycancoin\n";
+        optionFile << "Name=Bitcoin\n";
         optionFile << "Exec=" << pszExePath << " -min\n";
         optionFile << "Terminal=false\n";
         optionFile << "Hidden=false\n";
@@ -628,6 +677,7 @@ bool SetStartOnSystemStartup(bool fAutoStart)
     }
     return true;
 }
+
 
 #elif defined(Q_OS_MAC)
 // based on: https://github.com/Mozketo/LaunchAtLoginController/blob/master/LaunchAtLoginController.m
@@ -760,7 +810,7 @@ QString formatDurationStr(int secs)
     return strList.join(" ");
 }
 
-QString formatServicesStr(uint64_t mask)
+QString formatServicesStr(quint64 mask)
 {
     QStringList strList;
 
@@ -786,5 +836,9 @@ QString formatServicesStr(uint64_t mask)
         return QObject::tr("None");
 }
 
-} // namespace GUIUtil
+QString formatPingTime(double dPingTime)
+{
+    return dPingTime == 0 ? QObject::tr("N/A") : QString(QObject::tr("%1 ms")).arg(QString::number((int)(dPingTime * 1000), 10));
+}
 
+} // namespace GUIUtil

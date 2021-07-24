@@ -4,6 +4,7 @@
 src/lycancoin
 src/lycancoind
 src/lycancoin-cli
+src/bitcoin-tx
 src/test/test_bitcoin
 src/qt/test/test_bitcoin-qt
 
@@ -35,6 +36,7 @@ src/qt/test/moc*.cpp
 *.bak
 *.rej
 *.orig
+*.pyc
 *.o
 *.o-*
 *.patch

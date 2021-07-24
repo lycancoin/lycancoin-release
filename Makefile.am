@@ -46,7 +46,7 @@ distcheck-hook:
 distcleancheck:
 	@:
 
-$(BITCOIN_WIN_INSTALLER): $(BITCOIND_BIN) $(BITCOIN_QT_BIN) $(BITCOIN_CLI_BIN)
+$(BITCOIN_WIN_INSTALLER): all-recursive
 	$(MKDIR_P) $(top_builddir)/release
 	STRIPPROG="$(STRIP)" $(INSTALL_STRIP_PROGRAM) $(BITCOIND_BIN) $(top_builddir)/release
 	STRIPPROG="$(STRIP)" $(INSTALL_STRIP_PROGRAM) $(BITCOIN_QT_BIN) $(top_builddir)/release
@@ -63,7 +63,7 @@ $(OSX_DMG): $(OSX_APP_BUILT) $(OSX_PACKAGING)
 
 else
 $(OSX_DMG): $(OSX_APP_BUILT) $(OSX_PACKAGING)
-	INSTALLNAMETOOL=$(INSTALLNAMETOOL)  OTOOL=$(OTOOL) STRIP=$(STRIP) $(OSX_DEPLOY_SCRIPT) $(OSX_APP) -add-qt-tr $(OSX_QT_TRANSLATIONS) -verbose 2
+	INSTALLNAMETOOL=$(INSTALLNAMETOOL)  OTOOL=$(OTOOL) STRIP=$(STRIP) $(OSX_DEPLOY_SCRIPT) $(OSX_APP) -add-qt-tr $(OSX_QT_TRANSLATIONS) -translations-dir=$(QT_TRANSLATION_DIR) -verbose 2	
 	$(MKDIR_P) dist/.background
 	$(INSTALL) contrib/macdeploy/background.png dist/.background
 	$(INSTALL) contrib/macdeploy/DS_Store dist/.DS_Store
@@ -78,6 +78,15 @@ endif
 if TARGET_WINDOWS
 deploy: $(BITCOIN_WIN_INSTALLER)
 endif
+
+$(BITCOIN_QT_BIN): FORCE
+	$(MAKE) -C src qt/$(@F)
+
+$(BITCOIND_BIN): FORCE
+	$(MAKE) -C src $(@F)
+
+$(BITCOIN_CLI_BIN): FORCE
+	$(MAKE) -C src $(@F)
 
 if USE_LCOV
 
@@ -136,7 +145,7 @@ endif
 if USE_COMPARISON_TOOL
 check-local:
 	$(MKDIR_P) qa/tmp
- 	@qa/pull-tester/run-bitcoind-for-test.sh $(JAVA) -jar $(JAVA_COMPARISON_TOOL) qa/tmp/compTool $(COMPARISON_TOOL_REORG_TESTS)
+	@qa/pull-tester/run-bitcoind-for-test.sh $(JAVA) -jar $(JAVA_COMPARISON_TOOL) qa/tmp/compTool $(COMPARISON_TOOL_REORG_TESTS) 2>&1
 endif
 
 EXTRA_DIST = $(top_srcdir)/share/genbuild.sh qa/pull-tester/pull-tester.sh qa/rpc-tests $(DIST_DOCS) $(WINDOWS_PACKAGING) $(OSX_PACKAGING)

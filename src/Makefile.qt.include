@@ -134,6 +134,7 @@ BITCOIN_MM = \
 
 QT_MOC = \
   qt/bitcoin.moc \
+  qt/bitcoinamountfield.moc \
   qt/intro.moc \
   qt/overviewpage.moc \
   qt/rpcconsole.moc
@@ -219,6 +220,9 @@ RES_ICONS = \
   qt/res/icons/editcopy.png \
   qt/res/icons/editpaste.png \
   qt/res/icons/export.png \
+  qt/res/icons/eye.png \
+  qt/res/icons/eye_minus.png \
+  qt/res/icons/eye_plus.png \
   qt/res/icons/filesave.png \
   qt/res/icons/history.png \
   qt/res/icons/key.png \
@@ -239,7 +243,10 @@ RES_ICONS = \
   qt/res/icons/tx_inout.png \
   qt/res/icons/tx_input.png \
   qt/res/icons/tx_output.png \
-  qt/res/icons/tx_mined.png
+  qt/res/icons/tx_mined.png \
+  qt/res/icons/unit_btc.png \
+  qt/res/icons/unit_mbtc.png \
+  qt/res/icons/unit_ubtc.png
 
 BITCOIN_QT_CPP = \
   qt/bitcoinaddressvalidator.cpp \
@@ -342,12 +349,12 @@ qt_lycancoin_qt_LDADD = qt/libbitcoinqt.a $(LIBBITCOIN_SERVER)
 if ENABLE_WALLET
 qt_lycancoin_qt_LDADD += $(LIBBITCOIN_WALLET)
 endif
-qt_lycancoin_qt_LDADD += $(LIBBITCOIN_CLI) $(LIBBITCOIN_COMMON) $(LIBBITCOIN_UTIL) $(LIBBITCOIN_CRYPTO) $(LIBLEVELDB) $(LIBMEMENV) \
+qt_lycancoin_qt_LDADD += $(LIBBITCOIN_CLI) $(LIBBITCOIN_COMMON) $(LIBBITCOIN_UTIL) $(LIBBITCOIN_CRYPTO) $(LIBBITCOIN_UNIVALUE) $(LIBLEVELDB) $(LIBMEMENV) \
   $(BOOST_LIBS) $(QT_LIBS) $(QT_DBUS_LIBS) $(QR_LIBS) $(PROTOBUF_LIBS) $(BDB_LIBS)
 if USE_LIBSECP256K1
 qt_lycancoin_qt_LDADD += secp256k1/libsecp256k1.la
 endif
-qt_lycancoin_qt_LDFLAGS = $(QT_LDFLAGS)
+qt_lycancoin_qt_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(QT_LDFLAGS)
 
 #locale/foo.ts -> locale/foo.qm
 QT_QM=$(QT_TS:.ts=.qm)

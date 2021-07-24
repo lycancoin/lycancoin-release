@@ -7,6 +7,10 @@
 #include "rpcprotocol.h"
 
 #include "util.h"
+#include "tinyformat.h"
+#include "utilstrencodings.h"
+#include "utiltime.h"
+#include "version.h"
 
 #include <stdint.h>
 
@@ -25,6 +29,9 @@ using namespace std;
 using namespace boost;
 using namespace boost::asio;
 using namespace json_spirit;
+
+// Number of bytes to allocate and read at most at once in post data
+const size_t POST_READ_SIZE = 256 * 1024;
 
 //
 // HTTP protocol
@@ -91,8 +98,7 @@ string HTTPError(int nStatus, bool keepalive, bool headersOnly)
                      headersOnly, "text/plain");
 }
 
-string HTTPReply(int nStatus, const string& strMsg, bool keepalive,
-                 bool headersOnly, const char *contentType)
+string HTTPReplyHeader(int nStatus, bool keepalive, size_t contentLength, const char *contentType)
 {
     return strprintf(
             "HTTP/1.1 %d %s\r\n"
@@ -101,17 +107,25 @@ string HTTPReply(int nStatus, const string& strMsg, bool keepalive,
             "Content-Length: %u\r\n"
             "Content-Type: %s\r\n"
             "Server: lycancoin-json-rpc/%s\r\n"
-            "\r\n"
-            "%s",
+            "\r\n",
         nStatus,
         httpStatusDescription(nStatus),
         rfc1123Time(),
         keepalive ? "keep-alive" : "close",
-        (headersOnly ? 0 : strMsg.size()),
+        contentLength,
         contentType,
-        FormatFullVersion(),
-        (headersOnly ? "" : strMsg.c_str())
-        );
+        FormatFullVersion());
+}
+
+string HTTPReply(int nStatus, const string& strMsg, bool keepalive,
+                 bool headersOnly, const char *contentType)
+{
+    if (headersOnly)
+    {
+        return HTTPReplyHeader(nStatus, keepalive, 0, contentType);
+    } else {
+        return HTTPReplyHeader(nStatus, keepalive, strMsg.size(), contentType) + strMsg;
+    }
 }
 
 bool ReadHTTPRequestLine(std::basic_istream<char>& stream, int &proto,
@@ -192,21 +206,30 @@ int ReadHTTPHeaders(std::basic_istream<char>& stream, map<string, string>& mapHe
 
 int ReadHTTPMessage(std::basic_istream<char>& stream, map<string,
                     string>& mapHeadersRet, string& strMessageRet,
-                    int nProto)
+                    int nProto, size_t max_size)
 {
     mapHeadersRet.clear();
     strMessageRet = "";
 
     // Read header
     int nLen = ReadHTTPHeaders(stream, mapHeadersRet);
-    if (nLen < 0 || nLen > (int)MAX_SIZE)
+    if (nLen < 0 || (size_t)nLen > max_size)
         return HTTP_INTERNAL_SERVER_ERROR;
 
     // Read message
     if (nLen > 0)
     {
-        vector<char> vch(nLen);
-        stream.read(&vch[0], nLen);
+        vector<char> vch;
+        size_t ptr = 0;
+        while (ptr < (size_t)nLen)
+        {
+            size_t bytes_to_read = std::min((size_t)nLen - ptr, POST_READ_SIZE);
+            vch.resize(ptr + bytes_to_read);
+            stream.read(&vch[ptr], bytes_to_read);
+            if (!stream) // Connection lost while reading
+                return HTTP_INTERNAL_SERVER_ERROR;
+            ptr += bytes_to_read;
+        }
         strMessageRet = string(vch.begin(), vch.end());
     }
 

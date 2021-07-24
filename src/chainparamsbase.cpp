@@ -5,8 +5,9 @@
 
 #include "chainparamsbase.h"
 
-#include "assert.h"
 #include "util.h"
+
+#include "assert.h"
 
 #include <boost/assign/list_of.hpp>
 
@@ -90,4 +91,8 @@ bool SelectBaseParamsFromCommandLine() {
         SelectBaseParams(CBaseChainParams::MAIN);
     }
     return true;
+}
+
+bool AreBaseParamsConfigured() {
+    return pCurrentBaseParams != NULL;
 }

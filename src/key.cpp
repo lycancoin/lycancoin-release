@@ -5,7 +5,7 @@
 #include "key.h"
 
 #include "crypto/sha2.h"
-#include <openssl/rand.h>
+#include "random.h"
 
 #ifdef USE_SECP256K1
 #include <secp256k1.h>
@@ -195,6 +195,7 @@ public:
         if (d2i_ECPrivateKey(&pkey, &pbegin, privkey.size())) {
             if(fSkipCheck)
                 return true;
+
             // d2i_ECPrivateKey returns true if parsing succeeds.
             // This doesn't necessarily mean the key is valid.
             if (EC_KEY_check_key(pkey))
@@ -396,7 +397,7 @@ const unsigned char vchMaxModHalfOrder[32] = {
     0xDF,0xE9,0x2F,0x46,0x68,0x1B,0x20,0xA0
 };
 
-const unsigned char vchZero[0] = {};
+const unsigned char vchZero[1] = {0};
 
 
 } // anon namespace
@@ -413,7 +414,7 @@ bool CKey::CheckSignatureElement(const unsigned char *vch, int len, bool half) {
 
 void CKey::MakeNewKey(bool fCompressedIn) {
     do {
-        RAND_bytes(vch, sizeof(vch));
+        GetRandBytes(vch, sizeof(vch));
     } while (!Check(vch));
     fValid = true;
     fCompressed = fCompressedIn;
@@ -746,4 +747,3 @@ bool ECC_InitSanityCheck() {
     return true;
 #endif
 }
-

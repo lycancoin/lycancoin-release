@@ -9,6 +9,7 @@
 #include "main.h"
 #include "net.h"
 #include "ui_interface.h"
+#include "util.h"
 
 #include <stdint.h>
 
@@ -81,7 +82,7 @@ QDateTime ClientModel::getLastBlockDate() const
     if (chainActive.Tip())
         return QDateTime::fromTime_t(chainActive.Tip()->GetBlockTime());
     else
-        return QDateTime::fromTime_t(Params().GenesisBlock().nTime); // Genesis block's time of current network
+        return QDateTime::fromTime_t(Params().GenesisBlock().GetBlockTime()); // Genesis block's time of current network
 }
 
 double ClientModel::getVerificationProgress() const
@@ -204,12 +205,6 @@ static void ShowProgress(ClientModel *clientmodel, const std::string &title, int
                               Q_ARG(int, nProgress));
 }
 
-static void NotifyBlocksChanged(ClientModel *clientmodel)
-{
-    // This notification is too frequent. Don't trigger a signal.
-    // Don't remove it, though, as it might be useful later.
-}
-
 static void NotifyNumConnectionsChanged(ClientModel *clientmodel, int newNumConnections)
 {
     // Too noisy: qDebug() << "NotifyNumConnectionsChanged : " + QString::number(newNumConnections);
@@ -229,7 +224,6 @@ void ClientModel::subscribeToCoreSignals()
 {
     // Connect signals to client
     uiInterface.ShowProgress.connect(boost::bind(ShowProgress, this, _1, _2));
-    uiInterface.NotifyBlocksChanged.connect(boost::bind(NotifyBlocksChanged, this));
     uiInterface.NotifyNumConnectionsChanged.connect(boost::bind(NotifyNumConnectionsChanged, this, _1));
     uiInterface.NotifyAlertChanged.connect(boost::bind(NotifyAlertChanged, this, _1, _2));
 }
@@ -238,7 +232,6 @@ void ClientModel::unsubscribeFromCoreSignals()
 {
     // Disconnect signals from client
     uiInterface.ShowProgress.disconnect(boost::bind(ShowProgress, this, _1, _2));
-    uiInterface.NotifyBlocksChanged.disconnect(boost::bind(NotifyBlocksChanged, this));
     uiInterface.NotifyNumConnectionsChanged.disconnect(boost::bind(NotifyNumConnectionsChanged, this, _1));
     uiInterface.NotifyAlertChanged.disconnect(boost::bind(NotifyAlertChanged, this, _1, _2));
 }

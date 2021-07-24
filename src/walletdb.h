@@ -8,6 +8,7 @@
 
 #include "db.h"
 #include "key.h"
+#include "keystore.h"
 
 #include <list>
 #include <stdint.h>
@@ -54,12 +55,14 @@ public:
         nCreateTime = nCreateTime_;
     }
 
-    IMPLEMENT_SERIALIZE
-    (
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(this->nVersion);
         nVersion = this->nVersion;
         READWRITE(nCreateTime);
-    )
+    }
 
     void SetNull()
     {
@@ -95,6 +98,8 @@ public:
     bool WriteMasterKey(unsigned int nID, const CMasterKey& kMasterKey);
 
     bool WriteCScript(const uint160& hash, const CScript& redeemScript);
+    
+    bool WriteWatchOnly(const CScript &script);
 
     bool WriteBestBlock(const CBlockLocator& locator);
     bool ReadBestBlock(CBlockLocator& locator);

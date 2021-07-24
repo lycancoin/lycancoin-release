@@ -37,8 +37,10 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getreceivedbyaccount", 1 },
     { "listreceivedbyaddress", 0 },
     { "listreceivedbyaddress", 1 },
+    { "listreceivedbyaddress", 2 },
     { "listreceivedbyaccount", 0 },
     { "listreceivedbyaccount", 1 },
+    { "listreceivedbyaccount", 2 },
     { "getbalance", 1 },
     { "getblockhash", 0 },
     { "move", 2 },
@@ -47,10 +49,13 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "sendfrom", 3 },
     { "listtransactions", 1 },
     { "listtransactions", 2 },
+    { "listtransactions", 3 },
     { "listaccounts", 0 },
+    { "listaccounts", 1 },
     { "walletpassphrase", 1 },
     { "getblocktemplate", 0 },
     { "listsinceblock", 1 },
+    { "listsinceblock", 2 },
     { "sendmany", 1 },
     { "sendmany", 2 },
     { "addmultisigaddress", 0 },
@@ -72,12 +77,15 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "lockunspent", 0 },
     { "lockunspent", 1 },
     { "importprivkey", 2 },
+    { "importaddress", 2 },
     { "verifychain", 0 },
     { "verifychain", 1 },
     { "keypoolrefill", 0 },
     { "getrawmempool", 0 },
     { "estimatefee", 0 },
     { "estimatepriority", 0 },
+    { "prioritisetransaction", 1 },
+    { "prioritisetransaction", 2 },
 };
 
 class CRPCConvertTable
@@ -126,7 +134,6 @@ Array RPCConvertValues(const std::string &strMethod, const std::vector<std::stri
                 throw runtime_error(string("Error parsing JSON:")+strVal);
             params.push_back(jVal);
         }
-
     }
 
     return params;

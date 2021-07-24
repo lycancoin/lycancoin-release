@@ -55,6 +55,13 @@
 static boost::filesystem::detail::utf8_codecvt_facet utf8;
 #endif
 
+#if defined(Q_OS_MAC)
+extern double NSAppKitVersionNumber;
+#if !defined(NSAppKitVersionNumber10_9)
+#define NSAppKitVersionNumber10_9 1265
+#endif
+#endif
+
 namespace GUIUtil {
 
 QString dateTimeStr(const QDateTime &date)
@@ -102,6 +109,10 @@ bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out)
 
     SendCoinsRecipient rv;
     rv.address = uri.path();
+    // Trim any following forward slash which may have been added by the OS
+    if (rv.address.endsWith("/")) {
+        rv.address.truncate(rv.address.length() - 1);
+    }
     rv.amount = 0;
 #if QT_VERSION < 0x050000
     QList<QPair<QString, QString> > items = uri.queryItems();
@@ -166,12 +177,12 @@ bool parseBitcoinURI(QString uri, SendCoinsRecipient *out)
 
 QString formatBitcoinURI(const SendCoinsRecipient &info)
 {
-    QString ret = QString("bitcoin:%1").arg(info.address);
+    QString ret = QString("lycancoin:%1").arg(info.address);
     int paramCount = 0;
 
     if (info.amount)
     {
-        ret += QString("?amount=%1").arg(BitcoinUnits::format(BitcoinUnits::BTC, info.amount));
+        ret += QString("?amount=%1").arg(BitcoinUnits::format(BitcoinUnits::BTC, info.amount, false, BitcoinUnits::separatorNever));
         paramCount++;
     }
 
@@ -354,8 +365,29 @@ void openDebugLogfile()
         QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathDebug)));
 }
 
+void SubstituteFonts()
+{
+#if defined(Q_OS_MAC)
+// Background:
+// OSX's default font changed in 10.9 and QT is unable to find it with its
+// usual fallback methods when building against the 10.7 sdk or lower.
+// The 10.8 SDK added a function to let it find the correct fallback font.
+// If this fallback is not properly loaded, some characters may fail to
+// render correctly.
+//
+// Solution: If building with the 10.7 SDK or lower and the user's platform
+// is 10.9 or higher at runtime, substitute the correct font. This needs to
+// happen before the QApplication is created.
+#if defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_8
+    if (floor(NSAppKitVersionNumber) >= NSAppKitVersionNumber10_9)
+        QFont::insertSubstitution(".Lucida Grande UI", "Lucida Grande");
+#endif
+#endif
+}
+
 ToolTipToRichTextFilter::ToolTipToRichTextFilter(int size_threshold, QObject *parent) :
-    QObject(parent), size_threshold(size_threshold)
+    QObject(parent),
+    size_threshold(size_threshold)
 {
 
 }
@@ -638,7 +670,7 @@ bool SetStartOnSystemStartup(bool fAutoStart)
 LSSharedFileListItemRef findStartupItemInList(LSSharedFileListRef list, CFURLRef findUrl);
 LSSharedFileListItemRef findStartupItemInList(LSSharedFileListRef list, CFURLRef findUrl)
 {
-    // loop through the list of startup items and try to find the bitcoin app
+    // loop through the list of startup items and try to find the lycancoin app
     CFArrayRef listSnapshot = LSSharedFileListCopySnapshot(list, NULL);
     for(int i = 0; i < CFArrayGetCount(listSnapshot); i++) {
         LSSharedFileListItemRef item = (LSSharedFileListItemRef)CFArrayGetValueAtIndex(listSnapshot, i);
@@ -786,5 +818,11 @@ QString formatServicesStr(uint64_t mask)
         return QObject::tr("None");
 }
 
+QString formatPingTime(double dPingTime)
+{
+    return dPingTime == 0 ? QObject::tr("N/A") : QString(QObject::tr("%1 ms")).arg(QString::number((int)(dPingTime * 1000), 10));
+}
+
 } // namespace GUIUtil
+
 

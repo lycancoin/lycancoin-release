@@ -9,10 +9,13 @@
 #include "protocol.h"
 #include "serialize.h"
 #include "sync.h"
+#include "utiltime.h"
+#include "util.h"
 #include "wallet.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
+#include <boost/thread.hpp>
 
 using namespace std;
 using namespace boost;
@@ -110,6 +113,12 @@ bool CWalletDB::WriteCScript(const uint160& hash, const CScript& redeemScript)
 {
     nWalletDBUpdated++;
     return Write(std::make_pair(std::string("cscript"), hash), redeemScript, false);
+}
+
+bool CWalletDB::WriteWatchOnly(const CScript &dest)
+{
+    nWalletDBUpdated++;
+    return Write(std::make_pair(std::string("watchs"), dest), '1');
 }
 
 bool CWalletDB::WriteBestBlock(const CBlockLocator& locator)
@@ -271,8 +280,12 @@ CWalletDB::ReorderTransactions(CWallet* pwallet)
             nOrderPos = nOrderPosNext++;
             nOrderPosOffsets.push_back(nOrderPos);
 
-            if (pacentry)
-                // Have to write accounting regardless, since we don't keep it in memory
+            if (pwtx)
+            {
+                if (!WriteTx(pwtx->GetHash(), *pwtx))
+                    return DB_LOAD_FAIL;
+            }
+            else
                 if (!WriteAccountingEntry(pacentry->nEntryNo, *pacentry))
                     return DB_LOAD_FAIL;
         }
@@ -301,6 +314,7 @@ CWalletDB::ReorderTransactions(CWallet* pwallet)
                     return DB_LOAD_FAIL;
         }
     }
+    WriteOrderPosNext(nOrderPosNext);
 
     return DB_LOAD_OK;
 }
@@ -402,6 +416,19 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
                 if (acentry.nOrderPos == -1)
                     wss.fAnyUnordered = true;
             }
+        }
+        else if (strType == "watchs")
+        {
+            CScript script;
+            ssKey >> script;
+            char fYes;
+            ssValue >> fYes;
+            if (fYes == '1')
+                pwallet->LoadWatchOnly(script);
+
+            // Watch-only addresses have no birthday information for now,
+            // so set the wallet birthday to the beginning of time.
+            pwallet->nTimeFirstKey = 1;
         }
         else if (strType == "key" || strType == "wkey")
         {

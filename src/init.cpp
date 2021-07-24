@@ -23,6 +23,7 @@
 #include "txdb.h"
 #include "ui_interface.h"
 #include "util.h"
+#include "utilmoneystr.h"
 #ifdef ENABLE_WALLET
 #include "wallet.h"
 #include "walletdb.h"
@@ -37,8 +38,10 @@
 #include "compat/sanity.h"
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
+#include <boost/thread.hpp>
 #include <openssl/crypto.h>
 
 #if defined(USE_SSE2)
@@ -53,8 +56,8 @@
 #endif
 #endif
 
-using namespace std;
 using namespace boost;
+using namespace std;
 
 #ifdef ENABLE_WALLET
 CWallet* pwalletMain;
@@ -74,7 +77,8 @@ int64_t nTimeNodeStart;
 enum BindFlags {
     BF_NONE         = 0,
     BF_EXPLICIT     = (1U << 0),
-    BF_REPORT_ERROR = (1U << 1)
+    BF_REPORT_ERROR = (1U << 1),
+    BF_WHITELIST    = (1U << 2),
 };
 
 static const char* FEE_ESTIMATES_FILENAME="fee_estimates.dat";
@@ -125,10 +129,12 @@ static CCoinsViewDB *pcoinsdbview;
 
 void Shutdown()
 {
-    LogPrintf("Shutdown : In progress...\n");
+    LogPrintf("%s: In progress...\n", __func__);
     static CCriticalSection cs_Shutdown;
     TRY_LOCK(cs_Shutdown, lockShutdown);
-    if (!lockShutdown) return;
+    if (!lockShutdown)
+        return;
+        
     RenameThread("lycancoin-shutoff");
     mempool.AddTransactionsUpdated(1);
     StopRPCThreads();
@@ -141,12 +147,14 @@ void Shutdown()
     StopNode();
     UnregisterNodeSignals(GetNodeSignals());
     
-    boost::filesystem::path est_path = GetDataDir() / FEE_ESTIMATES_FILENAME;
-    CAutoFile est_fileout = CAutoFile(fopen(est_path.string().c_str(), "wb"), SER_DISK, CLIENT_VERSION);
-    if (est_fileout)
-        mempool.WriteFeeEstimates(est_fileout);
-    else
-        LogPrintf("failed to write fee estimates");    
+    {
+        boost::filesystem::path est_path = GetDataDir() / FEE_ESTIMATES_FILENAME;
+        CAutoFile est_fileout(fopen(est_path.string().c_str(), "wb"), SER_DISK, CLIENT_VERSION);
+        if (est_fileout)
+            mempool.WriteFeeEstimates(est_fileout);
+        else
+            LogPrintf("%s: Failed to write fee estimates to %s\n", __func__, est_path.string());
+    }
     
     {
         LOCK(cs_main);
@@ -158,9 +166,12 @@ void Shutdown()
             pblocktree->Flush();
         if (pcoinsTip)
             pcoinsTip->Flush();
-        delete pcoinsTip; pcoinsTip = NULL;
-        delete pcoinsdbview; pcoinsdbview = NULL;
-        delete pblocktree; pblocktree = NULL;
+        delete pcoinsTip;
+        pcoinsTip = NULL;
+        delete pcoinsdbview;
+        pcoinsdbview = NULL;
+        delete pblocktree;
+        pblocktree = NULL;
     }
 #ifdef ENABLE_WALLET
     if (pwalletMain)
@@ -172,7 +183,7 @@ void Shutdown()
     if (pwalletMain)
         delete pwalletMain;
 #endif
-    LogPrintf("Shutdown : done\n");
+    LogPrintf("%s: done\n", __func__);
 }
 
 //
@@ -191,13 +202,13 @@ void HandleSIGHUP(int)
 
 bool static InitError(const std::string &str)
 {
-    uiInterface.ThreadSafeMessageBox(str, "", CClientUIInterface::MSG_ERROR | CClientUIInterface::NOSHOWGUI);
+    uiInterface.ThreadSafeMessageBox(str, "", CClientUIInterface::MSG_ERROR);
     return false;
 }
 
 bool static InitWarning(const std::string &str)
 {
-    uiInterface.ThreadSafeMessageBox(str, "", CClientUIInterface::MSG_WARNING | CClientUIInterface::NOSHOWGUI);
+    uiInterface.ThreadSafeMessageBox(str, "", CClientUIInterface::MSG_WARNING);
     return true;
 }
 
@@ -205,7 +216,7 @@ bool static Bind(const CService &addr, unsigned int flags) {
     if (!(flags & BF_EXPLICIT) && IsLimited(addr))
         return false;
     std::string strError;
-    if (!BindListenPort(addr, strError)) {
+    if (!BindListenPort(addr, strError, flags & BF_WHITELIST)) {
         if (flags & BF_REPORT_ERROR)
             return InitError(strError);
         return false;
@@ -231,9 +242,9 @@ std::string HelpMessage(HelpMessageMode mode)
     }
     strUsage += "  -datadir=<dir>         " + _("Specify data directory") + "\n";
     strUsage += "  -dbcache=<n>           " + strprintf(_("Set database cache size in megabytes (%d to %d, default: %d)"), nMinDbCache, nMaxDbCache, nDefaultDbCache) + "\n";
-    strUsage += "  -keypool=<n>           " + _("Set key pool size to <n> (default: 100)") + "\n";
     strUsage += "  -loadblock=<file>      " + _("Imports blocks from external blk000??.dat file") + " " + _("on startup") + "\n";
     strUsage += "  -maxorphanblocks=<n>   " + strprintf(_("Keep at most <n> unconnectable blocks in memory (default: %u)"), DEFAULT_MAX_ORPHAN_BLOCKS) + "\n";    
+    strUsage += "  -maxorphantx=<n>       " + strprintf(_("Keep at most <n> unconnectable transactions in memory (default: %u)"), DEFAULT_MAX_ORPHAN_TRANSACTIONS) + "\n";    
     strUsage += "  -par=<n>               " + strprintf(_("Set the number of script verification threads (%u to %d, 0 = auto, <0 = leave that many cores free, default: %d)"), -(int)boost::thread::hardware_concurrency(), MAX_SCRIPTCHECK_THREADS, DEFAULT_SCRIPTCHECK_THREADS) + "\n";
     strUsage += "  -pid=<file>            " + _("Specify pid file (default: lycancoind.pid)") + "\n";
     strUsage += "  -reindex               " + _("Rebuild block chain index from current blk000??.dat files") + " " + _("on startup") + "\n";
@@ -247,18 +258,19 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += "  -connect=<ip>          " + _("Connect only to the specified node(s)") + "\n";
     strUsage += "  -discover              " + _("Discover own IP address (default: 1 when listening and no -externalip)") + "\n";
     strUsage += "  -dns                   " + _("Allow DNS lookups for -addnode, -seednode and -connect") + " " + _("(default: 1)") + "\n";
-    strUsage += "  -dnsseed               " + _("Find peers using DNS lookup (default: 1 unless -connect)") + "\n";
+    strUsage += "  -dnsseed               " + _("Query for peer addresses via DNS lookup, if low on addresses (default: 1 unless -connect)") + "\n";
+    strUsage += "  -forcednsseed          " + _("Always query for peer addresses via DNS lookup (default: 0)") + "\n";
     strUsage += "  -externalip=<ip>       " + _("Specify your own public address") + "\n";
     strUsage += "  -listen                " + _("Accept connections from outside (default: 1 if no -proxy or -connect)") + "\n";
     strUsage += "  -maxconnections=<n>    " + _("Maintain at most <n> connections to peers (default: 125)") + "\n";
     strUsage += "  -maxreceivebuffer=<n>  " + _("Maximum per-connection receive buffer, <n>*1000 bytes (default: 5000)") + "\n";
     strUsage += "  -maxsendbuffer=<n>     " + _("Maximum per-connection send buffer, <n>*1000 bytes (default: 1000)") + "\n";
     strUsage += "  -onion=<ip:port>       " + _("Use separate SOCKS5 proxy to reach peers via Tor hidden services (default: -proxy)") + "\n";
-    strUsage += "  -onlynet=<net>         " + _("Only connect to nodes in network <net> (IPv4, IPv6 or Tor)") + "\n";
+    strUsage += "  -onlynet=<net>         " + _("Only connect to nodes in network <net> (ipv4, ipv6 or onion)") + "\n";
+    strUsage += "  -permitbaremultisig    " + _("Relay non-P2SH multisig (default: 1)") + "\n";    
     strUsage += "  -port=<port>           " + _("Listen for connections on <port> (default: 58862 or testnet: 45884)") + "\n";
-    strUsage += "  -proxy=<ip:port>       " + _("Connect through SOCKS proxy") + "\n";
+    strUsage += "  -proxy=<ip:port>       " + _("Connect through SOCKS5 proxy") + "\n";
     strUsage += "  -seednode=<ip>         " + _("Connect to a node to retrieve peer addresses, and disconnect") + "\n";
-    strUsage += "  -socks=<n>             " + _("Select SOCKS version for -proxy (4 or 5, default: 5)") + "\n";
     strUsage += "  -timeout=<n>           " + _("Specify connection timeout in milliseconds (default: 5000)") + "\n";
 #ifdef USE_UPNP
 #if USE_UPNP
@@ -267,10 +279,14 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += "  -upnp                  " + _("Use UPnP to map the listening port (default: 0)") + "\n";
 #endif
 #endif
+    strUsage += "  -whitebind=<addr>      " + _("Bind to given address and whitelist peers connecting to it. Use [host]:port notation for IPv6") + "\n";
+    strUsage += "  -whitelist=<netmask>   " + _("Whitelist peers connecting from the given netmask or ip. Can be specified multiple times.") + "\n";
+    strUsage += "                         " + _("Whitelisted peers cannot be DoS banned and their transactions are always relayed, even if they are already in the mempool, useful e.g. for a gateway") + "\n";
 
 #ifdef ENABLE_WALLET
     strUsage += "\n" + _("Wallet options:") + "\n";
     strUsage += "  -disablewallet         " + _("Do not load the wallet and disable wallet RPC calls") + "\n";
+    strUsage += "  -keypool=<n>           " + _("Set key pool size to <n> (default: 100)") + "\n";    
     strUsage += "  -paytxfee=<amt>        " + strprintf(_("Fee (in BTC/kB) to add to transactions you send (default: %s)"), FormatMoney(payTxFee.GetFeePerK())) + "\n";
     strUsage += "  -rescan                " + _("Rescan the block chain for missing wallet transactions") + " " + _("on startup") + "\n";
     strUsage += "  -salvagewallet         " + _("Attempt to recover private keys from a corrupt wallet.dat") + " " + _("on startup") + "\n";
@@ -286,7 +302,6 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += "\n" + _("Debugging/Testing options:") + "\n";
     if (GetBoolArg("-help-debug", false))
     {
-        strUsage += "  -benchmark             " + _("Show benchmark information (default: 0)") + "\n";
         strUsage += "  -checkpoints           " + _("Only accept block chain matching built-in checkpoints (default: 1)") + "\n";
         strUsage += "  -dblogsize=<n>         " + _("Flush database activity from memory pool to disk log every <n> megabytes (default: 100)") + "\n";
         strUsage += "  -disablesafemode       " + _("Disable safemode, override a real safe mode event (default: 0)") + "\n";
@@ -300,12 +315,14 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += "  -debug=<category>      " + _("Output debugging information (default: 0, supplying <category> is optional)") + "\n";
     strUsage += "                         " + _("If <category> is not supplied, output all debugging information.") + "\n";
     strUsage += "                         " + _("<category> can be:");
-    strUsage +=                                 " addrman, alert, coindb, db, lock, rand, rpc, selectcoins, mempool, net"; // Don't translate these and qt below
+    strUsage +=                                 " addrman, alert, bench, coindb, db, lock, rand, rpc, selectcoins, mempool, net"; // Don't translate these and qt below
     if (mode == HMM_BITCOIN_QT)
         strUsage += ", qt";
     strUsage += ".\n";
+#ifdef ENABLE_WALLET
     strUsage += "  -gen                   " + _("Generate coins (default: 0)") + "\n";
     strUsage += "  -genproclimit=<n>      " + _("Set the processor limit for when generation is on (-1 = unlimited, default: -1)") + "\n";
+#endif    
     strUsage += "  -help-debug            " + _("Show all debugging options (usage: --help -help-debug)") + "\n";
     strUsage += "  -logips                " + _("Include IP addresses in debug output (default: 0)") + "\n";    
     strUsage += "  -logtimestamps         " + _("Prepend debug output with timestamp (default: 1)") + "\n";
@@ -333,6 +350,7 @@ std::string HelpMessage(HelpMessageMode mode)
 
     strUsage += "\n" + _("Node relay options:") + "\n";
     strUsage += "  -datacarrier           " + _("Relay and mine data carrier transactions (default: 1)") + "\n";    
+    
     strUsage += "\n" + _("Block creation options:") + "\n";
     strUsage += "  -blockminsize=<n>      " + _("Set minimum block size in bytes (default: 0)") + "\n";
     strUsage += "  -blockmaxsize=<n>      " + strprintf(_("Set maximum block size in bytes (default: %d)"), DEFAULT_BLOCK_MAX_SIZE) + "\n";
@@ -370,6 +388,14 @@ std::string LicenseInfo()
            "\n";
 }
 
+static void BlockNotifyCallback(const uint256& hashNewTip)
+{
+    std::string strCmd = GetArg("-blocknotify", "");
+
+    boost::replace_all(strCmd, "%s", hashNewTip.GetHex());
+    boost::thread t(runCommand, strCmd); // thread runs free
+}
+
 struct CImportingNow
 {
     CImportingNow() {
@@ -394,9 +420,11 @@ void ThreadImport(std::vector<boost::filesystem::path> vImportFiles)
         int nFile = 0;
         while (true) {
             CDiskBlockPos pos(nFile, 0);
+            if (!boost::filesystem::exists(GetBlockPosFilename(pos, "blk")))
+                break; // No block files left to reindex
             FILE *file = OpenBlockFile(pos, true);
             if (!file)
-                break;
+                break; // This error is logged in OpenBlockFile
             LogPrintf("Reindexing block file blk%05u.dat...\n", (unsigned int)nFile);
             LoadExternalBlockFile(file, &pos);
             nFile++;
@@ -532,11 +560,11 @@ bool AppInit2(boost::thread_group& threadGroup)
 
     // ********************************************************* Step 2: parameter interactions
     
-    if (mapArgs.count("-bind")) {
+    if (mapArgs.count("-bind") || mapArgs.count("-whitebind")) {
         // when specifying an explicit binding address, you want to listen on it
         // even when -connect or -proxy is specified
         if (SoftSetBoolArg("-listen", true))
-            LogPrintf("AppInit2 : parameter interaction: -bind set -> setting -listen=1\n");
+            LogPrintf("AppInit2 : parameter interaction: -bind or -whitebind set -> setting -listen=1\n");
     }
 
     if (mapArgs.count("-connect") && mapMultiArgs["-connect"].size() > 0) {
@@ -580,7 +608,7 @@ bool AppInit2(boost::thread_group& threadGroup)
     }    
     
     // Make sure enough file descriptors are available
-    int nBind = std::max((int)mapArgs.count("-bind"), 1);
+    int nBind = std::max((int)mapArgs.count("-bind") + (int)mapArgs.count("-whitebind"), 1);
     nMaxConnections = GetArg("-maxconnections", 125);
     nMaxConnections = std::max(std::min(nMaxConnections, (int)(FD_SETSIZE - nBind - MIN_CORE_FILEDESCRIPTORS)), 0);
     int nFD = RaiseFileDescriptorLimit(nMaxConnections + MIN_CORE_FILEDESCRIPTORS);
@@ -597,13 +625,18 @@ bool AppInit2(boost::thread_group& threadGroup)
     if (GetBoolArg("-nodebug", false) || find(categories.begin(), categories.end(), string("0")) != categories.end())
         fDebug = false;
 
-    // Check for -debugnet (deprecated)
+    // Check for -debugnet
     if (GetBoolArg("-debugnet", false))
-        InitWarning(_("Warning: Deprecated argument -debugnet ignored, use -debug=net"));
+        InitWarning(_("Warning: Unsupported argument -debugnet ignored, use -debug=net."));
+    // Check for -socks - as this is a privacy risk to continue, exit here
+    if (mapArgs.count("-socks"))
+        return InitError(_("Error: Unsupported argument -socks found. Setting SOCKS version isn't possible anymore, only SOCKS5 proxies are supported."));
     // Check for -tor - as this is a privacy risk to continue, exit here
     if (GetBoolArg("-tor", false))
         return InitError(_("Error: Unsupported argument -tor found, use -onion."));
-    fBenchmark = GetBoolArg("-benchmark", false);
+    if (GetBoolArg("-benchmark", false))
+        InitWarning(_("Warning: Unsupported argument -benchmark ignored, use -debug=bench."));
+        
     // Checkmempool defaults to true in regtest mode
     mempool.setSanityCheck(GetBoolArg("-checkmempool", Params().DefaultCheckMemPool()));
     Checkpoints::fEnabled = GetBoolArg("-checkpoints", true);
@@ -621,7 +654,6 @@ bool AppInit2(boost::thread_group& threadGroup)
     fPrintToConsole = GetBoolArg("-printtoconsole", false);
     fLogTimestamps = GetBoolArg("-logtimestamps", true);
     fLogIPs = GetBoolArg("-logips", false);
-    setvbuf(stdout, NULL, _IOLBF, 0);
 #ifdef ENABLE_WALLET
     bool fDisableWallet = GetBoolArg("-disablewallet", false);
 #endif
@@ -675,7 +707,10 @@ bool AppInit2(boost::thread_group& threadGroup)
     bSpendZeroConfChange = GetArg("-spendzeroconfchange", true);
     
     std::string strWalletFile = GetArg("-wallet", "wallet.dat");
-#endif
+#endif // ENABLE_WALLET
+
+    fIsBareMultisigStd = GetArg("-permitbaremultisig", true);
+    
     // ********************************************************* Step 4: application initialization: dir lock, daemonize, pidfile, debug log
     // Sanity check
     if (!InitSanityCheck())
@@ -773,11 +808,6 @@ bool AppInit2(boost::thread_group& threadGroup)
 
     RegisterNodeSignals(GetNodeSignals());    
 
-    int nSocksVersion = GetArg("-socks", 5);
-
-    if (nSocksVersion != 4 && nSocksVersion != 5)
-        return InitError(strprintf(_("Unknown -socks proxy version requested: %i"), nSocksVersion));
-
     if (mapArgs.count("-onlynet")) {
         std::set<enum Network> nets;
         BOOST_FOREACH(std::string snet, mapMultiArgs["-onlynet"]) {
@@ -793,6 +823,15 @@ bool AppInit2(boost::thread_group& threadGroup)
         }
     }
 
+    if (mapArgs.count("-whitelist")) {
+        BOOST_FOREACH(const std::string& net, mapMultiArgs["-whitelist"]) {
+            CSubNet subnet(net);
+            if (!subnet.IsValid())
+                return InitError(strprintf(_("Invalid netmask specified in -whitelist: '%s'"), net));
+            CNode::AddWhitelistedRange(subnet);
+        }
+    }
+
     CService addrProxy;
     bool fProxy = false;
     if (mapArgs.count("-proxy")) {
@@ -801,12 +840,10 @@ bool AppInit2(boost::thread_group& threadGroup)
             return InitError(strprintf(_("Invalid -proxy address: '%s'"), mapArgs["-proxy"]));
 
         if (!IsLimited(NET_IPV4))
-            SetProxy(NET_IPV4, addrProxy, nSocksVersion);
-        if (nSocksVersion > 4) {
-            if (!IsLimited(NET_IPV6))
-                SetProxy(NET_IPV6, addrProxy, nSocksVersion);
-            SetNameProxy(addrProxy, nSocksVersion);
-        }
+            SetProxy(NET_IPV4, addrProxy);
+        if (!IsLimited(NET_IPV6))
+            SetProxy(NET_IPV6, addrProxy);
+        SetNameProxy(addrProxy);
         fProxy = true;
     }
 
@@ -820,7 +857,7 @@ bool AppInit2(boost::thread_group& threadGroup)
             addrOnion = CService(mapArgs["-onion"], 9050);
         if (!addrOnion.IsValid())
             return InitError(strprintf(_("Invalid -onion address: '%s'"), mapArgs["-onion"]));
-        SetProxy(NET_TOR, addrOnion, 5);
+        SetProxy(NET_TOR, addrOnion);
         SetReachable(NET_TOR);
     }
 
@@ -831,12 +868,20 @@ bool AppInit2(boost::thread_group& threadGroup)
 
     bool fBound = false;
     if (fListen) {
-        if (mapArgs.count("-bind")) {
+        if (mapArgs.count("-bind") || mapArgs.count("-whitebind")) {
             BOOST_FOREACH(std::string strBind, mapMultiArgs["-bind"]) {
                 CService addrBind;
                 if (!Lookup(strBind.c_str(), addrBind, GetListenPort(), false))
                     return InitError(strprintf(_("Cannot resolve -bind address: '%s'"), strBind));
                 fBound |= Bind(addrBind, (BF_EXPLICIT | BF_REPORT_ERROR));
+            }
+            BOOST_FOREACH(std::string strBind, mapMultiArgs["-whitebind"]) {
+                CService addrBind;
+                if (!Lookup(strBind.c_str(), addrBind, 0, false))
+                    return InitError(strprintf(_("Cannot resolve -whitebind address: '%s'"), strBind));
+                if (addrBind.GetPort() == 0)
+                    return InitError(strprintf(_("Need to specify a port with -whitebind: '%s'"), strBind));
+                fBound |= Bind(addrBind, (BF_EXPLICIT | BF_REPORT_ERROR | BF_WHITELIST));
             }
         }
         else {
@@ -955,7 +1000,7 @@ bool AppInit2(boost::thread_group& threadGroup)
                 }
 
                 uiInterface.InitMessage(_("Verifying blocks..."));
-                if (!CVerifyDB().VerifyDB(GetArg("-checklevel", 3),
+                if (!CVerifyDB().VerifyDB(pcoinsdbview, GetArg("-checklevel", 3),
                               GetArg("-checkblocks", 576))) {
                     strLoadError = _("Corrupted block database detected");
                     break;
@@ -1008,7 +1053,7 @@ bool AppInit2(boost::thread_group& threadGroup)
     {
         string strMatch = mapArgs["-printblock"];
         int nFound = 0;
-        for (map<uint256, CBlockIndex*>::iterator mi = mapBlockIndex.begin(); mi != mapBlockIndex.end(); ++mi)
+        for (BlockMap::iterator mi = mapBlockIndex.begin(); mi != mapBlockIndex.end(); ++mi)
         {
             uint256 hash = (*mi).first;
             if (boost::algorithm::starts_with(hash.ToString(), strMatch))
@@ -1017,8 +1062,7 @@ bool AppInit2(boost::thread_group& threadGroup)
                 CBlock block;
                 ReadBlockFromDisk(block, pindex);
                 block.BuildMerkleTree();
-                block.print();
-                LogPrintf("\n");
+                LogPrintf("%s\n", block.ToString());
                 nFound++;
             }
         }
@@ -1029,6 +1073,7 @@ bool AppInit2(boost::thread_group& threadGroup)
 
     boost::filesystem::path est_path = GetDataDir() / FEE_ESTIMATES_FILENAME;
     CAutoFile est_filein = CAutoFile(fopen(est_path.string().c_str(), "rb"), SER_DISK, CLIENT_VERSION);
+    // Allowed to fail as this file IS missing on first startup.
     if (est_filein)
         mempool.ReadFeeEstimates(est_filein);
 
@@ -1171,6 +1216,9 @@ bool AppInit2(boost::thread_group& threadGroup)
 #endif // !ENABLE_WALLET
     // ********************************************************* Step 9: import blocks
 
+    if (mapArgs.count("-blocknotify"))
+        uiInterface.NotifyBlockTip.connect(BlockNotifyCallback);
+
     // scan for better chains in the block chain database, that are not yet connected in the active best chain
     CValidationState state;
     if (!ActivateBestChain(state))
@@ -1218,7 +1266,6 @@ bool AppInit2(boost::thread_group& threadGroup)
     LogPrintf("mapAddressBook.size() = %u\n",  pwalletMain ? pwalletMain->mapAddressBook.size() : 0);
 #endif
 
-    InitRespendFilter();
     StartNode(threadGroup);
     // InitRPCMining is needed here so getwork/getblocktemplate in the GUI debug console works properly.
     InitRPCMining();

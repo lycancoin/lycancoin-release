@@ -10,7 +10,9 @@
 #include "optionsmodel.h"
 
 #include "base58.h"
+#include "chainparams.h"
 #include "ui_interface.h"
+#include "util.h"
 #include "wallet.h"
 
 #include <cstdlib>
@@ -199,8 +201,11 @@ bool PaymentServer::ipcParseCommandLine(int argc, char* argv[])
             {
                 CBitcoinAddress address(r.address.toStdString());
 
-                SelectParams(CBaseChainParams::MAIN);
-                if (!address.IsValid())
+                if (address.IsValid(Params(CBaseChainParams::MAIN)))
+                {
+                    SelectParams(CBaseChainParams::MAIN);
+                }
+                else if (address.IsValid(Params(CBaseChainParams::TESTNET)))
                 {
                     SelectParams(CBaseChainParams::TESTNET);
                 }
@@ -214,9 +219,13 @@ bool PaymentServer::ipcParseCommandLine(int argc, char* argv[])
             if (readPaymentRequest(arg, request))
             {
                 if (request.getDetails().network() == "main")
+                {
                     SelectParams(CBaseChainParams::MAIN);
-                else
+                }
+                else if (request.getDetails().network() == "test")
+                {
                     SelectParams(CBaseChainParams::TESTNET);
+                }
             }
         }
         else
@@ -341,20 +350,14 @@ void PaymentServer::initNetManager()
 
     QNetworkProxy proxy;
 
-    // Query active proxy (fails if no SOCKS5 proxy)
+    // Query active SOCKS5 proxy
     if (optionsModel->getProxySettings(proxy)) {
-        if (proxy.type() == QNetworkProxy::Socks5Proxy) {
-            netManager->setProxy(proxy);
+        netManager->setProxy(proxy);
 
-            qDebug() << "PaymentServer::initNetManager : Using SOCKS5 proxy" << proxy.hostName() << ":" << proxy.port();
-        }
-        else
-            qDebug() << "PaymentServer::initNetManager : No active proxy server found.";
+        qDebug() << "PaymentServer::initNetManager : Using SOCKS5 proxy" << proxy.hostName() << ":" << proxy.port();
     }
     else
-        emit message(tr("Net manager warning"),
-            tr("Your active proxy doesn't support SOCKS5, which is required for payment requests via proxy."),
-            CClientUIInterface::MSG_WARNING);
+        qDebug() << "PaymentServer::initNetManager : No active proxy server found.";
 
     connect(netManager, SIGNAL(finished(QNetworkReply*)),
             this, SLOT(netRequestFinished(QNetworkReply*)));

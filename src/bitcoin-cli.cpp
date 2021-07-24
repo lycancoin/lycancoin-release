@@ -9,6 +9,8 @@
 #include "rpcclient.h"
 #include "rpcprotocol.h"
 #include "chainparamsbase.h"
+#include "utilstrencodings.h"
+#include "version.h"
 
 #include <boost/filesystem/operations.hpp>
 
@@ -130,7 +132,7 @@ Object CallRPC(const string& strMethod, const Array& params)
     // Receive HTTP reply message headers and body
     map<string, string> mapHeaders;
     string strReply;
-    ReadHTTPMessage(stream, mapHeaders, strReply, nProto);
+    ReadHTTPMessage(stream, mapHeaders, strReply, nProto, std::numeric_limits<size_t>::max());
 
     if (nStatus == HTTP_UNAUTHORIZED)
         throw runtime_error("incorrect rpcuser or rpcpassword (authorization failed)");

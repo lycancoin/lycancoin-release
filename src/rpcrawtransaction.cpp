@@ -5,12 +5,16 @@
 
 #include "base58.h"
 #include "core.h"
+#include "core_io.h"
 #include "init.h"
 #include "keystore.h"
 #include "main.h"
 #include "main.h"
 #include "net.h"
 #include "rpcserver.h"
+#include "script/script.h"
+#include "script/standard.h"
+#include "script/sign.h"
 #include "uint256.h"
 #ifdef ENABLE_WALLET
 #include "wallet.h"
@@ -94,15 +98,15 @@ TxToJSON(const CTransaction& tx, const uint256 hashBlock, Object& entry)
     if (hashBlock != 0)
     {
         entry.push_back(Pair("blockhash", hashBlock.GetHex()));
-        map<uint256, CBlockIndex*>::iterator mi = mapBlockIndex.find(hashBlock);
+        BlockMap::iterator mi = mapBlockIndex.find(hashBlock);
         if (mi != mapBlockIndex.end() && (*mi).second)
         {
             CBlockIndex* pindex = (*mi).second;
             if (chainActive.Contains(pindex))
             {
                 entry.push_back(Pair("confirmations", 1 + chainActive.Height() - pindex->nHeight));
-                entry.push_back(Pair("time", (int64_t)pindex->nTime));
-                entry.push_back(Pair("blocktime", (int64_t)pindex->nTime));
+                entry.push_back(Pair("time", pindex->GetBlockTime()));
+                entry.push_back(Pair("blocktime", pindex->GetBlockTime()));
             }
             else
                 entry.push_back(Pair("confirmations", 0));
@@ -185,9 +189,7 @@ Value getrawtransaction(const Array& params, bool fHelp)
     if (!GetTransaction(hash, tx, hashBlock, true))
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available about transaction");
 
-    CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
-    ssTx << tx;
-    string strHex = HexStr(ssTx.begin(), ssTx.end());
+    string strHex = EncodeHexTx(tx);
 
     if (!fVerbose)
         return strHex;
@@ -295,6 +297,7 @@ Value listunspent(const Array& params, bool fHelp)
         entry.push_back(Pair("scriptPubKey", HexStr(pk.begin(), pk.end())));
         entry.push_back(Pair("amount",ValueFromAmount(nValue)));
         entry.push_back(Pair("confirmations",out.nDepth));
+        entry.push_back(Pair("spendable", out.fSpendable));
         results.push_back(entry);
     }
 
@@ -384,9 +387,7 @@ Value createrawtransaction(const Array& params, bool fHelp)
         rawTx.vout.push_back(out);
     }
 
-    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-    ss << rawTx;
-    return HexStr(ss.begin(), ss.end());
+    return EncodeHexTx(rawTx);
 }
 
 Value decoderawtransaction(const Array& params, bool fHelp)
@@ -447,15 +448,12 @@ Value decoderawtransaction(const Array& params, bool fHelp)
 
     RPCTypeCheck(params, list_of(str_type));
 
-    vector<unsigned char> txData(ParseHex(params[0].get_str()));
-    CDataStream ssData(txData, SER_NETWORK, PROTOCOL_VERSION);
+//    vector<unsigned char> txData(ParseHex(params[0].get_str()));
+//    CDataStream ssData(txData, SER_NETWORK, PROTOCOL_VERSION);
     CTransaction tx;
-    try {
-        ssData >> tx;
-    }
-    catch (std::exception &e) {
+
+    if (!DecodeHexTx(tx, params[0].get_str()))
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
-    }
 
     Object result;
     TxToJSON(tx, 0, result);
@@ -526,7 +524,7 @@ Value signrawtransaction(const Array& params, bool fHelp)
             "         \"txid\":\"id\",             (string, required) The transaction id\n"
             "         \"vout\":n,                  (numeric, required) The output number\n"
             "         \"scriptPubKey\": \"hex\",   (string, required) script key\n"
-            "         \"redeemScript\": \"hex\"    (string, required) redeem script\n"
+            "         \"redeemScript\": \"hex\"    (string, required for P2SH) redeem script\n"
             "       }\n"
             "       ,...\n"
             "    ]\n"
@@ -591,7 +589,7 @@ Value signrawtransaction(const Array& params, bool fHelp)
         BOOST_FOREACH(const CTxIn& txin, mergedTx.vin) {
             const uint256& prevHash = txin.prevout.hash;
             CCoins coins;
-            view.GetCoins(prevHash, coins); // this is certainly allowed to fail
+            view.AccessCoins(prevHash); // this is certainly allowed to fail
         }
 
         view.SetBackend(viewDummy); // switch back to avoid locking mempool for too long    
@@ -692,16 +690,14 @@ Value signrawtransaction(const Array& params, bool fHelp)
     bool fHashSingle = ((nHashType & ~SIGHASH_ANYONECANPAY) == SIGHASH_SINGLE);    
 
     // Sign what we can:
-    for (unsigned int i = 0; i < mergedTx.vin.size(); i++)
-    {
+    for (unsigned int i = 0; i < mergedTx.vin.size(); i++) {
         CTxIn& txin = mergedTx.vin[i];
-        CCoins coins;
-        if (!view.GetCoins(txin.prevout.hash, coins) || !coins.IsAvailable(txin.prevout.n))
-        {
+        const CCoins* coins = view.AccessCoins(txin.prevout.hash);
+        if (coins == NULL || !coins->IsAvailable(txin.prevout.n)) {
             fComplete = false;
             continue;
         }
-        const CScript& prevPubKey = coins.vout[txin.prevout.n].scriptPubKey;
+        const CScript& prevPubKey = coins->vout[txin.prevout.n].scriptPubKey;
 
         txin.scriptSig.clear();
         // Only sign SIGHASH_SINGLE if there's a corresponding output:
@@ -718,9 +714,7 @@ Value signrawtransaction(const Array& params, bool fHelp)
     }
 
     Object result;
-    CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
-    ssTx << mergedTx;
-    result.push_back(Pair("hex", HexStr(ssTx.begin(), ssTx.end())));
+    result.push_back(Pair("hex", EncodeHexTx(mergedTx)));
     result.push_back(Pair("complete", fComplete));
 
     return result;
@@ -749,37 +743,26 @@ Value sendrawtransaction(const Array& params, bool fHelp)
             + HelpExampleRpc("sendrawtransaction", "\"signedhex\"")
         );
         
-
-    RPCTypeCheck(params, list_of(str_type));
+    RPCTypeCheck(params, list_of(str_type)(bool_type));
 
     // parse hex string from parameter
-    vector<unsigned char> txData(ParseHex(params[0].get_str()));
-    CDataStream ssData(txData, SER_NETWORK, PROTOCOL_VERSION);
     CTransaction tx;
+    if (!DecodeHexTx(tx, params[0].get_str()))
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
+    uint256 hashTx = tx.GetHash();
 
     bool fOverrideFees = false;
     if (params.size() > 1)
         fOverrideFees = params[1].get_bool();
-    
-    // deserialize binary data stream
-    try {
-        ssData >> tx;
-    }
-    catch (std::exception &e) {
-        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
-    }
-    const uint256 &hashTx = tx.GetHash();
 
     CCoinsViewCache &view = *pcoinsTip;
-    CCoins existingCoins;
+    const CCoins* existingCoins = view.AccessCoins(hashTx);
     bool fHaveMempool = mempool.exists(hashTx);
-    bool fHaveChain = view.GetCoins(hashTx, existingCoins) && existingCoins.nHeight < 1000000000;
+    bool fHaveChain = existingCoins && existingCoins->nHeight < 1000000000;
     if (!fHaveMempool && !fHaveChain) {
         // push to local node and sync with wallets
         CValidationState state;
-        if (AcceptToMemoryPool(mempool, state, tx, false, NULL, !fOverrideFees))
-            SyncWithWallets(tx, NULL);
-        else {
+        if (!AcceptToMemoryPool(mempool, state, tx, false, NULL, !fOverrideFees)) {
             if(state.IsInvalid())
                 throw JSONRPCError(RPC_TRANSACTION_REJECTED, strprintf("%i: %s", state.GetRejectCode(), state.GetRejectReason()));
             else

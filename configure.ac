@@ -3,7 +3,7 @@ AC_PREREQ([2.60])
 define(_CLIENT_VERSION_MAJOR, 1)
 define(_CLIENT_VERSION_MINOR, 1)
 define(_CLIENT_VERSION_REVISION, 2)
-define(_CLIENT_VERSION_BUILD, 8)
+define(_CLIENT_VERSION_BUILD, 9)
 define(_CLIENT_VERSION_IS_RELEASE, true)
 define(_COPYRIGHT_YEAR, 2021)
 AC_INIT([Lycancoin Core],[_CLIENT_VERSION_MAJOR._CLIENT_VERSION_MINOR._CLIENT_VERSION_REVISION],[lycancoin.org],[lycancoin])
@@ -89,6 +89,12 @@ AC_ARG_ENABLE([hardening],
   [attempt to harden the resulting executables (default is yes)])],
   [use_hardening=$enableval],
   [use_hardening=yes])
+
+AC_ARG_ENABLE([reduce-exports],
+  [AS_HELP_STRING([--enable-reduce-exports],
+  [attempt to reduce exported symbols in the resulting executables (default is yes)])],
+  [use_reduce_exports=$enableval],
+  [use_reduce_exports=auto])
 
 AC_ARG_ENABLE([ccache],
   [AS_HELP_STRING([--enable-ccache],
@@ -194,9 +200,12 @@ case $host in
      AC_CHECK_LIB([iphlpapi],      [main],, AC_MSG_ERROR(lib missing))
      AC_CHECK_LIB([crypt32],      [main],, AC_MSG_ERROR(lib missing))
 
-     AX_CHECK_LINK_FLAG([[-static]],[LDFLAGS="$LDFLAGS -static"])
      AX_CHECK_LINK_FLAG([[-static-libgcc]],[LDFLAGS="$LDFLAGS -static-libgcc"])
      AX_CHECK_LINK_FLAG([[-static-libstdc++]],[LDFLAGS="$LDFLAGS -static-libstdc++"])
+     
+     # -static is interpreted by libtool, where it has a different meaning.
+     # In libtool-speak, it's -all-static.
+     AX_CHECK_LINK_FLAG([[-static]],[LDFLAGS="$LDFLAGS -static"; LIBTOOL_LDFLAGS="$LIBTOOL_LDFLAGS -all-static"])
 
      AC_PATH_PROG([MAKENSIS], [makensis], none)
      if test x$MAKENSIS = xnone; then
@@ -255,6 +264,9 @@ case $host in
      fi
 
      CPPFLAGS="$CPPFLAGS -DMAC_OSX"
+     ;;
+   *linux*)
+     TARGET_OS=linux
      ;;
    *)
      ;;
@@ -327,7 +339,10 @@ if test x$use_glibc_compat != xno; then
   #__fdelt_chk's params and return type have changed from long unsigned int to long int.
   # See which one is present here.
   AC_MSG_CHECKING(__fdelt_chk type)
-  AC_TRY_COMPILE([#define __USE_FORTIFY_LEVEL 2
+  AC_TRY_COMPILE([#ifdef _FORTIFY_SOURCE
+                    #undef _FORTIFY_SOURCE
+                  #endif
+                  #define _FORTIFY_SOURCE 2
                   #include <sys/select.h>
      extern "C" long unsigned int __fdelt_warn(long unsigned int);],[],
     [ fdelt_type="long unsigned int"],
@@ -340,7 +355,7 @@ fi
 if test x$use_hardening != xno; then
   AX_CHECK_COMPILE_FLAG([-Wstack-protector],[HARDENED_CXXFLAGS="$HARDENED_CXXFLAGS -Wstack-protector"])
   AX_CHECK_COMPILE_FLAG([-fstack-protector-all],[HARDENED_CXXFLAGS="$HARDENED_CXXFLAGS -fstack-protector-all"])
-  AX_CHECK_COMPILE_FLAG([-fPIC],[HARDENED_CXXFLAGS="$HARDENED_CXXFLAGS -fPIC"])
+#  AX_CHECK_COMPILE_FLAG([-fPIC],[HARDENED_CXXFLAGS="$HARDENED_CXXFLAGS -fPIC"])
 
   AX_CHECK_PREPROC_FLAG([-D_FORTIFY_SOURCE=2],[
     AX_CHECK_PREPROC_FLAG([-U_FORTIFY_SOURCE],[
@@ -355,7 +370,8 @@ if test x$use_hardening != xno; then
   AX_CHECK_LINK_FLAG([[-Wl,-z,now]], [HARDENED_LDFLAGS="$HARDENED_LDFLAGS -Wl,-z,now"])
 
   if test x$TARGET_OS != xwindows; then
-    # -pie will link successfully with MinGW, but it's unsupported and leads to undeterministic binaries
+    # All windows code is PIC, forcing it on just adds useless compile warnings
+    AX_CHECK_COMPILE_FLAG([-fPIE],[HARDENED_CXXFLAGS="$HARDENED_CXXFLAGS -fPIC"])
     AX_CHECK_LINK_FLAG([[-fno-pie]], [HARDENED_LDFLAGS="$HARDENED_LDFLAGS -fno-pie"])
   fi
 
@@ -387,6 +403,72 @@ AC_TRY_COMPILE([#include <sys/socket.h>],
  [ AC_MSG_RESULT(no)]
 )
 
+AC_SEARCH_LIBS([clock_gettime],[rt])
+
+AC_MSG_CHECKING([for visibility attribute])
+AC_LINK_IFELSE([AC_LANG_SOURCE([
+  int foo_def( void ) __attribute__((visibility("default")));
+  int main(){}
+  ])],
+  [
+    AC_DEFINE(HAVE_VISIBILITY_ATTRIBUTE,1,[Define if the visibility attribute is supported.])
+    AC_MSG_RESULT(yes)
+  ],
+  [
+    AC_MSG_RESULT(no)
+    if test x$use_reduce_exports = xyes; then
+      AC_MSG_ERROR([Cannot find a working visibility attribute. Use --disable-reduced-exports.])
+    fi
+      AC_MSG_WARN([Cannot find a working visibility attribute. Disabling reduced exports.])
+      use_reduce_exports=no
+  ]
+)
+
+if test x$use_reduce_exports != xno; then
+  AX_CHECK_COMPILE_FLAG([-fvisibility=hidden],[RE_CXXFLAGS="-fvisibility=hidden"],
+  [
+    if test x$use_reduce_exports = xyes; then
+      AC_MSG_ERROR([Cannot set default symbol visibility. Use --disable-reduced-exports.])
+    fi
+    AC_MSG_WARN([Cannot set default symbol visibility. Disabling reduced exports.])
+    use_reduce_exports=no
+  ])
+fi
+
+AC_MSG_CHECKING([for visibility attribute])
+AC_LINK_IFELSE([AC_LANG_SOURCE([
+  int foo_def( void ) __attribute__((visibility("default")));
+  int main(){}
+  ])],
+  [
+    AC_DEFINE(HAVE_VISIBILITY_ATTRIBUTE,1,[Define if the visibility attribute is supported.])
+    AC_MSG_RESULT(yes)
+  ],
+  [
+    AC_MSG_RESULT(no)
+    if test x$use_reduce_exports = xyes; then
+      AC_MSG_ERROR([Cannot find a working visibility attribute. Use --disable-reduced-exports.])
+    fi
+      AC_MSG_WARN([Cannot find a working visibility attribute. Disabling reduced exports.])
+      use_reduce_exports=no
+  ]
+)
+
+if test x$use_reduce_exports != xno; then
+  AX_CHECK_COMPILE_FLAG([-fvisibility=hidden],[RE_CXXFLAGS="-fvisibility=hidden"],
+  [
+    if test x$use_reduce_exports = xyes; then
+      AC_MSG_ERROR([Cannot set default symbol visibility. Use --disable-reduced-exports.])
+    fi
+    AC_MSG_WARN([Cannot set default symbol visibility. Disabling reduced exports.])
+    use_reduce_exports=no
+  ])
+  if test x$use_reduce_exports != xno; then
+    AX_CHECK_LINK_FLAG([[-Wl,--exclude-libs,ALL]], [RELDFLAGS="-Wl,--exclude-libs,ALL"])
+    CXXFLAGS="$CXXFLAGS $RE_CXXFLAGS"
+  fi
+fi
+
 LEVELDB_CPPFLAGS=
 LIBLEVELDB=
 LIBMEMENV=
@@ -411,11 +493,73 @@ fi
 
 dnl Check for boost libs
 AX_BOOST_BASE
+
+if test x$use_reduce_exports != xno; then
+  AC_MSG_CHECKING([for working boost reduced exports])
+  TEMP_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="$BOOST_CPPFLAGS $CPPFLAGS"
+  AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[
+      @%:@include <boost/version.hpp>
+    ]], [[
+      #if BOOST_VERSION >= 104900
+      // Everything is okay
+      #else
+      #  error Boost version is too old
+      #endif
+    ]])],[
+      AC_MSG_RESULT(yes)
+    ],[:
+    if test x$use_reduce_exports = xauto; then
+      use_reduce_exports=no
+    else
+      if test x$use_reduce_exports = xyes; then
+        AC_MSG_ERROR([boost versions < 1.49 are known to be broken with reduced exports. Use --disable-reduced-exports.])
+      fi
+    fi
+    AC_MSG_RESULT(no)
+    AC_MSG_WARN([boost versions < 1.49 are known to have symbol visibility issues. Disabling reduced exports.])
+  ])
+  CPPFLAGS="$TEMP_CPPFLAGS"
+fi
+
 AX_BOOST_SYSTEM
 AX_BOOST_FILESYSTEM
 AX_BOOST_PROGRAM_OPTIONS
 AX_BOOST_THREAD
 AX_BOOST_CHRONO
+
+if test x$use_reduce_exports != xno; then
+  AC_MSG_CHECKING([for working boost reduced exports])
+  TEMP_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="$BOOST_CPPFLAGS $CPPFLAGS"
+  AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[
+      @%:@include <boost/version.hpp>
+    ]], [[
+      #if BOOST_VERSION >= 104900
+      // Everything is okay
+      #else
+      #  error Boost version is too old
+      #endif
+    ]])],[
+      AC_MSG_RESULT(yes)
+    ],[:
+    if test x$use_reduce_exports = xauto; then
+      use_reduce_exports=no
+    else
+      if test x$use_reduce_exports = xyes; then
+        AC_MSG_ERROR([boost versions < 1.49 are known to be broken with reduced exports. Use --disable-reduced-exports.])
+      fi
+    fi
+    AC_MSG_RESULT(no)
+    AC_MSG_WARN([boost versions < 1.49 are known to have symbol visibility issues. Disabling reduced exports.])
+  ])
+  CPPFLAGS="$TEMP_CPPFLAGS"
+fi
+
+if test x$use_reduce_exports != xno; then
+    CXXFLAGS="$CXXFLAGS $RE_CXXFLAGS"
+    AX_CHECK_LINK_FLAG([[-Wl,--exclude-libs,ALL]], [RELDFLAGS="-Wl,--exclude-libs,ALL"])
+fi
 
 if test x$use_tests = xyes; then
 
@@ -454,11 +598,9 @@ dnl after 1.56.
 dnl If neither is available, abort.
 dnl If sleep_for is used, boost_chrono becomes a requirement.
 if test x$ax_cv_boost_chrono = xyes; then
-dnl Allow passing extra needed dependency libraries for boost-chrono from static gitian build
-BOOST_CHRONO_LIB="$BOOST_CHRONO_LIB $BOOST_CHRONO_EXTRALIBS"
 
 TEMP_LIBS="$LIBS"
-LIBS="$LIBS $BOOST_LIBS $BOOST_CHRONO_LIB"
+LIBS="$BOOST_LIBS $BOOST_CHRONO_LIB $LIBS"
 TEMP_CPPFLAGS="$CPPFLAGS"
 CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
 AC_TRY_LINK([
@@ -480,7 +622,7 @@ fi
 
 if test x$boost_sleep != xyes; then
 TEMP_LIBS="$LIBS"
-LIBS="$LIBS $BOOST_LIBS"
+LIBS="$BOOST_LIBS $LIBS"
 TEMP_CPPFLAGS="$CPPFLAGS"
 CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
 AC_TRY_LINK([
@@ -501,18 +643,18 @@ CPPFLAGS="$TEMP_CPPFLAGS"
 fi
 
 if test x$boost_sleep != xyes; then
-	AC_MSG_ERROR(No working boost sleep implementation found. If on ubuntu 13.10 with libboost1.54-all-dev remove libboost.1.54-all-dev and use libboost1.53-all-dev)
+	AC_MSG_ERROR(No working boost sleep implementation found.)
 fi
 
-AC_ARG_WITH([cli],
-  [AS_HELP_STRING([--with-cli],
-  [with CLI (default is yes)])],
-  [build_bitcoin_cli=$withval],
-  [build_bitcoin_cli=yes])
+AC_ARG_WITH([utils],
+  [AS_HELP_STRING([--with-utils],
+  [build bitcoin-cli bitcoin-tx (default=yes)])],
+  [build_bitcoin_utils=$withval],
+  [build_bitcoin_utils=yes])
 
 AC_ARG_WITH([daemon],
   [AS_HELP_STRING([--with-daemon],
-  [with daemon (default is yes)])],
+  [build bitcoind daemon (default=yes)])],
   [build_bitcoind=$withval],
   [build_bitcoind=yes])
 
@@ -520,7 +662,7 @@ BITCOIN_QT_INIT
 
 if test x$use_pkgconfig = xyes; then
 
-  if test x$PKG_CONFIG == x; then
+  if test x"$PKG_CONFIG" == "x"; then
     AC_MSG_ERROR(pkg-config not found.)]
   fi
 
@@ -556,9 +698,9 @@ AC_MSG_CHECKING([whether to build lycancoind])
 AM_CONDITIONAL([BUILD_BITCOIND], [test x$build_bitcoind = xyes])
 AC_MSG_RESULT($build_bitcoind)
 
-AC_MSG_CHECKING([whether to build lycancoin-cli])
-AM_CONDITIONAL([BUILD_BITCOIN_CLI], [test x$build_bitcoin_cli = xyes])
-AC_MSG_RESULT($build_bitcoin_cli)
+AC_MSG_CHECKING([whether to build utils (lycancoin-cli lycancoin-tx)])
+AM_CONDITIONAL([BUILD_BITCOIN_UTILS], [test x$build_bitcoin_utils = xyes])
+AC_MSG_RESULT($build_bitcoin_utils)
 
 dnl sets $bitcoin_enable_qt, $bitcoin_enable_qt_test, $bitcoin_enable_qt_dbus
 BITCOIN_QT_CONFIGURE([$use_pkgconfig], [qt4])
@@ -579,6 +721,9 @@ if test "x$use_ccache" != "xno"; then
     CXX="$ac_cv_path_CCACHE $CXX"
   fi
   AC_MSG_RESULT($use_ccache)
+fi
+if test "x$use_ccache" = "xyes"; then
+    AX_CHECK_PREPROC_FLAG([-Qunused-arguments],[CPPFLAGS="-Qunused-arguments $CPPFLAGS"])
 fi
 
 dnl enable wallet
@@ -615,7 +760,7 @@ else
     AC_MSG_RESULT($use_upnp_default)
     AC_DEFINE_UNQUOTED([USE_UPNP],[$upnp_setting],[UPnP support not compiled if undefined, otherwise value (0 or 1) determines default state])
     if test x$TARGET_OS = xwindows; then
-      CPPFLAGS="$CPPFLAGS -DSTATICLIB"
+      MINIUPNPC_CPPFLAGS="-DSTATICLIB -DMINIUPNP_STATICLIB"
     fi
   else
     AC_MSG_RESULT(no)
@@ -670,8 +815,15 @@ if test x$use_tests = xyes; then
   AC_MSG_RESULT([no])
 fi
 
-if test "x$use_tests$build_bitcoind$use_qt" = "xnonono"; then
-  AC_MSG_ERROR([No targets! Please specify at least one of: --enable-cli --enable-daemon --enable-gui or --enable-tests])
+AC_MSG_CHECKING([whether to reduce exports])
+if test x$use_reduce_exports != xno; then
+  AC_MSG_RESULT([yes])
+else
+  AC_MSG_RESULT([no])
+fi
+
+if test x$build_bitcoin_utils$build_bitcoind$bitcoin_enable_qt$use_tests = xnononono; then
+  AC_MSG_ERROR([No targets! Please specify at least one of: --with-utils --with-daemon --with-gui or --enable-tests])
 fi
 
 AM_CONDITIONAL([TARGET_DARWIN], [test x$TARGET_OS = xdarwin])
@@ -702,6 +854,8 @@ AC_SUBST(CLIENT_VERSION_IS_RELEASE, _CLIENT_VERSION_IS_RELEASE)
 AC_SUBST(COPYRIGHT_YEAR, _COPYRIGHT_YEAR)
 
 
+AC_SUBST(RELDFLAGS)
+AC_SUBST(LIBTOOL_LDFLAGS)
 AC_SUBST(USE_UPNP)
 AC_SUBST(USE_QRCODE)
 AC_SUBST(INCLUDES)
@@ -711,7 +865,19 @@ AC_SUBST(LEVELDB_TARGET_FLAGS)
 AC_SUBST(BUILD_QT)
 ## AC_SUBST(BUILD_TEST)
 ## AC_SUBST(BUILD_TEST_QT)
+AC_SUBST(MINIUPNPC_CPPFLAGS)
 AC_CONFIG_FILES([Makefile src/Makefile share/setup.nsi share/qt/Info.plist])
 ## AC_CONFIG_FILES([qa/pull-tester/run-bitcoind-for-test.sh],[chmod +x qa/pull-tester/run-bitcoind-for-test.sh])
 ## AC_CONFIG_FILES([qa/pull-tester/build-tests.sh],[chmod +x qa/pull-tester/build-tests.sh])
 AC_OUTPUT
+
+dnl Taken from https://wiki.debian.org/RpathIssue
+case $host in
+   *-*-linux-gnu)
+     AC_MSG_RESULT([Fixing libtool for -rpath problems.])
+     sed < libtool > libtool-2 \
+     's/^hardcode_libdir_flag_spec.*$'/'hardcode_libdir_flag_spec=" -D__LIBTOOL_IS_A_FOOL__ "/'
+     mv libtool-2 libtool
+     chmod 755 libtool
+   ;;
+esac

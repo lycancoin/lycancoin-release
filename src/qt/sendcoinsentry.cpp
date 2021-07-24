@@ -36,6 +36,12 @@ SendCoinsEntry::SendCoinsEntry(QWidget *parent) :
     GUIUtil::setupAddressWidget(ui->payTo, this);
     // just a label for displaying bitcoin address(es)
     ui->payTo_is->setFont(GUIUtil::bitcoinAddressFont());
+    
+    // Connect signals
+    connect(ui->payAmount, SIGNAL(valueChanged()), this, SIGNAL(payAmountChanged()));
+    connect(ui->deleteButton, SIGNAL(clicked()), this, SLOT(deleteClicked()));
+    connect(ui->deleteButton_is, SIGNAL(clicked()), this, SLOT(deleteClicked()));
+    connect(ui->deleteButton_s, SIGNAL(clicked()), this, SLOT(deleteClicked()));
 }
 
 SendCoinsEntry::~SendCoinsEntry()
@@ -73,11 +79,6 @@ void SendCoinsEntry::setModel(WalletModel *model)
 
     if (model && model->getOptionsModel())
         connect(model->getOptionsModel(), SIGNAL(displayUnitChanged(int)), this, SLOT(updateDisplayUnit()));
-
-    connect(ui->payAmount, SIGNAL(textChanged()), this, SIGNAL(payAmountChanged()));
-    connect(ui->deleteButton, SIGNAL(clicked()), this, SLOT(deleteClicked()));
-    connect(ui->deleteButton_is, SIGNAL(clicked()), this, SLOT(deleteClicked()));
-    connect(ui->deleteButton_s, SIGNAL(clicked()), this, SLOT(deleteClicked()));
 
     clear();
 }
@@ -129,6 +130,13 @@ bool SendCoinsEntry::validate()
 
     if (!ui->payAmount->validate())
     {
+        retval = false;
+    }
+
+    // Sending a zero amount is invalid
+    if (ui->payAmount->value(0) <= 0)
+    {
+        ui->payAmount->setValid(false);
         retval = false;
     }
 

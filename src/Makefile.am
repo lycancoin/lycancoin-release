@@ -1,5 +1,5 @@
 AM_CPPFLAGS =  $(INCLUDES)
-AM_LDFLAGS = $(PTHREAD_CFLAGS)
+AM_LDFLAGS = $(PTHREAD_CFLAGS) $(LIBTOOL_LDFLAGS)
 
 if USE_LIBSECP256K1
 secp256k1/libsecp256k1.la: $(wildcard secp256k1/src/*) $(wildcard secp256k1/include/*)
@@ -34,6 +34,7 @@ LIBBITCOIN_COMMON=libbitcoin_common.a
 LIBBITCOIN_CLI=libbitcoin_cli.a
 LIBBITCOIN_UTIL=libbitcoin_util.a
 LIBBITCOIN_CRYPTO=crypto/libbitcoin_crypto.a
+LIBBITCOIN_UNIVALUE=univalue/libbitcoin_univalue.a
 LIBBITCOINQT=qt/libbitcoinqt.a
 
 noinst_LIBRARIES = \
@@ -41,6 +42,7 @@ noinst_LIBRARIES = \
   libbitcoin_common.a \
   libbitcoin_cli.a \
   libbitcoin_util.a \
+  univalue/libbitcoin_univalue.a \
   crypto/libbitcoin_crypto.a
 if ENABLE_WALLET
 BITCOIN_INCLUDES += $(BDB_CPPFLAGS)
@@ -53,9 +55,9 @@ TESTS =
 if BUILD_BITCOIND
   bin_PROGRAMS += lycancoind
 endif
-
-if BUILD_BITCOIN_CLI
-  bin_PROGRAMS += lycancoin-cli
+  
+if BUILD_BITCOIN_UTILS
+  bin_PROGRAMS += lycancoin-cli lycancoin-tx
 endif
 
 .PHONY: FORCE
@@ -69,6 +71,7 @@ BITCOIN_CORE_H = \
   bloom.h \
   chainparams.h \
   chainparamsbase.h \
+  chainparamsseeds.h \
   checkpoints.h \
   checkqueue.h \
   clientversion.h \
@@ -76,6 +79,7 @@ BITCOIN_CORE_H = \
   coins.h \
   compat.h \
   core.h \
+  core_io.h \
   crypter.h \
   db.h \
   hash.h \
@@ -92,10 +96,16 @@ BITCOIN_CORE_H = \
   noui.h \
   pow.h \
   protocol.h \
+  random.h \
   rpcclient.h \
   rpcprotocol.h \
   rpcserver.h \
-  script.h \
+  script/interpreter.h \
+  script/compressor.h \
+  script/script.h \
+  script/sign.h \
+  script/standard.h \
+  wallet_ismine.h \
   scrypt.h \
   serialize.h \
   sync.h \
@@ -107,6 +117,9 @@ BITCOIN_CORE_H = \
   ui_interface.h \
   uint256.h \
   util.h \
+  utilstrencodings.h \
+  utilmoneystr.h \
+  utiltime.h \
   version.h \
   walletdb.h \
   wallet.h \
@@ -130,7 +143,7 @@ obj/build.h: FORCE
 libbitcoin_util_a-version.$(OBJEXT): obj/build.h
 
 # server: shared between bitcoind and bitcoin-qt
-libbitcoin_server_a_CPPFLAGS = $(BITCOIN_INCLUDES)
+libbitcoin_server_a_CPPFLAGS = $(BITCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS)
 libbitcoin_server_a_SOURCES = \
   addrman.cpp \
   alert.cpp \
@@ -163,6 +176,7 @@ libbitcoin_wallet_a_SOURCES = \
   crypter.cpp \
   rpcdump.cpp \
   rpcwallet.cpp \
+  wallet_ismine.cpp \
   wallet.cpp \
   walletdb.cpp \
   $(BITCOIN_CORE_H)
@@ -178,6 +192,13 @@ crypto_libbitcoin_crypto_a_SOURCES = \
   crypto/sha1.h \
   crypto/ripemd160.h
 
+# univalue JSON library
+univalue_libbitcoin_univalue_a_SOURCES = \
+  univalue/univalue.cpp \
+  univalue/univalue_read.cpp \
+  univalue/univalue_write.cpp \
+  univalue/univalue.h
+
 # common: shared between bitcoind, and bitcoin-qt and non-server tools
 libbitcoin_common_a_CPPFLAGS = $(BITCOIN_INCLUDES)
 libbitcoin_common_a_SOURCES = \
@@ -186,12 +207,18 @@ libbitcoin_common_a_SOURCES = \
   chainparams.cpp \
   coins.cpp \
   core.cpp \
+  core_read.cpp \
+  core_write.cpp \
   hash.cpp \
   key.cpp \
   keystore.cpp \
   netbase.cpp \
   protocol.cpp \
-  script.cpp \
+  script/interpreter.cpp \
+  script/compressor.cpp \
+  script/script.cpp \
+  script/sign.cpp \
+  script/standard.cpp \
   scrypt.cpp \
   $(BITCOIN_CORE_H)
 
@@ -200,14 +227,18 @@ libbitcoin_common_a_SOURCES = \
 # backward-compatibility objects and their sanity checks are linked.
 libbitcoin_util_a_CPPFLAGS = $(BITCOIN_INCLUDES)
 libbitcoin_util_a_SOURCES = \
+  compat/glibc_sanity.cpp \
+  compat/glibcxx_sanity.cpp \
   chainparamsbase.cpp \
+  random.cpp \
   rpcprotocol.cpp \
   sync.cpp \
   uint256.cpp \
   util.cpp \
+  utilstrencodings.cpp \
+  utilmoneystr.cpp \
+  utiltime.cpp \
   version.cpp \
-  compat/glibc_sanity.cpp \
-  compat/glibcxx_sanity.cpp \
   $(BITCOIN_CORE_H)
 
 if GLIBC_BACK_COMPAT
@@ -216,6 +247,7 @@ libbitcoin_util_a_SOURCES += compat/glibcxx_compat.cpp
 endif
 
 # cli: shared between lycancoin-cli and lycancoin-qt
+libbitcoin_cli_a_CPPFLAGS = $(BITCOIN_INCLUDES)
 libbitcoin_cli_a_SOURCES = \
   rpcclient.cpp \
   $(BITCOIN_CORE_H)
@@ -227,6 +259,7 @@ nodist_libbitcoin_util_a_SOURCES = $(srcdir)/obj/build.h
 lycancoind_LDADD = \
   $(LIBBITCOIN_SERVER) \
   $(LIBBITCOIN_COMMON) \
+  $(LIBBITCOIN_UNIVALUE) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBLEVELDB) \
@@ -242,12 +275,26 @@ endif
 lycancoind_SOURCES = bitcoind.cpp
 #
 
+# lycancoin-tx binary #
+lycancoin_tx_LDADD = \
+  $(LIBBITCOIN_UNIVALUE) \
+  $(LIBBITCOIN_COMMON) \
+  $(LIBBITCOIN_UTIL) \
+  $(LIBBITCOIN_CRYPTO) \
+  $(BOOST_LIBS)
+lycancoin_tx_SOURCES = bitcoin-tx.cpp
+lycancoin_tx_CPPFLAGS = $(BITCOIN_INCLUDES)
+#
+lycancoin_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS)
+
 if TARGET_WINDOWS
 lycancoind_SOURCES += bitcoind-res.rc
 endif
+lycancoin_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS)
 
 lycancoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS)
 lycancoind_CPPFLAGS = $(BITCOIN_INCLUDES)
+lycancoind_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS)
 
 # lycancoin-cli binary #
 lycancoin_cli_LDADD = \
@@ -268,6 +315,7 @@ lycancoin_cli_CPPFLAGS = $(BITCOIN_INCLUDES)
 if TARGET_WINDOWS
 lycancoin_cli_SOURCES += bitcoin-cli-res.rc
 endif
+lycancoin_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS)
 
 CLEANFILES = leveldb/libleveldb.a leveldb/libmemenv.a *.gcda *.gcno
 
@@ -277,7 +325,7 @@ EXTRA_DIST = leveldb secp256k1
 
 clean-local:
 	-$(MAKE) -C leveldb clean
-	-$(MAKE) -C secp256k1 clean
+	-$(MAKE) -C secp256k1 clean 2>/dev/null
 	rm -f leveldb/*/*.gcno leveldb/helpers/memenv/*.gcno
 	-rm -f config.h
 

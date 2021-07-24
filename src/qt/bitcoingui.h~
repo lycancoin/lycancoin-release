@@ -27,13 +27,8 @@ class WalletModel;
 
 class CWallet;
 
-class UnitDisplayStatusBarControl;
-
 QT_BEGIN_NAMESPACE
 class QAction;
-class QLabel;
-class QMenu;
-class QPoint;
 class QProgressBar;
 class QProgressDialog;
 QT_END_NAMESPACE
@@ -108,6 +103,7 @@ private:
     QAction *showHelpMessageAction;
 
     QSystemTrayIcon *trayIcon;
+    QMenu *trayIconMenu;
     Notificator *notificator;
     RPCConsole *rpcConsole;
 
