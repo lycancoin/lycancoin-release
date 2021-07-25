@@ -22,8 +22,6 @@
 #include "json/json_spirit_utils.h"
 #include "json/json_spirit_value.h"
 
-using namespace boost;
-using namespace boost::assign;
 using namespace json_spirit;
 using namespace std;
 
@@ -237,8 +235,7 @@ CScript _createmultisig_redeemScript(const Array& params)
             throw runtime_error(" Invalid public key: "+ks);
         }
     }
-    CScript result;
-    result.SetMultisig(nRequired, pubkeys);
+    CScript result = GetScriptForMultisig(nRequired, pubkeys);
     
     if (result.size() > MAX_SCRIPT_ELEMENT_SIZE)
         throw runtime_error(

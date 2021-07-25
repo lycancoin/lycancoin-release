@@ -109,6 +109,9 @@
             <property name="text">
              <string>Inputs...</string>
             </property>
+            <property name="autoDefault">
+             <bool>false</bool>
+            </property>
            </widget>
           </item>
           <item>
@@ -417,7 +420,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>Low Output:</string>
+                  <string>Dust:</string>
                  </property>
                 </widget>
                </item>
@@ -673,6 +676,9 @@
        <property name="icon">
         <iconset resource="../bitcoin.qrc">
          <normaloff>:/icons/send</normaloff>:/icons/send</iconset>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
        </property>
        <property name="default">
         <bool>true</bool>

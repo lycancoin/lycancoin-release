@@ -23,7 +23,6 @@
 #include <openssl/rand.h>
 
 using namespace std;
-using namespace boost;
 
 
 unsigned int nWalletDBUpdated;
@@ -73,9 +72,9 @@ bool CDBEnv::Open(const boost::filesystem::path& pathIn)
     boost::this_thread::interruption_point();
     
     path = pathIn;
-    filesystem::path pathLogDir = path / "database";
-    filesystem::create_directory(pathLogDir);
-    filesystem::path pathErrorFile = path / "db.log";
+    boost::filesystem::path pathLogDir = path / "database";
+    boost::filesystem::create_directory(pathLogDir);
+    boost::filesystem::path pathErrorFile = path / "db.log";
     LogPrintf("CDBEnv::Open : LogDir=%s ErrorFile=%s\n", pathLogDir.string(), pathErrorFile.string());
 
     unsigned int nEnvFlags = 0;
@@ -214,7 +213,7 @@ bool CDBEnv::Salvage(std::string strFile, bool fAggressive,
 }
 
 
-void CDBEnv::CheckpointLSN(std::string strFile)
+void CDBEnv::CheckpointLSN(const std::string& strFile)
 {
     dbenv.txn_checkpoint(0, 0, 0);
     if (fMockDb)
@@ -223,15 +222,15 @@ void CDBEnv::CheckpointLSN(std::string strFile)
 }
 
 
-CDB::CDB(const char *pszFile, const char* pszMode) :
+CDB::CDB(const std::string& strFilename, const char* pszMode) :
     pdb(NULL), activeTxn(NULL)
 {
     int ret;
     fReadOnly = (!strchr(pszMode, '+') && !strchr(pszMode, 'w'));
-    if (pszFile == NULL)
+    if (strFilename.empty())
         return;
 
-    bool fCreate = strchr(pszMode, 'c');
+    bool fCreate = strchr(pszMode, 'c') != NULL;
     unsigned int nFlags = DB_THREAD;
     if (fCreate)
         nFlags |= DB_CREATE;
@@ -241,7 +240,7 @@ CDB::CDB(const char *pszFile, const char* pszMode) :
         if (!bitdb.Open(GetDataDir()))
             throw runtime_error("CDB : Failed to open database environment.");
 
-        strFile = pszFile;
+        strFile = strFilename;
         ++bitdb.mapFileUseCount[strFile];
         pdb = bitdb.mapDb[strFile];
         if (pdb == NULL)
@@ -254,14 +253,14 @@ CDB::CDB(const char *pszFile, const char* pszMode) :
                 DbMpoolFile*mpf = pdb->get_mpf();
                 ret = mpf->set_flags(DB_MPOOL_NOFILE, 1);
                 if (ret != 0)
-                    throw runtime_error(strprintf("CDB : Failed to configure for no temp file backing for database %s", pszFile));
+                    throw runtime_error(strprintf("CDB : Failed to configure for no temp file backing for database %s", strFile));
             }
 
-            ret = pdb->open(NULL,      // Txn pointer
-                            fMockDb ? NULL : pszFile,   // Filename
-                            fMockDb ? pszFile : "main", // Logical db name
-                            DB_BTREE,  // Database type
-                            nFlags,    // Flags
+            ret = pdb->open(NULL, // Txn pointer
+                            fMockDb ? NULL : strFile.c_str(), // Filename
+                            fMockDb ? strFile.c_str() : "main", // Logical db name
+                            DB_BTREE, // Database type
+                            nFlags, // Flags
                             0);
 
             if (ret != 0)
@@ -270,7 +269,7 @@ CDB::CDB(const char *pszFile, const char* pszMode) :
                 pdb = NULL;
                 --bitdb.mapFileUseCount[strFile];
                 strFile = "";
-                throw runtime_error(strprintf("CDB : Error %d, can't open database %s", ret, pszFile));
+                throw runtime_error(strprintf("CDB : Error %d, can't open database %s", ret, strFile));
             }
 
             if (fCreate && !Exists(string("version")))

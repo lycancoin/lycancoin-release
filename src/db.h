@@ -68,7 +68,7 @@ public:
     bool Open(const boost::filesystem::path &path);
     void Close();
     void Flush(bool fShutdown);
-    void CheckpointLSN(std::string strFile);
+    void CheckpointLSN(const std::string& strFile);
 
     void CloseDb(const std::string& strFile);
     bool RemoveDb(const std::string& strFile);
@@ -95,11 +95,13 @@ protected:
     DbTxn *activeTxn;
     bool fReadOnly;
 
-    explicit CDB(const char* pszFile, const char* pszMode="r+");
+    explicit CDB(const std::string& strFilename, const char* pszMode="r+");
     ~CDB() { Close(); }
+
 public:
     void Flush();
     void Close();
+
 private:
     CDB(const CDB&);
     void operator=(const CDB&);
