@@ -4,7 +4,7 @@
 src/lycancoin
 src/lycancoind
 src/lycancoin-cli
-src/bitcoin-tx
+src/lycancoin-tx
 src/test/test_bitcoin
 src/qt/test/test_bitcoin-qt
 
@@ -27,6 +27,8 @@ src/m4/ltoptions.m4
 src/m4/ltsugar.m4
 src/m4/ltversion.m4
 src/m4/lt~obsolete.m4
+
+db4/
 
 src/univalue/gen
 
