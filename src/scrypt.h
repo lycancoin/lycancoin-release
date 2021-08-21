@@ -1,5 +1,6 @@
 #ifndef SCRYPT_H
 #define SCRYPT_H
+
 #include <stdlib.h>
 #include <stdint.h>
 

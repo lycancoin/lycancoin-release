@@ -6,18 +6,24 @@
 
 #include "clientversion.h"
 #include "init.h"
+#include "networkstyle.h"
 #include "ui_interface.h"
 #include "util.h"
+#include "version.h"
+
 #ifdef ENABLE_WALLET
 #include "wallet.h"
 #endif
 
 #include <QApplication>
+#include <QCloseEvent>
+#include <QDesktopWidget>
 #include <QPainter>
+#include <QRadialGradient>
 
-SplashScreen::SplashScreen(const QPixmap &pixmap, Qt::WindowFlags f, bool isTestNet) :
-    QSplashScreen(pixmap, f)
-{
+SplashScreen::SplashScreen(Qt::WindowFlags f, const NetworkStyle *networkStyle) :
+    QWidget(0, f), curAlignment(0)
+{	
     // set reference point, paddings
     int paddingBottom           = 385;
     int paddingLeft             = 330;
@@ -25,26 +31,45 @@ SplashScreen::SplashScreen(const QPixmap &pixmap, Qt::WindowFlags f, bool isTest
     int titleCopyrightVSpace    = 40;
 
     float fontFactor            = 1.0;
+    float devicePixelRatio      = 1.0;
+#if QT_VERSION > 0x050100
+    devicePixelRatio = ((QGuiApplication*)QCoreApplication::instance())->devicePixelRatio();
+#endif
 
     // define text to place
     QString titleText       = tr("Lycancoin Core");
     QString versionText     = QString("Version %1").arg(QString::fromStdString(FormatFullVersion()));
     QString copyrightText   = QChar(0xA9)+QString(" 2014-%1 ").arg(COPYRIGHT_YEAR) + QString(tr("The Lycancoin Core Developers"));
-    QString testnetAddText  = QString(tr("[testnet]")); // define text to place as single text object
+    QString titleAddText    = networkStyle->getTitleAddText();
 
-    QString font            = "Arial";
+    QString font            = QApplication::font().toString();
 
-    // load the bitmap for writing some text over it
-    QPixmap newPixmap;
-    if(isTestNet) {
-        newPixmap     = QPixmap(":/images/splash");
-    }
-    else {
-        newPixmap     = QPixmap(":/images/splash");
-    }
+    // create a bitmap according to device pixelratio
+    QSize splashSize(600*devicePixelRatio,433*devicePixelRatio);
+    pixmap = QPixmap(splashSize);
 
-    QPainter pixPaint(&newPixmap);
+#if QT_VERSION > 0x050100
+    // change to HiDPI if it makes sense
+    pixmap.setDevicePixelRatio(devicePixelRatio);
+#endif
+
+    QPainter pixPaint(&pixmap);
     pixPaint.setPen(QColor(190,190,190));
+    
+    // draw a slighly radial gradient
+    QRadialGradient gradient(QPoint(0,0), splashSize.width()/devicePixelRatio);
+    gradient.setColorAt(0, Qt::white);
+    gradient.setColorAt(1, QColor(247,247,247));
+    QRect rGradient(QPoint(0,0), splashSize);
+    pixPaint.fillRect(rGradient, gradient);
+
+    // draw the lycancoin icon, expected size of PNG: 600 x 433
+    QRect rectIcon(QPoint(0,0), QSize(600,433));
+
+    const QSize requiredSize(600,433);
+    QPixmap icon(networkStyle->getAppIcon().pixmap(requiredSize));
+
+    pixPaint.drawPixmap(rectIcon, icon);
 
     // check font size and drawing with
     pixPaint.setFont(QFont(font, 20*fontFactor));
@@ -58,7 +83,7 @@ SplashScreen::SplashScreen(const QPixmap &pixmap, Qt::WindowFlags f, bool isTest
     pixPaint.setFont(QFont(font, 33*fontFactor));
     fm = pixPaint.fontMetrics();
     titleTextWidth  = fm.width(titleText);
-//    pixPaint.drawText(newPixmap.width()-titleTextWidth-paddingLeft,paddingBottom,titleText);
+//    pixPaint.drawText(pixmap.width()/devicePixelRatio-titleTextWidth-paddingRight,paddingTop,titleText);
 
     pixPaint.setFont(QFont(font, 12*fontFactor));
 
@@ -69,25 +94,32 @@ SplashScreen::SplashScreen(const QPixmap &pixmap, Qt::WindowFlags f, bool isTest
         pixPaint.setFont(QFont(font, 5*fontFactor));
         titleVersionVSpace -= 5;
     }
-    pixPaint.drawText(newPixmap.width()-titleTextWidth-paddingLeft+2,paddingBottom+titleVersionVSpace,versionText);
+    pixPaint.drawText(pixmap.width()/devicePixelRatio-titleTextWidth-paddingLeft+2,paddingBottom+titleVersionVSpace,versionText);
 
     // draw copyright stuff
     pixPaint.setFont(QFont(font, 8*fontFactor));
-    pixPaint.drawText(newPixmap.width()-titleTextWidth-paddingLeft,paddingBottom+titleCopyrightVSpace,copyrightText);
+    pixPaint.drawText(pixmap.width()/devicePixelRatio-titleTextWidth-paddingLeft,paddingBottom+titleCopyrightVSpace,copyrightText);
 
-    // draw testnet string if testnet is on
-    if(isTestNet) {
+    // draw additional text if special network
+    if(!titleAddText.isEmpty()) {
         QFont boldFont = QFont(font, 10*fontFactor);
         boldFont.setWeight(QFont::Bold);
         pixPaint.setFont(boldFont);
         fm = pixPaint.fontMetrics();
-        int testnetAddTextWidth  = fm.width(testnetAddText);
-        pixPaint.drawText(newPixmap.width()-testnetAddTextWidth-10,15,testnetAddText);
+        int titleAddTextWidth  = fm.width(titleAddText);
+        pixPaint.drawText(pixmap.width()/devicePixelRatio-titleAddTextWidth-10,15,titleAddText);
     }
 
     pixPaint.end();
 
-    this->setPixmap(newPixmap);
+    // Set window title
+    setWindowTitle(titleText + " " + titleAddText);
+
+    // Resize window and move to center of desktop, disallow resizing
+    QRect r(QPoint(), QSize(pixmap.size().width()/devicePixelRatio,pixmap.size().height()/devicePixelRatio));
+    resize(r.size());
+    setFixedSize(r.size());
+    move(QApplication::desktop()->screenGeometry().center() - r.center());
 
     subscribeToCoreSignals();
 }
@@ -99,7 +131,8 @@ SplashScreen::~SplashScreen()
 
 void SplashScreen::slotFinish(QWidget *mainWin)
 {
-    finish(mainWin);
+	 Q_UNUSED(mainWin);
+    hide();
 }
 
 static void InitMessage(SplashScreen *splash, const std::string &message)
@@ -142,4 +175,27 @@ void SplashScreen::unsubscribeFromCoreSignals()
     if(pwalletMain)
         pwalletMain->ShowProgress.disconnect(boost::bind(ShowProgress, this, _1, _2));
 #endif
+}
+
+void SplashScreen::showMessage(const QString &message, int alignment, const QColor &color)
+{
+    curMessage = message;
+    curAlignment = alignment;
+    curColor = color;
+    update();
+}
+
+void SplashScreen::paintEvent(QPaintEvent *event)
+{
+    QPainter painter(this);
+    painter.drawPixmap(0, 0, pixmap);
+    QRect r = rect().adjusted(5, 5, -5, -5);
+    painter.setPen(curColor);
+    painter.drawText(r, curAlignment, curMessage);
+}
+
+void SplashScreen::closeEvent(QCloseEvent *event)
+{
+	 StartShutdown(); // allows an "emergency" shutdown during startup
+    event->ignore();
 }

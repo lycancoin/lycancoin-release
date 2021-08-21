@@ -5,7 +5,7 @@
 #ifndef BITCOIN_COINS_H
 #define BITCOIN_COINS_H
 
-#include "core.h"
+#include "compressor.h"
 #include "serialize.h"
 #include "uint256.h"
 
@@ -82,9 +82,24 @@ public:
     // as new tx version will probably only be introduced at certain heights
     int nVersion;
 
-    // construct a CCoins from a CTransaction, at a given height
-    CCoins(const CTransaction &tx, int nHeightIn) : fCoinBase(tx.IsCoinBase()), vout(tx.vout), nHeight(nHeightIn), nVersion(tx.nVersion) {
+    void FromTx(const CTransaction &tx, int nHeightIn) {
+        fCoinBase = tx.IsCoinBase();
+        vout = tx.vout;
+        nHeight = nHeightIn;
+        nVersion = tx.nVersion;
         ClearUnspendable();
+    }
+    
+    // construct a CCoins from a CTransaction, at a given height
+    CCoins(const CTransaction &tx, int nHeightIn) {
+        FromTx(tx, nHeightIn);
+    }
+
+    void Clear() {
+        fCoinBase = false;
+        std::vector<CTxOut>().swap(vout);
+        nHeight = 0;
+        nVersion = 0;
     }
 
     // empty constructor
@@ -219,11 +234,8 @@ public:
         Cleanup();
     }
 
-    // mark an outpoint spent, and construct undo information
-    bool Spend(const COutPoint &out, CTxInUndo &undo);
-
     // mark a vout spent
-    bool Spend(int nPos);
+    bool Spend(uint32_t nPos);
 
     // check whether a particular output is still available
     bool IsAvailable(unsigned int nPos) const {
@@ -255,7 +267,20 @@ public:
     }
 };
 
-typedef boost::unordered_map<uint256, CCoins, CCoinsKeyHasher> CCoinsMap;
+struct CCoinsCacheEntry
+{
+    CCoins coins; // The actual cached data.
+    unsigned char flags;
+
+    enum Flags {
+        DIRTY = (1 << 0), // This cache entry is potentially different from the version in the parent view.
+        FRESH = (1 << 1), // The parent view does not have this entry (or it is pruned).
+    };
+
+    CCoinsCacheEntry() : coins(), flags(0) {}
+};
+
+typedef boost::unordered_map<uint256, CCoinsCacheEntry, CCoinsKeyHasher> CCoinsMap;
 
 struct CCoinsStats
 {
@@ -265,9 +290,9 @@ struct CCoinsStats
     uint64_t nTransactionOutputs;
     uint64_t nSerializedSize;
     uint256 hashSerialized;
-    int64_t nTotalAmount;
+    CAmount nTotalAmount;
 
-    CCoinsStats() : nHeight(0), hashBlock(0), nTransactions(0), nTransactionOutputs(0), nSerializedSize(0), hashSerialized(0), nTotalAmount(0) {}
+    CCoinsStats() : nHeight(0), nTransactions(0), nTransactionOutputs(0), nSerializedSize(0), nTotalAmount(0) {}
 };
 
 
@@ -278,9 +303,6 @@ public:
     // Retrieve the CCoins (unspent transaction outputs) for a given txid
     virtual bool GetCoins(const uint256 &txid, CCoins &coins) const;
 
-    // Modify the CCoins for a given txid
-    virtual bool SetCoins(const uint256 &txid, const CCoins &coins);
-
     // Just check whether we have data for a given txid.
     // This may (but cannot always) return true for fully spent transactions
     virtual bool HaveCoins(const uint256 &txid) const;
@@ -288,10 +310,7 @@ public:
     // Retrieve the block hash whose state this CCoinsView currently represents
     virtual uint256 GetBestBlock() const;
 
-    // Modify the currently active block hash
-    virtual bool SetBestBlock(const uint256 &hashBlock);
-
-    // Do a bulk modification (multiple SetCoins + one SetBestBlock).
+    // Do a bulk modification (multiple CCoins changes + BestBlock change).
     // The passed mapCoins can be modified.
     virtual bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock);
 
@@ -310,22 +329,40 @@ protected:
     CCoinsView *base;
 
 public:
-    CCoinsViewBacked(CCoinsView &viewIn);
+    CCoinsViewBacked(CCoinsView *viewIn);
     bool GetCoins(const uint256 &txid, CCoins &coins) const;
-    bool SetCoins(const uint256 &txid, const CCoins &coins);
     bool HaveCoins(const uint256 &txid) const;
     uint256 GetBestBlock() const;
-    bool SetBestBlock(const uint256 &hashBlock);
     void SetBackend(CCoinsView &viewIn);
     bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock);
     bool GetStats(CCoinsStats &stats) const;
 };
 
+class CCoinsViewCache;
+
+/** A reference to a mutable cache entry. Encapsulating it allows us to run
+ *  cleanup code after the modification is finished, and keeping track of
+ *  concurrent modifications. */
+class CCoinsModifier
+{
+private:
+    CCoinsViewCache& cache;
+    CCoinsMap::iterator it;
+    CCoinsModifier(CCoinsViewCache& cache_, CCoinsMap::iterator it_);
+
+public:
+    CCoins* operator->() { return &it->second.coins; }
+    CCoins& operator*() { return it->second.coins; }
+    ~CCoinsModifier();
+    friend class CCoinsViewCache;
+};
 
 /** CCoinsView that adds a memory cache for transactions to another CCoinsView */
 class CCoinsViewCache : public CCoinsViewBacked
 {
 protected:
+    /* Whether this cache has an active modifier. */
+    bool hasModifier;
 
     /* Make mutable so that we can "fill the cache" even from Get-methods
        declared as "const".  */
@@ -333,14 +370,14 @@ protected:
     mutable CCoinsMap cacheCoins;
 
 public:
-    CCoinsViewCache(CCoinsView &baseIn, bool fDummy = false);
+    CCoinsViewCache(CCoinsView *baseIn);
+    ~CCoinsViewCache();
 
     // Standard CCoinsView methods
     bool GetCoins(const uint256 &txid, CCoins &coins) const;
-    bool SetCoins(const uint256 &txid, const CCoins &coins);
     bool HaveCoins(const uint256 &txid) const;
     uint256 GetBestBlock() const;
-    bool SetBestBlock(const uint256 &hashBlock);
+    void SetBestBlock(const uint256 &hashBlock);
     bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock);
     
     // Return a pointer to CCoins in the cache, or NULL if not found. This is
@@ -348,8 +385,10 @@ public:
     // allowed while accessing the returned pointer.
     const CCoins* AccessCoins(const uint256 &txid) const;
 
-    // Return a modifiable reference to a CCoins. Check HaveCoins first.
-    CCoins &GetCoins(const uint256 &txid);
+    // Return a modifiable reference to a CCoins. If no entry with the given
+    // txid exists, a new one is created. Simultaneous modifications are not
+    // allowed.
+    CCoinsModifier ModifyCoins(const uint256 &txid);
 
     // Push the modifications applied to this cache to its base.
     // Failure to call this method before destruction will cause the changes to be forgotten.
@@ -365,7 +404,7 @@ public:
         @param[in] tx	transaction for which we are checking input total
         @return	Sum of value of all inputs (scriptSigs)
      */
-    int64_t GetValueIn(const CTransaction& tx) const;
+    CAmount GetValueIn(const CTransaction& tx) const;
 
     // Check whether all prevouts of the transaction are present in the UTXO set represented by this view
     bool HaveInputs(const CTransaction& tx) const;
@@ -374,10 +413,17 @@ public:
     double GetPriority(const CTransaction &tx, int nHeight) const;
 
     const CTxOut &GetOutputFor(const CTxIn& input) const;
+    
+    friend class CCoinsModifier;
 
 private:
     CCoinsMap::iterator FetchCoins(const uint256 &txid);
     CCoinsMap::const_iterator FetchCoins(const uint256 &txid) const;
+    
+    /**
+     * By making the copy constructor private, we prevent accidentally using it when one intends to create a cache on top of a base cache.
+     */
+    CCoinsViewCache(const CCoinsViewCache &);
 };
 
 #endif

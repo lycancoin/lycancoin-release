@@ -99,7 +99,7 @@ if test "x$want_boost" = "xyes"; then
         libsubdirs="lib64 lib lib64"
         ;;
     esac
-    
+
     dnl allow for real multi-arch paths e.g. /usr/lib/x86_64-linux-gnu. Give
     dnl them priority over the other paths since, if libs are found there, they
     dnl are almost assuredly the ones desired.

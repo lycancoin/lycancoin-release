@@ -7,9 +7,12 @@
 
 #include <QDialog>
 
-class MonitoredDataMapper;
 class OptionsModel;
 class QValidatedLineEdit;
+
+QT_BEGIN_NAMESPACE
+class QDataWidgetMapper;
+QT_END_NAMESPACE
 
 namespace Ui {
 class OptionsDialog;
@@ -21,7 +24,7 @@ class OptionsDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit OptionsDialog(QWidget *parent);
+    explicit OptionsDialog(QWidget *parent, bool enableWallet);
     ~OptionsDialog();
 
     void setModel(OptionsModel *model);
@@ -43,7 +46,6 @@ private slots:
 
     void showRestartWarning(bool fPersistent = false);
     void clearStatusLabel();
-    void updateDisplayUnit();
     void doProxyIpChecks(QValidatedLineEdit *pUiProxyIp, int nProxyPort);
 
 signals:
@@ -52,7 +54,7 @@ signals:
 private:
     Ui::OptionsDialog *ui;
     OptionsModel *model;
-    MonitoredDataMapper *mapper;
+    QDataWidgetMapper *mapper;
     bool fProxyIpValid;
 };
 

@@ -7,15 +7,25 @@
 #ifndef H_BITCOIN_SCRIPT
 #define H_BITCOIN_SCRIPT
 
-#include "key.h"
-#include "tinyformat.h"
 #include "utilstrencodings.h"
 
+#include <assert.h>
+#include <climits>
+#include <limits>
 #include <stdexcept>
 
-#include <boost/variant.hpp>
+#include <stdint.h>
+#include <string.h>
+#include <string>
+#include <vector>
 
 static const unsigned int MAX_SCRIPT_ELEMENT_SIZE = 520; // bytes
+
+template <typename T>
+std::vector<unsigned char> ToByteVector(const T& in)
+{
+    return std::vector<unsigned char>(in.begin(), in.end());
+}
 
 /** Script opcodes */
 enum opcodetype
@@ -186,10 +196,29 @@ public:
         m_value = n;
     }
 
-    explicit CScriptNum(const std::vector<unsigned char>& vch)
+    explicit CScriptNum(const std::vector<unsigned char>& vch, bool fRequireMinimal)
     {
-        if (vch.size() > nMaxNumSize)
-            throw scriptnum_error("CScriptNum(const std::vector<unsigned char>&) : overflow");
+        if (vch.size() > nMaxNumSize) {
+            throw scriptnum_error("script number overflow");
+        }
+        if (fRequireMinimal && vch.size() > 0) {
+            // Check that the number is encoded with the minimum possible
+            // number of bytes.
+            //
+            // If the most-significant-byte - excluding the sign bit - is zero
+            // then we're not minimal. Note how this test also rejects the
+            // negative-zero encoding, 0x80.
+            if ((vch.back() & 0x7f) == 0) {
+                // One exception: if there's more than one byte and the most
+                // significant bit of the second-most-significant-byte is set
+                // it would conflict with the sign bit. An example of this case
+                // is +-255, which encode to 0xff00 and 0xff80 respectively.
+                // (big-endian).
+                if (vch.size() <= 1 || (vch[vch.size() - 2] & 0x80) == 0) {
+                    throw scriptnum_error("non-minimally encoded script number");
+                }
+            }
+        }
         m_value = set_vch(vch);
     }
 
@@ -305,7 +334,7 @@ private:
       // If the input vector's most significant byte is 0x80, remove it from
       // the result's msb and return a negative.
       if (vch.back() & 0x80)
-          return -(result & ~(0x80ULL << (8 * (vch.size() - 1))));
+          return -((int64_t)(result & ~(0x80ULL << (8 * (vch.size() - 1)))));
 
       return result;
     }
@@ -313,13 +342,6 @@ private:
     int64_t m_value;
 };
 
-inline std::string ValueString(const std::vector<unsigned char>& vch)
-{
-    if (vch.size() <= 4)
-        return strprintf("%d", CScriptNum(vch).getint());
-    else
-        return HexStr(vch);
-}
 
 /** Serialized script, used inside transaction inputs and outputs */
 class CScript : public std::vector<unsigned char>
@@ -331,6 +353,10 @@ protected:
         {
             push_back(n + (OP_1 - 1));
         }
+        else if (n == 0)
+        {
+            push_back(OP_0);
+        }
         else
         {
             *this << CScriptNum::serialize(n);
@@ -341,9 +367,7 @@ public:
     CScript() { }
     CScript(const CScript& b) : std::vector<unsigned char>(b.begin(), b.end()) { }
     CScript(const_iterator pbegin, const_iterator pend) : std::vector<unsigned char>(pbegin, pend) { }
-#ifndef _MSC_VER
     CScript(const unsigned char* pbegin, const unsigned char* pend) : std::vector<unsigned char>(pbegin, pend) { }
-#endif
 
     CScript& operator+=(const CScript& b)
     {
@@ -361,7 +385,6 @@ public:
     CScript(int64_t b)        { operator<<(b); }
 
     explicit CScript(opcodetype b)     { operator<<(b); }
-    explicit CScript(const uint256& b) { operator<<(b); }
     explicit CScript(const CScriptNum& b) { operator<<(b); }
     explicit CScript(const std::vector<unsigned char>& b) { operator<<(b); }
 
@@ -373,28 +396,6 @@ public:
         if (opcode < 0 || opcode > 0xff)
             throw std::runtime_error("CScript::operator<<() : invalid opcode");
         insert(end(), (unsigned char)opcode);
-        return *this;
-    }
-
-    CScript& operator<<(const uint160& b)
-    {
-        insert(end(), sizeof(b));
-        insert(end(), (unsigned char*)&b, (unsigned char*)&b + sizeof(b));
-        return *this;
-    }
-
-    CScript& operator<<(const uint256& b)
-    {
-        insert(end(), sizeof(b));
-        insert(end(), (unsigned char*)&b, (unsigned char*)&b + sizeof(b));
-        return *this;
-    }
-
-    CScript& operator<<(const CPubKey& key)
-    {
-        assert(key.size() < OP_PUSHDATA1);
-        insert(end(), (unsigned char)key.size());
-        insert(end(), key.begin(), key.end());
         return *this;
     }
 
@@ -547,7 +548,7 @@ public:
         {
             while (end() - pc >= (long)b.size() && memcmp(&pc[0], &b[0], b.size()) == 0)
             {
-                erase(pc, pc + b.size());
+                pc = erase(pc, pc + b.size());
                 ++nFound;
             }
         }
@@ -577,11 +578,8 @@ public:
 
     bool IsPayToScriptHash() const;
 
-    // Called by IsStandardTx and P2SH VerifyScript (which makes it consensus-critical).
+    // Called by IsStandardTx and P2SH/BIP62 VerifyScript (which makes it consensus-critical).
     bool IsPushOnly() const;
-
-    // Called by IsStandardTx.
-    bool HasCanonicalPushes() const;
 
     // Returns whether the script is guaranteed to fail at execution,
     // regardless of the initial stack. This allows outputs to be pruned
@@ -591,33 +589,7 @@ public:
         return (size() > 0 && *begin() == OP_RETURN);
     }
 
-    std::string ToString() const
-    {
-        std::string str;
-        opcodetype opcode;
-        std::vector<unsigned char> vch;
-        const_iterator pc = begin();
-        while (pc < end())
-        {
-            if (!str.empty())
-                str += " ";
-            if (!GetOp(pc, opcode, vch))
-            {
-                str += "[error]";
-                return str;
-            }
-            if (0 <= opcode && opcode <= OP_PUSHDATA4)
-                str += ValueString(vch);
-            else
-                str += GetOpName(opcode);
-        }
-        return str;
-    }
-
-    CScriptID GetID() const
-    {
-        return CScriptID(Hash160(*this));
-    }
+    std::string ToString() const;
     
     void clear()
     {

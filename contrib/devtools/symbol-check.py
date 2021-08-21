@@ -1,12 +1,14 @@
 #!/usr/bin/python
 # Copyright (c) 2014 Wladimir J. van der Laan
-# Distributed under the MIT/X11 software license, see the accompanying
+# Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 '''
 A script to check that the (Linux) executables produced by gitian only contain
 allowed gcc, glibc and libstdc++ version symbols.  This makes sure they are
 still compatible with the minimum supported Linux distribution versions.
+
 Example usage:
+
     find ../gitian-builder/build -type f -executable | xargs python contrib/devtools/symbol-check.py
 '''
 from __future__ import division, print_function
@@ -39,12 +41,17 @@ MAX_VERSIONS = {
 'GLIBCXX': (3,4,13),
 'GLIBC':   (2,11)
 }
+# Ignore symbols that are exported as part of every executable
+IGNORE_EXPORTS = {
+'_edata', '_end', '_init', '__bss_start', '_fini'
+}
 READELF_CMD = '/usr/bin/readelf'
 CPPFILT_CMD = '/usr/bin/c++filt'
 
 class CPPFilt(object):
     '''
     Demangle C++ symbol names.
+
     Use a pipe to the 'c++filt' command.
     '''
     def __init__(self):
@@ -95,13 +102,15 @@ if __name__ == '__main__':
     cppfilt = CPPFilt()
     retval = 0
     for filename in sys.argv[1:]:
-    	  # Check imported symbols
+        # Check imported symbols
         for sym,version in read_symbols(filename, True):
             if version and not check_version(MAX_VERSIONS, version):
                 print('%s: symbol %s from unsupported version %s' % (filename, cppfilt(sym), version))
                 retval = 1
         # Check exported symbols
         for sym,version in read_symbols(filename, False):
+            if sym in IGNORE_EXPORTS:
+                continue
             print('%s: export of symbol %s not allowed' % (filename, cppfilt(sym)))
             retval = 1
 

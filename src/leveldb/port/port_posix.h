@@ -21,17 +21,14 @@
   #else
     #define PLATFORM_IS_LITTLE_ENDIAN false
   #endif
-#elif defined(OS_FREEBSD)
+#elif defined(OS_FREEBSD) || defined(OS_OPENBSD) ||\
+      defined(OS_NETBSD) || defined(OS_DRAGONFLYBSD)
   #include <sys/types.h>
   #include <sys/endian.h>
   #define PLATFORM_IS_LITTLE_ENDIAN (_BYTE_ORDER == _LITTLE_ENDIAN)
-#elif defined(OS_OPENBSD) || defined(OS_NETBSD) ||\
-      defined(OS_DRAGONFLYBSD)
-  #include <sys/types.h>
-  #include <sys/endian.h>
 #elif defined(OS_HPUX)
   #define PLATFORM_IS_LITTLE_ENDIAN false
-  #elif defined(OS_ANDROID)
+#elif defined(OS_ANDROID)
   // Due to a bug in the NDK x86 <sys/endian.h> definition,
   // _BYTE_ORDER must be used instead of __BYTE_ORDER on Android.
   // See http://code.google.com/p/android/issues/detail?id=39824
@@ -55,17 +52,21 @@
 
 #if defined(OS_MACOSX) || defined(OS_SOLARIS) || defined(OS_FREEBSD) ||\
     defined(OS_NETBSD) || defined(OS_OPENBSD) || defined(OS_DRAGONFLYBSD) ||\
-    defined(OS_ANDROID) || defined(OS_HPUX)
+    defined(OS_ANDROID) || defined(OS_HPUX) || defined(CYGWIN)
 // Use fread/fwrite/fflush on platforms without _unlocked variants
 #define fread_unlocked fread
 #define fwrite_unlocked fwrite
 #define fflush_unlocked fflush
 #endif
 
-#if defined(OS_MACOSX) || defined(OS_FREEBSD) ||\
+#if defined(OS_FREEBSD) ||\
     defined(OS_OPENBSD) || defined(OS_DRAGONFLYBSD)
 // Use fsync() on platforms without fdatasync()
 #define fdatasync fsync
+#endif
+
+#if defined(OS_MACOSX)
+#define fdatasync(fd) fcntl(fd, F_FULLFSYNC, 0)
 #endif
 
 #if defined(OS_ANDROID) && __ANDROID_API__ < 9
@@ -154,4 +155,4 @@ inline bool GetHeapProfile(void (*func)(void*, const char*, int), void* arg) {
 } // namespace port
 } // namespace leveldb
 
-#endif // STORAGE_LEVELDB_PORT_PORT_POSIX_H_
+#endif  // STORAGE_LEVELDB_PORT_PORT_POSIX_H_

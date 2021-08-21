@@ -3,6 +3,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "clientversion.h"
 #include "rpcserver.h"
 #include "init.h"
 #include "main.h"
@@ -59,13 +60,36 @@ bool AppInit(int argc, char* argv[])
     boost::thread* detectShutdownThread = NULL;
 
     bool fRet = false;
+    
+    //
+    // Parameters
+    //
+    // If Qt is used, parameters/lycanoin.conf are parsed in qt/bitcoin.cpp's main()
+    ParseParameters(argc, argv);
+
+    // Process help and version before taking care about datadir
+    if (mapArgs.count("-?") || mapArgs.count("-help") || mapArgs.count("-version"))
+    {
+        std::string strUsage = _("Lycancoin Core Daemon") + " " + _("version") + " " + FormatFullVersion() + "\n";
+
+        if (mapArgs.count("-version"))
+        {
+            strUsage += LicenseInfo();
+        }
+        else
+        {
+            strUsage += "\n" + _("Usage:") + "\n" +
+                  "  lycancoind [options]                     " + _("Start Lycancoin Core Daemon") + "\n";
+
+            strUsage += "\n" + HelpMessage(HMM_BITCOIND);
+        }
+
+        fprintf(stdout, "%s", strUsage.c_str());
+        return false;
+    }    
+    
     try
     {
-        //
-        // Parameters
-        //
-        // If Qt is used, parameters/bitcoin.conf are parsed in qt/bitcoin.cpp's main()
-        ParseParameters(argc, argv);
         if (!boost::filesystem::is_directory(GetDataDir(false)))
         {
             fprintf(stderr, "Error: Specified data directory \"%s\" does not exist.\n", mapArgs["-datadir"].c_str());
@@ -74,33 +98,13 @@ bool AppInit(int argc, char* argv[])
         try
         {
             ReadConfigFile(mapArgs, mapMultiArgs);
-        } catch(std::exception &e) {
+        } catch (const std::exception& e) {
             fprintf(stderr,"Error reading configuration file: %s\n", e.what());
             return false;
         }
         // Check for -testnet or -regtest parameter (Params() calls are only valid after this clause)
         if (!SelectParamsFromCommandLine()) {
             fprintf(stderr, "Error: Invalid combination of -regtest and -testnet.\n");
-            return false;
-        }
-
-        if (mapArgs.count("-?") || mapArgs.count("-help") || mapArgs.count("-version"))
-        {
-            std::string strUsage = _("Lycancoin Core Daemon") + " " + _("version") + " " + FormatFullVersion() + "\n";
-
-            if (mapArgs.count("-version"))
-            {
-                strUsage += LicenseInfo();
-            }
-            else
-            {
-                strUsage += "\n" + _("Usage:") + "\n" +
-                      "  lycancoind [options]                     " + _("Start Lycancoin Core Daemon") + "\n";
-
-                strUsage += "\n" + HelpMessage(HMM_BITCOIND);
-            }
-
-            fprintf(stdout, "%s", strUsage.c_str());
             return false;
         }
 
@@ -130,7 +134,6 @@ bool AppInit(int argc, char* argv[])
             }
             if (pid > 0) // Parent process, pid is child process id
             {
-                CreatePidFile(GetPidFile(), pid);
                 return true;
             }
             // Child process falls through to rest of initialization
@@ -145,7 +148,7 @@ bool AppInit(int argc, char* argv[])
         detectShutdownThread = new boost::thread(boost::bind(&DetectShutdownThread, &threadGroup));
         fRet = AppInit2(threadGroup);
     }
-    catch (std::exception& e) {
+    catch (const std::exception& e) {
         PrintExceptionContinue(&e, "AppInit()");
     } catch (...) {
         PrintExceptionContinue(NULL, "AppInit()");

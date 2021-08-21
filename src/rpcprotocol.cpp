@@ -6,6 +6,7 @@
 
 #include "rpcprotocol.h"
 
+#include "clientversion.h"
 #include "util.h"
 #include "tinyformat.h"
 #include "utilstrencodings.h"

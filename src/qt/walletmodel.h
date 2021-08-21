@@ -33,15 +33,15 @@ class SendCoinsRecipient
 {
 public:
     explicit SendCoinsRecipient() : amount(0), nVersion(SendCoinsRecipient::CURRENT_VERSION) { }
-    explicit SendCoinsRecipient(const QString &addr, const QString &label, quint64 amount, const QString &message):
+    explicit SendCoinsRecipient(const QString &addr, const QString &label, const CAmount& amount, const QString &message):
         address(addr), label(label), amount(amount), message(message), nVersion(SendCoinsRecipient::CURRENT_VERSION) {}
 
     QString address;
     QString label;
-    qint64 amount;
+    CAmount amount;
     QString message;
 
-    // If from a payment request, paymentRequest.IsInitialized() will be true
+    // If from an unauthenticated payment request, this is used for storing
     PaymentRequestPlus paymentRequest;
     // Empty if no authentication or invalid signature/cert/etc.
     QString authenticatedMerchant;
@@ -100,7 +100,9 @@ public:
         AmountWithFeeExceedsBalance,
         DuplicateAddress,
         TransactionCreationFailed, // Error returned when wallet is still locked
-        TransactionCommitFailed
+        TransactionCommitFailed,
+        InsaneFee,
+        PaymentRequestExpired
     };
 
     enum EncryptionStatus
@@ -115,15 +117,14 @@ public:
     TransactionTableModel *getTransactionTableModel();
     RecentRequestsTableModel *getRecentRequestsTableModel();
 
-    qint64 getBalance(const CCoinControl *coinControl = NULL) const;
-    qint64 getUnconfirmedBalance() const;
-    qint64 getImmatureBalance() const;
+    CAmount getBalance(const CCoinControl *coinControl = NULL) const;
+    CAmount getUnconfirmedBalance() const;
+    CAmount getImmatureBalance() const;
     bool haveWatchOnly() const;
-    qint64 getWatchBalance() const;
-    qint64 getWatchUnconfirmedBalance() const;
-    qint64 getWatchImmatureBalance() const;
+    CAmount getWatchBalance() const;
+    CAmount getWatchUnconfirmedBalance() const;
+    CAmount getWatchImmatureBalance() const;
     EncryptionStatus getEncryptionStatus() const;
-    bool processingQueuedTransactions() { return fProcessingQueuedTransactions; }
 
     // Check address for validity
     bool validateAddress(const QString &address);
@@ -187,7 +188,6 @@ public:
 
 private:
     CWallet *wallet;
-    bool fProcessingQueuedTransactions;
     bool fHaveWatchOnly;
     bool fForceCheckBalanceChanged;
 
@@ -200,12 +200,12 @@ private:
     RecentRequestsTableModel *recentRequestsTableModel;
 
     // Cache some values to be able to detect changes
-    qint64 cachedBalance;
-    qint64 cachedUnconfirmedBalance;
-    qint64 cachedImmatureBalance;
-    qint64 cachedWatchOnlyBalance;
-    qint64 cachedWatchUnconfBalance;
-    qint64 cachedWatchImmatureBalance;
+    CAmount cachedBalance;
+    CAmount cachedUnconfirmedBalance;
+    CAmount cachedImmatureBalance;
+    CAmount cachedWatchOnlyBalance;
+    CAmount cachedWatchUnconfBalance;
+    CAmount cachedWatchImmatureBalance;
     EncryptionStatus cachedEncryptionStatus;
     int cachedNumBlocks;
 
@@ -217,8 +217,8 @@ private:
 
 signals:
     // Signal that balance in wallet changed
-    void balanceChanged(qint64 balance, qint64 unconfirmedBalance, qint64 immatureBalance,
-                        qint64 watchOnlyBalance, qint64 watchUnconfBalance, qint64 watchImmatureBalance);
+    void balanceChanged(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,
+                        const CAmount& watchOnlyBalance, const CAmount& watchUnconfBalance, const CAmount& watchImmatureBalance);
 
     // Encryption status of wallet changed
     void encryptionStatusChanged(int status);
@@ -244,15 +244,13 @@ public slots:
     /* Wallet status might have changed */
     void updateStatus();
     /* New transaction, or transaction changed status */
-    void updateTransaction(const QString &hash, int status);
+    void updateTransaction();
     /* New, updated or removed address book entry */
     void updateAddressBook(const QString &address, const QString &label, bool isMine, const QString &purpose, int status);
     /* Watch-only added */
     void updateWatchOnlyFlag(bool fHaveWatchonly);    
     /* Current, immature or unconfirmed balance might have changed - emit 'balanceChanged' if so */
     void pollBalanceChanged();
-    /* Needed to update fProcessingQueuedTransactions through a QueuedConnection */
-    void setProcessingQueuedTransactions(bool value) { fProcessingQueuedTransactions = value; }
 };
 
 #endif // WALLETMODEL_H

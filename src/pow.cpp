@@ -5,16 +5,18 @@
 
 #include "pow.h"
 
+#include "arith_uint256.h"
+#include "chain.h"
 #include "chainparams.h"
-#include "core.h"
-#include "main.h"
-#include "timedata.h"
+#include "primitives/block.h"
+#include "main.h" //Necessary for KGW - Move later
 #include "uint256.h"
 #include "util.h"
 
 #include "bignum.h" //Necessary for KGW
 
-static CBigNum bnProofOfWorkLimit(~uint256(0) >> 20); //Necessary for KGW
+//static CBigNum bnProofOfWorkLimit(~uint256(0) >> 20); //Necessary for KGW
+static const CBigNum bnProofOfWorkLimit(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
 
 // static const int64_t nInterval = nTargetTimespan / nTargetSpacing;
 
@@ -172,8 +174,8 @@ unsigned int static GetNextWorkRequired_V1(const CBlockIndex* pindexLast, const 
         nActualTimespan = Params().TargetTimespan()*4;
 
     // Retarget
-    uint256 bnNew;
-    uint256 bnOld;
+    arith_uint256 bnNew;
+    arith_uint256 bnOld;
     bnNew.SetCompact(pindexLast->nBits);
     bnOld = bnNew;
     bnNew *= nActualTimespan;
@@ -210,7 +212,10 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits)
 {
     bool fNegative;
     bool fOverflow;
-    uint256 bnTarget;
+    arith_uint256 bnTarget;
+    
+    if (Params().SkipProofOfWorkCheck())
+       return true;
     
     bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
 
@@ -219,64 +224,22 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits)
         return error("CheckProofOfWork() : nBits below minimum work");
 
     // Check proof of work matches claimed amount
-//    if (hash > bnTarget)
+//   if (UintToArith256(hash) > bnTarget)
 //        return error("CheckProofOfWork() : hash doesn't match nBits");
 
     return true;
 }
 
-//
-// true if nBits is greater than the minimum amount of work that could
-// possibly be required deltaTime after minimum work required was nBase
-//
-bool CheckMinWork(unsigned int nBits, unsigned int nBase, int64_t deltaTime)
+arith_uint256 GetBlockProof(const CBlockIndex& block)
 {
-    bool fOverflow = false;
-    uint256 bnNewBlock;
-    bnNewBlock.SetCompact(nBits, NULL, &fOverflow);
-    if (fOverflow)
-        return false;
-        
-    const uint256 &bnLimit = Params().ProofOfWorkLimit();
-    // Testnet has min-difficulty blocks
-    // after nTargetSpacing*2 time between blocks:
-    if (Params().AllowMinDifficultyBlocks() && deltaTime > Params().TargetSpacing()*2)
-        return bnNewBlock <= bnLimit;
-
-    uint256 bnResult;
-    bnResult.SetCompact(nBase);
-    while (deltaTime > 0 && bnResult < bnLimit)
-    {
-        // Maximum 400% adjustment...
-        bnResult *= 4;
-        // ... in best-case exactly 4-times-normal target time
-        deltaTime -= Params().TargetTimespan()*4;
-    }
-    if (bnResult > bnLimit)
-        bnResult = bnLimit;
-
-    return bnNewBlock <= bnResult;
-}
-
-void UpdateTime(CBlockHeader* pblock, const CBlockIndex* pindexPrev)
-{
-    pblock->nTime = std::max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
-
-    // Updating time can change work required on testnet:
-    if (Params().AllowMinDifficultyBlocks())
-        pblock->nBits = GetNextWorkRequired(pindexPrev, pblock);
-}
-
-uint256 GetProofIncrement(unsigned int nBits)
-{
-    uint256 bnTarget;
+    arith_uint256 bnTarget;
     bool fNegative;
     bool fOverflow;
-    bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
+    bnTarget.SetCompact(block.nBits, &fNegative, &fOverflow);
     if (fNegative || fOverflow || bnTarget == 0)
         return 0;
     // We need to compute 2**256 / (bnTarget+1), but we can't represent 2**256
-    // as it's too large for a uint256. However, as 2**256 is at least as large
+    // as it's too large for a arith_uint256. However, as 2**256 is at least as large
     // as bnTarget+1, it is equal to ((2**256 - bnTarget - 1) / (bnTarget+1)) + 1,
     // or ~bnTarget / (nTarget+1) + 1.
     return (~bnTarget / (bnTarget + 1)) + 1;

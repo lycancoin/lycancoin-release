@@ -6,6 +6,7 @@
 #include "ui_intro.h"
 
 #include "guiutil.h"
+#include "scicon.h"
 
 #include "util.h"
 
@@ -93,7 +94,7 @@ void FreespaceChecker::check()
                 replyMessage = tr("Path already exists, and is not a directory.");
             }
         }
-    } catch(fs::filesystem_error &e)
+    } catch (const fs::filesystem_error&)
     {
         /* Parent directory does not exist or is not accessible */
         replyStatus = ST_ERROR;
@@ -165,7 +166,7 @@ void Intro::pickDataDirectory()
         /* If current default data directory does not exist, let the user choose one */
         Intro intro;
         intro.setDataDirectory(dataDir);
-        intro.setWindowIcon(QIcon(":icons/bitcoin"));
+        intro.setWindowIcon(SingleColorIcon(":icons/bitcoin"));
 
         while(true)
         {
@@ -176,9 +177,9 @@ void Intro::pickDataDirectory()
             }
             dataDir = intro.getDataDirectory();
             try {
-                fs::create_directory(GUIUtil::qstringToBoostPath(dataDir));
+                TryCreateDirectory(GUIUtil::qstringToBoostPath(dataDir));
                 break;
-            } catch(fs::filesystem_error &e) {
+            } catch (const fs::filesystem_error&) {
                 QMessageBox::critical(0, tr("Lycancoin Core"),
                     tr("Error: Specified data directory \"%1\" can not be created.").arg(dataDir));
                 /* fall through, back to choosing screen */

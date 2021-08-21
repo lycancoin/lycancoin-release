@@ -39,6 +39,8 @@
 
 class OptionsModel;
 
+class CWallet;
+
 QT_BEGIN_NAMESPACE
 class QApplication;
 class QByteArray;
@@ -49,7 +51,8 @@ class QSslError;
 class QUrl;
 QT_END_NAMESPACE
 
-class CWallet;
+// BIP70 max payment request size in bytes (DoS protection)
+extern const qint64 BIP70_MAX_PAYMENTREQUEST_SIZE;
 
 class PaymentServer : public QObject
 {
@@ -58,7 +61,7 @@ class PaymentServer : public QObject
 public:
     // Parse URIs on command line
     // Returns false on error
-    static bool ipcParseCommandLine(int argc, char *argv[]);
+    static void ipcParseCommandLine(int argc, char *argv[]);
 
     // Returns true if there were URIs on the command line
     // which were successfully sent to an already-running
@@ -83,7 +86,16 @@ public:
 
     // OptionsModel is used for getting proxy settings and display unit
     void setOptionsModel(OptionsModel *optionsModel);
+    
+    // This is now public, because we use it in paymentservertests.cpp
+    static bool readPaymentRequestFromFile(const QString& filename, PaymentRequestPlus& request);
 
+    // Verify that the payment request network matches the client network
+    static bool verifyNetwork(const payments::PaymentDetails& requestDetails);
+    
+    // Verify if the payment request is expired
+    static bool verifyExpired(const payments::PaymentDetails& requestDetails);
+    
 signals:
     // Fired when a valid payment request is received
     void receivedPaymentRequest(SendCoinsRecipient);
@@ -117,7 +129,6 @@ protected:
     bool eventFilter(QObject *object, QEvent *event);
 
 private:
-    static bool readPaymentRequest(const QString& filename, PaymentRequestPlus& request);
     bool processPaymentRequest(PaymentRequestPlus& request, SendCoinsRecipient& recipient);
     void fetchRequest(const QUrl& url);
 

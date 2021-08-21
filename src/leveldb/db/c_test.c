@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
   leveldb_writeoptions_t* woptions;
   char* err = NULL;
   int run = -1;
-  
+
   CheckCondition(leveldb_major_version() >= 1);
   CheckCondition(leveldb_minor_version() >= 1);
 
@@ -206,7 +206,7 @@ int main(int argc, char** argv) {
   db = leveldb_open(options, dbname, &err);
   CheckCondition(err != NULL);
   Free(&err);
-  
+
   StartPhase("leveldb_free");
   db = leveldb_open(options, dbname, &err);
   CheckCondition(err != NULL);

@@ -142,7 +142,7 @@ class Env {
   // useful for computing deltas of time.
   virtual uint64_t NowMicros() = 0;
 
-  // Sleep/delay the thread for the perscribed number of micro-seconds.
+  // Sleep/delay the thread for the prescribed number of micro-seconds.
   virtual void SleepForMicroseconds(int micros) = 0;
 
  private:
@@ -175,7 +175,7 @@ class SequentialFile {
   //
   // REQUIRES: External synchronization
   virtual Status Skip(uint64_t n) = 0;
-  
+
  private:
   // No copying allowed
   SequentialFile(const SequentialFile&);
@@ -199,8 +199,8 @@ class RandomAccessFile {
   // Safe for concurrent use by multiple threads.
   virtual Status Read(uint64_t offset, size_t n, Slice* result,
                       char* scratch) const = 0;
-                      
-  private:
+
+ private:
   // No copying allowed
   RandomAccessFile(const RandomAccessFile&);
   void operator=(const RandomAccessFile&);

@@ -4,11 +4,17 @@ Run this script inside of src/ and it will look for all the files
 that were changed this year that still have the last year in the
 copyright headers, and it will fix the headers on that file using
 a perl regex one liner.
+
 For example: if it finds something like this and we're in 2014
-// Copyright (c) 2009-2013 The Bitcoin developers
+
+// Copyright (c) 2009-2013 The Bitcoin Core developers
+
 it will change it to
-// Copyright (c) 2009-2014 The Bitcoin developers
+
+// Copyright (c) 2009-2014 The Bitcoin Core developers
+
 It will do this for all the files in the folder and its children.
+
 Author: @gubatron
 '''
 import os
@@ -43,4 +49,5 @@ for extension in extensions:
         print n,"Last Git Modified: ", modifiedTime, " - ", filePath
         os.popen(command % (last_year,year,filePath))
         n = n + 1
+
 

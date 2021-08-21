@@ -4,26 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #ifndef BITCOIN_VERSION_H
 #define BITCOIN_VERSION_H
-
-#include "clientversion.h"
-
-#include <string>
- #include <vector>
  
-//
-// client versioning
-//
-
-static const int CLIENT_VERSION =
-                           1000000 * CLIENT_VERSION_MAJOR
-                         +   10000 * CLIENT_VERSION_MINOR
-                         +     100 * CLIENT_VERSION_REVISION
-                         +       1 * CLIENT_VERSION_BUILD;
-
-extern const std::string CLIENT_NAME;
-extern const std::string CLIENT_BUILD;
-extern const std::string CLIENT_DATE;
-
 //
 // network protocol versioning
 //
@@ -33,8 +14,11 @@ static const int PROTOCOL_VERSION = 60004;
 // intial proto version, to be increased after version/verack negotiation
 static const int INIT_PROTO_VERSION = 60000;
 
+// In this version, 'getheaders' was introduced.
+static const int GETHEADERS_VERSION = 60001;
+
 // disconnect from peers older than this proto version
-static const int MIN_PEER_PROTO_VERSION = 60000;
+static const int MIN_PEER_PROTO_VERSION = GETHEADERS_VERSION;
 
 // nTime field added to CAddress, starting with this version;
 // if possible, avoid requesting addresses nodes older than this
@@ -46,7 +30,4 @@ static const int BIP0031_VERSION = 60000;
 // "mempool" command, enhanced "getdata" behavior starts with this version:
 static const int MEMPOOL_GD_VERSION = 60002;
 
-std::string FormatFullVersion();
-std::string FormatSubVersion(const std::string& name, int nClientVersion, const std::vector<std::string>& comments);
-
-#endif
+#endif // BITCOIN_VERSION_H

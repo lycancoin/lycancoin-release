@@ -229,7 +229,7 @@ public:
         BN_mpi2bn(pch, p - pch, this);
     }
 
-    uint256 getuint256() const
+/*    uint256 getuint256() const
     {
         unsigned int nSize = BN_bn2mpi(this, NULL);
         if (nSize < 4)
@@ -242,7 +242,7 @@ public:
         for (unsigned int i = 0, j = vch.size()-1; i < sizeof(n) && j >= 4; i++, j--)
             ((unsigned char*)&n)[i] = vch[j];
         return n;
-    }
+    }*/
 
     void setvch(const std::vector<unsigned char>& vch)
     {

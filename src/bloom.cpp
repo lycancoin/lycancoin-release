@@ -5,8 +5,11 @@
 #include "bloom.h"
 
 #include "main.h"
+#include "primitives/transaction.h"
+#include "hash.h"
 #include "script/script.h"
 #include "script/standard.h"
+#include "streams.h"
 
 #include <math.h>
 #include <stdlib.h>

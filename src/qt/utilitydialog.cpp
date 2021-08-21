@@ -10,13 +10,16 @@
 #include "clientmodel.h"
 #include "guiutil.h"
 
+#include "clientversion.h"
 #include "init.h"
-#include "version.h"
+#include "util.h"
 
 #include <stdio.h>
 
 #include <QLabel>
 #include <QRegExp>
+#include <QTextTable>
+#include <QTextCursor>
 #include <QVBoxLayout>
 
 /** "Help message" or "About" dialog box */
@@ -51,28 +54,89 @@ HelpMessageDialog::HelpMessageDialog(QWidget *parent, bool about) :
         // Replace newlines with HTML breaks
         licenseInfoHTML.replace("\n\n", "<br><br>");
 
-        ui->helpMessageLabel->setTextFormat(Qt::RichText);
+        ui->aboutMessage->setTextFormat(Qt::RichText);
         ui->scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
         text = version + "\n" + licenseInfo;
-        ui->helpMessageLabel->setText(version + "<br><br>" + licenseInfoHTML);
-        ui->helpMessageLabel->setWordWrap(true);
+        ui->aboutMessage->setText(version + "<br><br>" + licenseInfoHTML);
+        ui->aboutMessage->setWordWrap(true);
+        ui->helpMessage->setVisible(false);
     } else {
         setWindowTitle(tr("Command-line options"));
-        QString header = tr("Usage:") + "\n" +
-            "  lycancoin-qt [" + tr("command-line options") + "]                     " + "\n";
+        QTextCursor cursor(ui->helpMessage->document());
+        cursor.insertText(version);
+        cursor.insertBlock();
+        cursor.insertText(tr("Usage:") + '\n' +
+            "  lycancoin-qt [" + tr("command-line options") + "]\n");
+
+        cursor.insertBlock();
+        QTextTableFormat tf;
+        tf.setBorderStyle(QTextFrameFormat::BorderStyle_None);
+        tf.setCellPadding(2);
+        QVector<QTextLength> widths;
+        widths << QTextLength(QTextLength::PercentageLength, 35);
+        widths << QTextLength(QTextLength::PercentageLength, 65);
+        tf.setColumnWidthConstraints(widths);
+        QTextTable *table = cursor.insertTable(2, 2, tf);
 
         QString coreOptions = QString::fromStdString(HelpMessage(HMM_BITCOIN_QT));
 
-        QString uiOptions = tr("UI options") + ":\n" +
-            "  -choosedatadir            " + tr("Choose data directory on startup (default: 0)") + "\n" +
-            "  -lang=<lang>              " + tr("Set language, for example \"de_DE\" (default: system locale)") + "\n" +
-            "  -min                      " + tr("Start minimized") + "\n" +
-            "  -rootcertificates=<file>  " + tr("Set SSL root certificates for payment request (default: -system-)") + "\n" +
-            "  -splash                   " + tr("Show splash screen on startup (default: 1)");
+        bool first = true;
+        QTextCharFormat bold;
+        bold.setFontWeight(QFont::Bold);
+        // note that coreOptions is not translated.
+        foreach (const QString &line, coreOptions.split('\n')) {
+            if (!first) {
+                table->appendRows(1);
+                cursor.movePosition(QTextCursor::NextRow);
+            }
+            first = false;
 
-        ui->helpMessageLabel->setFont(GUIUtil::bitcoinAddressFont());
-        text = version + "\n" + header + "\n" + coreOptions + "\n" + uiOptions;
-        ui->helpMessageLabel->setText(text);
+            if (line.startsWith("  ")) {
+                int index = line.indexOf(' ', 3);
+                if (index > 0) {
+                    cursor.insertText(line.left(index).trimmed());
+                    cursor.movePosition(QTextCursor::NextCell);
+                    cursor.insertText(line.mid(index).trimmed());
+                    continue;
+                }
+            }
+            cursor.movePosition(QTextCursor::NextCell, QTextCursor::KeepAnchor);
+            table->mergeCells(cursor);
+            cursor.insertText(line.trimmed(), bold);
+        }
+
+        table->appendRows(6);
+        cursor.movePosition(QTextCursor::NextRow);
+        cursor.insertText(tr("UI options") + ":", bold);
+        cursor.movePosition(QTextCursor::NextRow);
+        if (GetBoolArg("-help-debug", false)) {
+            cursor.insertText("-allowselfsignedrootcertificates");
+            cursor.movePosition(QTextCursor::NextCell);
+            cursor.insertText(tr("Allow self signed root certificates (default: 0)"));
+            cursor.movePosition(QTextCursor::NextCell);
+        }
+        cursor.insertText("-choosedatadir");
+        cursor.movePosition(QTextCursor::NextCell);
+        cursor.insertText(tr("Choose data directory on startup (default: 0)"));
+        cursor.movePosition(QTextCursor::NextCell);
+        cursor.insertText("-lang=<lang>");
+        cursor.movePosition(QTextCursor::NextCell);
+        cursor.insertText(tr("Set language, for example \"de_DE\" (default: system locale)"));
+        cursor.movePosition(QTextCursor::NextCell);
+        cursor.insertText("-min");
+        cursor.movePosition(QTextCursor::NextCell);
+        cursor.insertText(tr("Start minimized"));
+        cursor.movePosition(QTextCursor::NextCell);
+        cursor.insertText("-rootcertificates=<file>");
+        cursor.movePosition(QTextCursor::NextCell);
+        cursor.insertText(tr("Set SSL root certificates for payment request (default: -system-)"));
+        cursor.movePosition(QTextCursor::NextCell);
+        cursor.insertText("-splash");
+        cursor.movePosition(QTextCursor::NextCell);
+        cursor.insertText(tr("Show splash screen on startup (default: 1)"));
+
+        ui->helpMessage->moveCursor(QTextCursor::Start);
+        ui->scrollArea->setVisible(false);
     }
 }
 

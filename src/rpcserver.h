@@ -7,6 +7,8 @@
 #ifndef _BITCOINRPC_SERVER_H_
 #define _BITCOINRPC_SERVER_H_ 1
 
+#include "amount.h"
+
 #include "uint256.h"
 #include "rpcprotocol.h"
 
@@ -46,6 +48,16 @@ void StopRPCThreads();
 /* Query whether RPC is running */
 bool IsRPCRunning();
 
+/* Set the RPC warmup status.  When this is done, all RPC calls will error out
+ * immediately with RPC_IN_WARMUP.
+ */
+void SetRPCWarmupStatus(const std::string& newStatus);
+/* Mark warmup as done.  RPC calls will be processed from now on.  */
+void SetRPCWarmupFinished();
+
+/* returns the current warmup state.  */
+bool RPCIsInWarmup(std::string *statusOut);
+
 /*
   Type-check arguments; throws JSONRPCError if wrong type given. Does not check that
   the right number of arguments are passed, just that any passed are the correct type.
@@ -73,6 +85,7 @@ typedef json_spirit::Value(*rpcfn_type)(const json_spirit::Array& params, bool f
 class CRPCCommand
 {
 public:
+    std::string category;
     std::string name;
     rpcfn_type actor;
     bool okSafeMode;
@@ -119,8 +132,8 @@ extern void ShutdownRPCMining();
 extern CReserveKey* pMiningKey;
 
 extern int64_t nWalletUnlockTime;
-extern int64_t AmountFromValue(const json_spirit::Value& value);
-extern json_spirit::Value ValueFromAmount(int64_t amount);
+extern CAmount AmountFromValue(const json_spirit::Value& value);
+extern json_spirit::Value ValueFromAmount(const CAmount& amount);
 extern double GetDifficulty(const CBlockIndex* blockindex = NULL);
 extern std::string HelpRequiringPassphrase();
 extern std::string HelpExampleCli(std::string methodname, std::string args);
@@ -189,6 +202,7 @@ extern json_spirit::Value getinfo(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value getwalletinfo(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value getblockchaininfo(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value getnetworkinfo(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value setmocktime(const json_spirit::Array& params, bool fHelp);
 
 extern json_spirit::Value getrawtransaction(const json_spirit::Array& params, bool fHelp); // in rcprawtransaction.cpp
 extern json_spirit::Value listunspent(const json_spirit::Array& params, bool fHelp);
@@ -213,5 +227,13 @@ extern json_spirit::Value gettxoutsetinfo(const json_spirit::Array& params, bool
 extern json_spirit::Value gettxout(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value verifychain(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value getchaintips(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value invalidateblock(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value reconsiderblock(const json_spirit::Array& params, bool fHelp);
 
-#endif
+// in rest.cpp
+extern bool HTTPReq_REST(AcceptedConnection *conn,
+                  const std::string& strURI,
+                  const std::map<std::string, std::string>& mapHeaders,
+                  bool fRun);
+
+#endif // BITCOIN_RPCSERVER_H

@@ -6,7 +6,7 @@
 #ifndef COINCONTROL_H
 #define COINCONTROL_H
 
-#include "core.h"
+#include "primitives/transaction.h"
 
 /** Coin Control Features. */
 class CCoinControl
@@ -36,12 +36,12 @@ public:
         return (setSelected.count(outpt) > 0);
     }
 
-    void Select(COutPoint& output)
+    void Select(const COutPoint& output)
     {
         setSelected.insert(output);
     }
 
-    void UnSelect(COutPoint& output)
+    void UnSelect(const COutPoint& output)
     {
         setSelected.erase(output);
     }

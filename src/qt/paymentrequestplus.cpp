@@ -9,6 +9,8 @@
 
 #include "paymentrequestplus.h"
 
+#include "util.h"
+
 #include <stdexcept>
 
 #include <openssl/x509.h>
@@ -149,7 +151,13 @@ bool PaymentRequestPlus::getMerchant(X509_STORE* certStore, QString& merchant) c
         int result = X509_verify_cert(store_ctx);
         if (result != 1) {
             int error = X509_STORE_CTX_get_error(store_ctx);
-            throw SSLVerifyError(X509_verify_cert_error_string(error));
+            // For testing payment requests, we allow self signed root certs!
+            // This option is just shown in the UI options, if -help-debug is enabled.
+            if (!(error == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT && GetBoolArg("-allowselfsignedrootcertificates", false))) {
+                throw SSLVerifyError(X509_verify_cert_error_string(error));
+            } else {
+               qDebug() << "PaymentRequestPlus::getMerchant: Allowing self signed root certificate, because -allowselfsignedrootcertificates is true.";
+            }
         }
         X509_NAME *certname = X509_get_subject_name(signing_cert);
 
@@ -180,8 +188,7 @@ bool PaymentRequestPlus::getMerchant(X509_STORE* certStore, QString& merchant) c
         }
         // TODO: detect EV certificates and set merchant = business name instead of unfriendly NID_commonName ?
     }
-    catch (SSLVerifyError& err)
-    {
+    catch (const SSLVerifyError& err) {
         fResult = false;
         qWarning() << "PaymentRequestPlus::getMerchant : SSL error: " << err.what();
     }
@@ -195,9 +202,9 @@ bool PaymentRequestPlus::getMerchant(X509_STORE* certStore, QString& merchant) c
     return fResult;
 }
 
-QList<std::pair<CScript,qint64> > PaymentRequestPlus::getPayTo() const
+QList<std::pair<CScript,CAmount> > PaymentRequestPlus::getPayTo() const
 {
-    QList<std::pair<CScript,qint64> > result;
+    QList<std::pair<CScript,CAmount> > result;
     for (int i = 0; i < details.outputs_size(); i++)
     {
         const unsigned char* scriptStr = (const unsigned char*)details.outputs(i).script().data();

@@ -28,6 +28,7 @@ enum HTTPStatusCode
     HTTP_FORBIDDEN             = 403,
     HTTP_NOT_FOUND             = 404,
     HTTP_INTERNAL_SERVER_ERROR = 500,
+    HTTP_SERVICE_UNAVAILABLE   = 503,
 };
 
 // Bitcoin RPC error codes
@@ -49,9 +50,15 @@ enum RPCErrorCode
     RPC_INVALID_PARAMETER           = -8,  // Invalid, missing or duplicate parameter
     RPC_DATABASE_ERROR              = -20, // Database error
     RPC_DESERIALIZATION_ERROR       = -22, // Error parsing or validating structure in raw format
-    RPC_TRANSACTION_ERROR           = -25, // General error during transaction submission
-    RPC_TRANSACTION_REJECTED        = -26, // Transaction was rejected by network rules
-    RPC_TRANSACTION_ALREADY_IN_CHAIN= -27, // Transaction already in chain
+    RPC_VERIFY_ERROR                = -25, // General error during transaction or block submission
+    RPC_VERIFY_REJECTED             = -26, // Transaction or block was rejected by network rules
+    RPC_VERIFY_ALREADY_IN_CHAIN     = -27, // Transaction already in chain
+    RPC_IN_WARMUP                   = -28, // Client still warming up
+
+    // Aliases for backward compatibility
+    RPC_TRANSACTION_ERROR           = RPC_VERIFY_ERROR,
+    RPC_TRANSACTION_REJECTED        = RPC_VERIFY_REJECTED,
+    RPC_TRANSACTION_ALREADY_IN_CHAIN= RPC_VERIFY_ALREADY_IN_CHAIN,
 
     // P2P client errors
     RPC_CLIENT_NOT_CONNECTED        = -9,  // Bitcoin is not connected
@@ -115,8 +122,7 @@ public:
             tcp::resolver::query query(server.c_str(), port.c_str());
             endpoint_iterator = resolver.resolve(query);
 #if BOOST_VERSION >= 104300
-        } catch(boost::system::system_error &e)
-        {
+        } catch (const boost::system::system_error&) {
             // If we at first don't succeed, try blanket lookup (IPv4+IPv6 independent of configured interfaces)
             tcp::resolver::query query(server.c_str(), port.c_str(), resolver_query_base::flags());
             endpoint_iterator = resolver.resolve(query);

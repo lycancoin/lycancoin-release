@@ -5,7 +5,7 @@
 #ifndef BITCOIN_LIMITEDMAP_H
 #define BITCOIN_LIMITEDMAP_H
 
-#include <assert.h> // TODO: remove
+#include <assert.h>
 #include <map>
 
 /** STL-like map container that only keeps the N elements with the highest value. */
@@ -61,12 +61,11 @@ public:
                 return;
             }
         // Shouldn't ever get here
-        assert(0); //TODO remove me
-        map.erase(itTarget);
+        assert(0);
     }
     void update(const_iterator itIn, const mapped_type& v)
     {
-        //TODO: When we switch to C++11, use map.erase(itIn, itIn) to get the non-const iterator
+        // TODO: When we switch to C++11, use map.erase(itIn, itIn) to get the non-const iterator.
         iterator itTarget = map.find(itIn->first);
         if (itTarget == map.end())
             return;
@@ -80,9 +79,7 @@ public:
                 return;
             }
         // Shouldn't ever get here
-        assert(0); //TODO remove me
-        itTarget->second = v;
-        rmap.insert(make_pair(v, itTarget));
+        assert(0);
     }
     size_type max_size() const { return nMaxSize; }
     size_type max_size(size_type s)
