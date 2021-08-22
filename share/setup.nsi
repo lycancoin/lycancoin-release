@@ -58,7 +58,7 @@ CRCCheck on
 XPStyle on
 BrandingText " "
 ShowInstDetails show
-VIProductVersion ${VERSION}.9
+VIProductVersion ${VERSION}.10
 VIAddVersionKey ProductName "Lycancoin Core"
 VIAddVersionKey ProductVersion "${VERSION}"
 VIAddVersionKey CompanyName "${COMPANY}"

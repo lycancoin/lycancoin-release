@@ -898,7 +898,7 @@ CAmount GetMinFee(const CTransaction& tx, unsigned int nBytes, bool fAllowFree, 
 }
 
 bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransaction &tx, bool fLimitFree,
-                        bool* pfMissingInputs, bool fRejectInsaneFee)
+                        bool* pfMissingInputs, bool fRejectAbsurdFee)
 {
     AssertLockHeld(cs_main);    
     if (pfMissingInputs)
@@ -1056,8 +1056,8 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransa
             dFreeCount += nSize;
         }
         
-        if (fRejectInsaneFee && nFees > ::minRelayTxFee.GetFee(nSize) * 10000)
-            return error("AcceptToMemoryPool: : insane fees %s, %d> %d",
+        if (fRejectAbsurdFee && nFees > ::minRelayTxFee.GetFee(nSize) * 10000)
+            return error("AcceptToMemoryPool: absurdly high fees %s, %d > %d",
                          hash.ToString(),
                          nFees, ::minRelayTxFee.GetFee(nSize) * 10000);
 
@@ -1409,7 +1409,7 @@ void UpdateCoins(const CTransaction& tx, CValidationState &state, CCoinsViewCach
 
 bool CScriptCheck::operator()() {
     const CScript &scriptSig = ptxTo->vin[nIn].scriptSig;
-    if (!VerifyScript(scriptSig, scriptPubKey, nFlags, CachingSignatureChecker(*ptxTo, nIn, cacheStore), &error)) {
+    if (!VerifyScript(scriptSig, scriptPubKey, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, cacheStore), &error)) {
         return ::error("CScriptCheck() : %s:%d VerifySignature failed: %s", ptxTo->GetHash().ToString(), nIn, ScriptErrorString(error));
     }
     return true;
@@ -1749,6 +1749,11 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     }    
 
     unsigned int flags = fStrictPayToScriptHash ? SCRIPT_VERIFY_P2SH : SCRIPT_VERIFY_NONE;   
+    
+    // Start enforcing the DERSIG (BIP66) rules, for block.nVersion=3 blocks, when 75% of the network has upgraded:
+    if (block.nVersion >= 3 && IsSuperMajority(3, pindex->pprev, Params().EnforceBlockUpgradeMajority())) {
+        flags |= SCRIPT_VERIFY_DERSIG;
+    }    
     
     CBlockUndo blockundo;
     
@@ -2577,6 +2582,13 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
     if (block.nVersion < 2 && IsSuperMajority(2, pindexPrev, Params().RejectBlockOutdatedMajority()))
     {
         return state.Invalid(error("%s : rejected nVersion=1 block", __func__),
+                             REJECT_OBSOLETE, "bad-version");
+    }
+    
+    // Reject block.nVersion=2 blocks when 95% (75% on testnet) of the network has upgraded:
+    if (block.nVersion < 3 && IsSuperMajority(3, pindexPrev, Params().RejectBlockOutdatedMajority()))
+    {
+        return state.Invalid(error("%s : rejected nVersion=2 block", __func__),
                              REJECT_OBSOLETE, "bad-version");
     }
 
@@ -4515,12 +4527,12 @@ bool SendMessages(CNode* pto, bool fSendTrickle)
             LogPrintf("Peer=%d is stalling block download, disconnecting\n", pto->id);
             pto->fDisconnect = true;
         }
-        // In case there is a block that has been in flight from this peer for (1 + 0.5 * N) times the block interval
+        // In case there is a block that has been in flight from this peer for (2 + 0.5 * N) times the block interval
         // (with N the number of validated blocks that were in flight at the time it was requested), disconnect due to
         // timeout. We compensate for in-flight blocks to prevent killing off peers due to our own downstream link
         // being saturated. We only count validated in-flight blocks so peers can't advertize nonexisting block hashes
         // to unreasonably increase our timeout.
-        if (!pto->fDisconnect && state.vBlocksInFlight.size() > 0 && state.vBlocksInFlight.front().nTime < nNow - 500000 * Params().TargetSpacing() * (2 + state.vBlocksInFlight.front().nValidatedQueuedBefore)) {
+        if (!pto->fDisconnect && state.vBlocksInFlight.size() > 0 && state.vBlocksInFlight.front().nTime < nNow - 500000 * Params().TargetSpacing() * (4 + state.vBlocksInFlight.front().nValidatedQueuedBefore)) {
             LogPrintf("Timeout downloading block %s from peer=%d, disconnecting\n", state.vBlocksInFlight.front().hash.ToString(), pto->id);
             pto->fDisconnect = true;
         }

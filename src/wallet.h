@@ -526,7 +526,7 @@ public:
     int GetDepthInMainChain() const { const CBlockIndex *pindexRet; return GetDepthInMainChain(pindexRet); }
     bool IsInMainChain() const { const CBlockIndex *pindexRet; return GetDepthInMainChainINTERNAL(pindexRet) > 0; }
     int GetBlocksToMaturity() const;
-    bool AcceptToMemoryPool(bool fLimitFree=true);
+    bool AcceptToMemoryPool(bool fLimitFree=true, bool fRejectAbsurdFee=true);
 };
 
 /** A transaction with a bunch of additional info that only the owner cares about. 

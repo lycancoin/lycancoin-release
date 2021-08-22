@@ -279,9 +279,9 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
             return TransactionCreationFailed;
         }
         
-        // reject insane fee > 1,000 lycancoin
+        // reject absurdly high fee > 1,000 lycancoin
         if (nFeeRequired > 100000000000)
-            return InsaneFee;
+            return AbsurdFee;
     }
 
     return SendCoinsReturn(OK);
