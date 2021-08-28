@@ -105,6 +105,7 @@ Value getblockcount(const Array& params, bool fHelp)
             + HelpExampleRpc("getblockcount", "")
         );
 
+    LOCK(cs_main);
     return chainActive.Height();
 }
 
@@ -121,6 +122,7 @@ Value getbestblockhash(const Array& params, bool fHelp)
             + HelpExampleRpc("getbestblockhash", "")
         );
 
+    LOCK(cs_main);    
     return chainActive.Tip()->GetBlockHash().GetHex();
 }
 
@@ -137,6 +139,7 @@ Value getdifficulty(const Array& params, bool fHelp)
             + HelpExampleRpc("getdifficulty", "")
         );
 
+    LOCK(cs_main);    
     return GetDifficulty();
 }
 
@@ -172,6 +175,8 @@ Value getrawmempool(const Array& params, bool fHelp)
             + HelpExampleRpc("getrawmempool", "true")
         );
 
+    LOCK(cs_main);
+    
     bool fVerbose = false;
     if (params.size() > 0)
         fVerbose = params[0].get_bool();
@@ -232,6 +237,8 @@ Value getblockhash(const Array& params, bool fHelp)
             + HelpExampleRpc("getblockhash", "1000")
         );
 
+    LOCK(cs_main);
+    
     int nHeight = params[0].get_int();
     if (nHeight < 0 || nHeight > chainActive.Height())
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
@@ -275,6 +282,8 @@ Value getblock(const Array& params, bool fHelp)
             + HelpExampleCli("getblock", "\"385a3dc1c48ea071a71bc4846b1502b82b543ea4a3792de0cdfcf99eb1b3ed7e\"")
             + HelpExampleRpc("getblock", "\"385a3dc1c48ea071a71bc4846b1502b82b543ea4a3792de0cdfcf99eb1b3ed7e\"")
         );
+
+    LOCK(cs_main);
 
     std::string strHash = params[0].get_str();
     uint256 hash(uint256S(strHash));
@@ -324,6 +333,8 @@ Value gettxoutsetinfo(const Array& params, bool fHelp)
             + HelpExampleCli("gettxoutsetinfo", "")
             + HelpExampleRpc("gettxoutsetinfo", "")
         );
+
+    LOCK(cs_main);
 
     Object ret;
 
@@ -378,6 +389,8 @@ Value gettxout(const Array& params, bool fHelp)
             "\nAs a json rpc call\n"
             + HelpExampleRpc("gettxout", "\"txid\", 1")
         );
+
+    LOCK(cs_main);
 
     Object ret;
 
@@ -435,6 +448,8 @@ Value verifychain(const Array& params, bool fHelp)
             + HelpExampleRpc("verifychain", "")
         );
 
+    LOCK(cs_main);
+
     int nCheckLevel = GetArg("-checklevel", 3);
     int nCheckDepth = GetArg("-checkblocks", 576);
     if (params.size() > 0)
@@ -465,6 +480,8 @@ Value getblockchaininfo(const Array& params, bool fHelp)
             + HelpExampleCli("getblockchaininfo", "")
             + HelpExampleRpc("getblockchaininfo", "")
         );
+
+    LOCK(cs_main);
 
     Object obj;
     obj.push_back(Pair("chain",                 Params().NetworkIDString()));
@@ -524,6 +541,8 @@ Value getchaintips(const Array& params, bool fHelp)
             + HelpExampleCli("getchaintips", "")
             + HelpExampleRpc("getchaintips", "")
         );
+
+    LOCK(cs_main);
 
     /* Build up a list of chain tips.  We start with the list of all
        known blocks, and successively remove blocks that appear as pprev

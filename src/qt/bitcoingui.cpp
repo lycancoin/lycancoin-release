@@ -1,4 +1,5 @@
-// Copyright (c) 2011-2013 The Bitcoin developers
+// Copyright (c) 2011-2021 The Bitcoin developers
+// Copyright (c) 2014-2021 The Bitcoin developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -304,7 +305,7 @@ void BitcoinGUI::createActions(const NetworkStyle *networkStyle)
     quitAction->setStatusTip(tr("Quit application"));
     quitAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q));
     quitAction->setMenuRole(QAction::QuitRole);
-    aboutAction = new QAction(TextColorIcon(":/icons/about"), tr("&About Bitcoin Core"), this);
+    aboutAction = new QAction(TextColorIcon(":/icons/about"), tr("&About Lycancoin Core"), this);
     aboutAction->setStatusTip(tr("Show information about Lycancoin Core"));
     aboutAction->setMenuRole(QAction::AboutRole);
     aboutQtAction = new QAction(TextColorIcon(":/icons/about_qt"), tr("About &Qt"), this);
