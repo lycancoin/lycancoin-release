@@ -102,6 +102,71 @@ unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBloc
     return bnNew.GetCompact();
 }
 
+//Initial DigiShield Implementation compatible with code
+
+unsigned int static DigiShield(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
+{
+
+ unsigned int nProofOfWorkLimit = bnProofOfWorkLimit.GetCompact();
+
+ int blockstogoback = 0;
+
+ //set default to pre-v2.0 values
+ int64_t retargetTimespan = 150; //Make sure we retarget every block at 2.5 minutes
+ int64_t retargetSpacing = 150; //2.5 minutes
+ int64_t retargetInterval = retargetTimespan / retargetSpacing;
+ // Genesis block
+ if (pindexLast == NULL) return nProofOfWorkLimit;
+
+ // Only change once per interval
+ if ((pindexLast->nHeight+1) % retargetInterval != 0)
+ {
+ 			return pindexLast->nBits;
+ }
+
+ // DigiByte: This fixes an issue where a 51% attack can change difficulty at will.
+ // Go back the full period unless it's the first retarget after genesis. Code courtesy of Art Forz
+ blockstogoback = retargetInterval-1;
+ if ((pindexLast->nHeight+1) != retargetInterval) 
+ 			blockstogoback = retargetInterval;
+
+ // Go back by what we want to be 14 days worth of blocks
+ const CBlockIndex* pindexFirst = pindexLast;
+ for (int i = 0; pindexFirst && i < blockstogoback; i++)
+ 			pindexFirst = pindexFirst->pprev;
+ assert(pindexFirst);
+
+ // Limit adjustment step
+ int64_t nActualTimespan = pindexLast->GetBlockTime() - pindexFirst->GetBlockTime();
+ LogPrintf("  nActualTimespan = %d before bounds\n", nActualTimespan);
+
+ if (nActualTimespan < (retargetTimespan - (retargetTimespan/4)) ) nActualTimespan = (retargetTimespan - (retargetTimespan/4));
+ if (nActualTimespan > (retargetTimespan + (retargetTimespan/2)) ) nActualTimespan = (retargetTimespan + (retargetTimespan/2));
+
+ // Retarget
+
+	arith_uint256 bnNew;
+	arith_uint256 bnBefore;
+	bnNew.SetCompact(pindexLast->nBits);
+	bnBefore=bnNew;
+	bnNew *= nActualTimespan;
+	bnNew /= retargetTimespan;
+	
+	if (bnNew > Params().ProofOfWorkLimit())
+ 		bnNew = Params().ProofOfWorkLimit();	
+
+	// debug print
+	LogPrintf("DigiShield RETARGET \n");
+	LogPrintf("nTargetTimespan = %d    nActualTimespan = %d\n", retargetTimespan, nActualTimespan);
+	LogPrintf("Before: %08x  %s\n", pindexLast->nBits, ArithToUint256(bnBefore).ToString());
+	LogPrintf("After:  %08x  %s\n", bnNew.GetCompact(), ArithToUint256(bnNew).ToString());
+
+	return bnNew.GetCompact();
+}
+
+//End DigiShield Core Code
+
+
 unsigned int static GetNextWorkRequired_V2(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
 {
     static const int64_t	BlocksTargetSpacing			= 2.5 * 60; // 2.5 minute
@@ -199,13 +264,17 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     if (Params().AllowMinDifficultyBlocks()) {
         if (pindexLast->nHeight+1 >= FIX_RETARGET_HEIGHT){ DiffMode=2; }
     }
-    else {
-        if (pindexLast->nHeight+1 >= FIX_RETARGET_HEIGHT){ DiffMode=2; }
+    else 
+    {
+        if (pindexLast->nHeight+1 >= FIX_RETARGET_HEIGHT && pindexLast->nHeight+1 < 1569800) { DiffMode=2; }
+        else if (pindexLast->nHeight+1 >= 1569800) { DiffMode = 3; }
     }
 
     if		(DiffMode == 1) { return GetNextWorkRequired_V1(pindexLast, pblock); }
     else if	(DiffMode == 2) { return GetNextWorkRequired_V2(pindexLast, pblock); }
-    return GetNextWorkRequired_V2(pindexLast, pblock);
+    else if (DiffMode == 3) { return DigiShield(pindexLast, pblock); }
+    return DigiShield(pindexLast, pblock);
+   // return GetNextWorkRequired_V2(pindexLast, pblock);
 }
 
 bool CheckProofOfWork(uint256 hash, unsigned int nBits)
