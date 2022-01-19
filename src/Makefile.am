@@ -71,7 +71,6 @@ endif
 BITCOIN_CORE_H = \
   addrman.h \
   alert.h \
-  allocators.h \
   amount.h \
   base58.h \
   bignum.h \
@@ -88,8 +87,7 @@ BITCOIN_CORE_H = \
   compat.h \
   compressor.h \
   core_io.h \
-  crypter.h \
-  db.h \
+  wallet/db.h \
   eccryptoverify.h \
   ecwrapper.h \
   hash.h \
@@ -123,6 +121,10 @@ BITCOIN_CORE_H = \
   scrypt.h \
   serialize.h \
   streams.h \
+  support/allocators/secure.h \
+  support/allocators/zeroafterfree.h \
+  support/cleanse.h \
+  support/pagelocker.h \
   sync.h \
   threadsafety.h \
   timedata.h \
@@ -137,9 +139,10 @@ BITCOIN_CORE_H = \
   utilstrencodings.h \
   utiltime.h \
   version.h \
-  walletdb.h \
-  wallet.h \
-  wallet_ismine.h \
+  wallet/crypter.h \
+  wallet/walletdb.h \
+  wallet/wallet.h \
+  wallet/wallet_ismine.h \
   compat/byteswap.h \
   compat/endian.h \
   compat/sanity.h
@@ -195,13 +198,13 @@ libbitcoin_server_a_SOURCES = \
 # when wallet enabled
 libbitcoin_wallet_a_CPPFLAGS = $(BITCOIN_INCLUDES)
 libbitcoin_wallet_a_SOURCES = \
-  db.cpp \
-  crypter.cpp \
-  rpcdump.cpp \
-  rpcwallet.cpp \
-  wallet.cpp \
-  wallet_ismine.cpp \
-  walletdb.cpp \
+  wallet/crypter.cpp \
+  wallet/db.cpp \
+  wallet/rpcdump.cpp \
+  wallet/rpcwallet.cpp \
+  wallet/wallet.cpp \
+  wallet/wallet_ismine.cpp \
+  wallet/walletdb.cpp \
   $(BITCOIN_CORE_H)
 
 # crypto primitives library
@@ -231,7 +234,6 @@ univalue_libbitcoin_univalue_a_SOURCES = \
 # common: shared between lycancoind, and lycancoin-qt and non-server tools
 libbitcoin_common_a_CPPFLAGS = $(BITCOIN_INCLUDES)
 libbitcoin_common_a_SOURCES = \
-  allocators.cpp \
   arith_uint256.cpp \
   amount.cpp \
   base58.cpp \
@@ -263,6 +265,7 @@ libbitcoin_common_a_SOURCES = \
 # backward-compatibility objects and their sanity checks are linked.
 libbitcoin_util_a_CPPFLAGS = $(BITCOIN_INCLUDES)
 libbitcoin_util_a_SOURCES = \
+  support/pagelocker.cpp \
   chainparamsbase.cpp \
   clientversion.cpp \
   compat/glibc_sanity.cpp \
@@ -270,6 +273,7 @@ libbitcoin_util_a_SOURCES = \
   compat/strnlen.cpp \
   random.cpp \
   rpcprotocol.cpp \
+  support/cleanse.cpp \
   sync.cpp \
   uint256.cpp \
   util.cpp \
@@ -372,16 +376,12 @@ libbitcoinconsensus_la_SOURCES = \
 
 if GLIBC_BACK_COMPAT
   libbitcoinconsensus_la_SOURCES += compat/glibc_compat.cpp
-  libbitcoinconsensus_la_SOURCES += compat/glibcxx_compat.cpp
 endif
 
 libbitcoinconsensus_la_LDFLAGS = -no-undefined $(RELDFLAGS)
 libbitcoinconsensus_la_LIBADD = $(CRYPTO_LIBS)
 libbitcoinconsensus_la_CPPFLAGS = $(CRYPTO_CFLAGS) -I$(builddir)/obj -DBUILD_BITCOIN_INTERNAL
 
-if USE_LIBSECP256K1
-libbitcoinconsensus_la_LIBADD += secp256k1/libsecp256k1.la
-endif
 endif
 #
 

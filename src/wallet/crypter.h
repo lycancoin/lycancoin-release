@@ -6,9 +6,9 @@
 #ifndef __CRYPTER_H__
 #define __CRYPTER_H__
 
-#include "allocators.h"
 #include "serialize.h"
 #include "keystore.h"
+#include "support/allocators/secure.h"
 
 class uint256;
 
@@ -83,8 +83,8 @@ public:
 
     void CleanKey()
     {
-        OPENSSL_cleanse(chKey, sizeof(chKey));
-        OPENSSL_cleanse(chIV, sizeof(chIV));
+        memory_cleanse(chKey, sizeof(chKey));
+        memory_cleanse(chIV, sizeof(chIV));
         fKeySet = false;
     }
 
@@ -107,9 +107,6 @@ public:
         LockedPageManager::Instance().UnlockRange(&chIV[0], sizeof chIV);
     }
 };
-
-bool EncryptSecret(const CKeyingMaterial& vMasterKey, const CKeyingMaterial &vchPlaintext, const uint256& nIV, std::vector<unsigned char> &vchCiphertext);
-bool DecryptSecret(const CKeyingMaterial& vMasterKey, const std::vector<unsigned char>& vchCiphertext, const uint256& nIV, CKeyingMaterial& vchPlaintext);
 
 /** Keystore which keeps the private keys encrypted.
  * It derives from the basic key store, which is used if no encryption is active.

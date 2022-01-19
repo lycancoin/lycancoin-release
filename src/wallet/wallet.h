@@ -9,13 +9,13 @@
 #include "amount.h"
 #include "primitives/block.h"
 #include "primitives/transaction.h"
-#include "crypter.h"
 #include "key.h"
 #include "keystore.h"
 #include "main.h"
-#include "wallet_ismine.h"
 #include "ui_interface.h"
-#include "walletdb.h"
+#include "wallet/crypter.h"
+#include "wallet/wallet_ismine.h"
+#include "wallet/walletdb.h"
 
 #include <algorithm>
 #include <map>
@@ -99,6 +99,13 @@ public:
     
     typedef std::map<std::string, std::string> StringMap;
     StringMap destdata;
+};
+
+struct CRecipient
+{
+    CScript scriptPubKey;
+    CAmount nAmount;
+    bool fSubtractFeeFromAmount;
 };
 
 typedef std::map<std::string, std::string> mapValue_t;
@@ -603,10 +610,8 @@ public:
     CAmount GetWatchOnlyBalance() const;
     CAmount GetUnconfirmedWatchOnlyBalance() const;
     CAmount GetImmatureWatchOnlyBalance() const;
-    bool CreateTransaction(const std::vector<std::pair<CScript, CAmount> >& vecSend,
-                           CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, std::string& strFailReason, const CCoinControl *coinControl = NULL);
-    bool CreateTransaction(CScript scriptPubKey, const CAmount& nValue,
-                           CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, std::string& strFailReason, const CCoinControl *coinControl = NULL);
+    bool CreateTransaction(const std::vector<CRecipient>& vecSend,
+                           CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosRet, std::string& strFailReason, const CCoinControl *coinControl = NULL);
     bool CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey);
 
     static CFeeRate minTxFee;
@@ -733,6 +738,12 @@ public:
     
     //! Get wallet transactions that conflict with given transaction (spend same outputs)
     std::set<uint256> GetConflicts(const uint256& txid) const;
+    
+    //! Flush wallet (bitdb flush)
+    void Flush(bool shutdown=false);
+
+    //! Verify the wallet database and perform salvage if required
+    static bool Verify(const std::string& walletFile, std::string& warningString, std::string& errorString);
     
     /** 
      * Address book entry changed.

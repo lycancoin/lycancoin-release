@@ -17,7 +17,7 @@
 
 #ifdef ENABLE_WALLET
 #include "init.h" // for getinfo
-#include "wallet.h" // for getinfo
+#include "wallet/wallet.h" // for getinfo
 #endif
 
 #include <boost/foreach.hpp>

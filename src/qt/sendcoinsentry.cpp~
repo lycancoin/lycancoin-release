@@ -21,6 +21,12 @@ SendCoinsEntry::SendCoinsEntry(QWidget *parent) :
     model(0)
 {
     ui->setupUi(this);
+    
+    ui->addressBookButton->setIcon(SingleColorIcon(":/icons/address-book"));
+    ui->pasteButton->setIcon(SingleColorIcon(":/icons/editpaste"));
+    ui->deleteButton->setIcon(SingleColorIcon(":/icons/remove"));
+    ui->deleteButton_is->setIcon(SingleColorIcon(":/icons/remove"));
+    ui->deleteButton_s->setIcon(SingleColorIcon(":/icons/remove"));
 
     setCurrentWidget(ui->SendCoins);
 
@@ -40,6 +46,7 @@ SendCoinsEntry::SendCoinsEntry(QWidget *parent) :
     
     // Connect signals
     connect(ui->payAmount, SIGNAL(valueChanged()), this, SIGNAL(payAmountChanged()));
+    connect(ui->checkboxSubtractFeeFromAmount, SIGNAL(toggled(bool)), this, SIGNAL(subtractFeeFromAmountChanged()));
     connect(ui->deleteButton, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_is, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_s, SIGNAL(clicked()), this, SLOT(deleteClicked()));
@@ -90,6 +97,7 @@ void SendCoinsEntry::clear()
     ui->payTo->clear();
     ui->addAsLabel->clear();
     ui->payAmount->clear();
+    ui->checkboxSubtractFeeFromAmount->setCheckState(Qt::Unchecked);
     ui->messageTextLabel->clear();
     ui->messageTextLabel->hide();
     ui->messageLabel->hide();
@@ -161,6 +169,7 @@ SendCoinsRecipient SendCoinsEntry::getValue()
     recipient.label = ui->addAsLabel->text();
     recipient.amount = ui->payAmount->value();
     recipient.message = ui->messageTextLabel->text();
+    recipient.fSubtractFeeFromAmount = (ui->checkboxSubtractFeeFromAmount->checkState() == Qt::Checked);
 
     return recipient;
 }

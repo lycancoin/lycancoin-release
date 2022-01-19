@@ -10,7 +10,6 @@
 #include "amount.h"
 #include "chainparams.h"
 #include "main.h"
-#include "db.h"
 #include "init.h"
 #include "net.h"
 #include "main.h"
@@ -18,8 +17,11 @@
 #include "pow.h"
 #include "core_io.h"
 #include "util.h"
-#include "wallet.h"
 #include "timedata.h"
+#ifdef ENABLE_WALLET
+#include "wallet/db.h"
+#include "wallet/wallet.h"
+#endif
 
 #include <stdint.h>
 
@@ -71,7 +73,7 @@ Value GetNetworkHashPS(int lookup, int height) {
         return 0;
     // If lookup is -1, then use blocks since last difficulty change.
     if (lookup <= 0)
-        lookup = pb->nHeight % 2016 + 1;
+        lookup = pb->nHeight % Params().DifficultyAdjustmentInterval() + 1;
     // If lookup is larger than chain, then set it to chain length.
     if (lookup > pb->nHeight)
         lookup = pb->nHeight;

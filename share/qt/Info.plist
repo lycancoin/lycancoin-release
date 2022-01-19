@@ -17,7 +17,7 @@
   <string>APPL</string>
 
   <key>CFBundleGetInfoString</key>
-  <string>1.1.2, Copyright © 2009-2021 The Bitcoin Core developers</string>
+  <string>1.1.2, Copyright © 2009-2022 The Bitcoin Core developers</string>
 
   <key>CFBundleShortVersionString</key>
   <string>1.1.2</string>

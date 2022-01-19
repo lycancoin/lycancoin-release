@@ -104,13 +104,11 @@ am__append_7 = lycancoin-cli lycancoin-tx
 #am__append_9 = bitcoind-res.rc
 am__append_10 = libbitcoin_wallet.a
 #am__append_11 = bitcoin-cli-res.rc
-#am__append_12 = compat/glibc_compat.cpp \
-#	compat/glibcxx_compat.cpp
-#am__append_13 = secp256k1/libsecp256k1.la
-am__append_14 = qt/lycancoin-qt
-am__append_15 = qt/libbitcoinqt.a
-#am__append_16 = qt/winshutdownmonitor.cpp
-am__append_17 = \
+#am__append_12 = compat/glibc_compat.cpp
+am__append_13 = qt/lycancoin-qt
+am__append_14 = qt/libbitcoinqt.a
+#am__append_15 = qt/winshutdownmonitor.cpp
+am__append_16 = \
   qt/addressbookpage.cpp \
   qt/addresstablemodel.cpp \
   qt/askpassphrasedialog.cpp \
@@ -138,10 +136,10 @@ am__append_17 = \
   qt/walletmodeltransaction.cpp \
   qt/walletview.cpp
 
-#am__append_18 = $(BITCOIN_MM)
-#am__append_19 = $(BITCOIN_RC)
-am__append_20 = $(LIBBITCOIN_WALLET)
-am__append_21 = $(CLEAN_QT)
+#am__append_17 = $(BITCOIN_MM)
+#am__append_18 = $(BITCOIN_RC)
+am__append_19 = $(LIBBITCOIN_WALLET)
+am__append_20 = $(CLEAN_QT)
 subdir = src
 SUBDIRS =
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -200,7 +198,6 @@ libbitcoin_cli_a_OBJECTS = $(am_libbitcoin_cli_a_OBJECTS)
 libbitcoin_common_a_AR = $(AR) $(ARFLAGS)
 libbitcoin_common_a_LIBADD =
 am_libbitcoin_common_a_OBJECTS =  \
-	libbitcoin_common_a-allocators.$(OBJEXT) \
 	libbitcoin_common_a-arith_uint256.$(OBJEXT) \
 	libbitcoin_common_a-amount.$(OBJEXT) \
 	libbitcoin_common_a-base58.$(OBJEXT) \
@@ -257,15 +254,15 @@ am_libbitcoin_server_a_OBJECTS =  \
 libbitcoin_server_a_OBJECTS = $(am_libbitcoin_server_a_OBJECTS)
 libbitcoin_util_a_AR = $(AR) $(ARFLAGS)
 libbitcoin_util_a_LIBADD =
-am__libbitcoin_util_a_SOURCES_DIST = chainparamsbase.cpp \
-	clientversion.cpp compat/glibc_sanity.cpp \
+am__libbitcoin_util_a_SOURCES_DIST = support/pagelocker.cpp \
+	chainparamsbase.cpp clientversion.cpp compat/glibc_sanity.cpp \
 	compat/glibcxx_sanity.cpp compat/strnlen.cpp random.cpp \
-	rpcprotocol.cpp sync.cpp uint256.cpp util.cpp utilmoneystr.cpp \
-	utilstrencodings.cpp utiltime.cpp addrman.h alert.h \
-	allocators.h amount.h base58.h bignum.h bloom.h chain.h \
+	rpcprotocol.cpp support/cleanse.cpp sync.cpp uint256.cpp \
+	util.cpp utilmoneystr.cpp utilstrencodings.cpp utiltime.cpp \
+	addrman.h alert.h amount.h base58.h bignum.h bloom.h chain.h \
 	chainparamsbase.h chainparams.h chainparamsseeds.h \
 	checkpoints.h checkqueue.h clientversion.h coincontrol.h \
-	coins.h compat.h compressor.h core_io.h crypter.h db.h \
+	coins.h compat.h compressor.h core_io.h wallet/db.h \
 	eccryptoverify.h ecwrapper.h hash.h init.h key.h keystore.h \
 	leveldbwrapper.h limitedmap.h main.h merkleblock.h miner.h \
 	mruset.h netbase.h net.h noui.h pow.h primitives/block.h \
@@ -273,13 +270,16 @@ am__libbitcoin_util_a_SOURCES_DIST = chainparamsbase.cpp \
 	rpcclient.h rpcprotocol.h rpcserver.h script/interpreter.h \
 	script/script_error.h script/script.h script/sigcache.h \
 	script/sign.h script/standard.h scrypt.h serialize.h streams.h \
-	sync.h threadsafety.h timedata.h tinyformat.h txdb.h \
-	txmempool.h ui_interface.h uint256.h undo.h util.h \
-	utilmoneystr.h utilstrencodings.h utiltime.h version.h \
-	walletdb.h wallet.h wallet_ismine.h compat/byteswap.h \
+	support/allocators/secure.h support/allocators/zeroafterfree.h \
+	support/cleanse.h support/pagelocker.h sync.h threadsafety.h \
+	timedata.h tinyformat.h txdb.h txmempool.h ui_interface.h \
+	uint256.h undo.h util.h utilmoneystr.h utilstrencodings.h \
+	utiltime.h version.h wallet/crypter.h wallet/walletdb.h \
+	wallet/wallet.h wallet/wallet_ismine.h compat/byteswap.h \
 	compat/endian.h compat/sanity.h compat/glibc_compat.cpp
 #am__objects_2 = compat/libbitcoin_util_a-glibc_compat.$(OBJEXT)
 am_libbitcoin_util_a_OBJECTS =  \
+	support/libbitcoin_util_a-pagelocker.$(OBJEXT) \
 	libbitcoin_util_a-chainparamsbase.$(OBJEXT) \
 	libbitcoin_util_a-clientversion.$(OBJEXT) \
 	compat/libbitcoin_util_a-glibc_sanity.$(OBJEXT) \
@@ -287,6 +287,7 @@ am_libbitcoin_util_a_OBJECTS =  \
 	compat/libbitcoin_util_a-strnlen.$(OBJEXT) \
 	libbitcoin_util_a-random.$(OBJEXT) \
 	libbitcoin_util_a-rpcprotocol.$(OBJEXT) \
+	support/libbitcoin_util_a-cleanse.$(OBJEXT) \
 	libbitcoin_util_a-sync.$(OBJEXT) \
 	libbitcoin_util_a-uint256.$(OBJEXT) \
 	libbitcoin_util_a-util.$(OBJEXT) \
@@ -299,13 +300,14 @@ libbitcoin_util_a_OBJECTS = $(am_libbitcoin_util_a_OBJECTS) \
 	$(nodist_libbitcoin_util_a_OBJECTS)
 libbitcoin_wallet_a_AR = $(AR) $(ARFLAGS)
 libbitcoin_wallet_a_LIBADD =
-am_libbitcoin_wallet_a_OBJECTS = libbitcoin_wallet_a-db.$(OBJEXT) \
-	libbitcoin_wallet_a-crypter.$(OBJEXT) \
-	libbitcoin_wallet_a-rpcdump.$(OBJEXT) \
-	libbitcoin_wallet_a-rpcwallet.$(OBJEXT) \
-	libbitcoin_wallet_a-wallet.$(OBJEXT) \
-	libbitcoin_wallet_a-wallet_ismine.$(OBJEXT) \
-	libbitcoin_wallet_a-walletdb.$(OBJEXT) $(am__objects_1)
+am_libbitcoin_wallet_a_OBJECTS =  \
+	wallet/libbitcoin_wallet_a-crypter.$(OBJEXT) \
+	wallet/libbitcoin_wallet_a-db.$(OBJEXT) \
+	wallet/libbitcoin_wallet_a-rpcdump.$(OBJEXT) \
+	wallet/libbitcoin_wallet_a-rpcwallet.$(OBJEXT) \
+	wallet/libbitcoin_wallet_a-wallet.$(OBJEXT) \
+	wallet/libbitcoin_wallet_a-wallet_ismine.$(OBJEXT) \
+	wallet/libbitcoin_wallet_a-walletdb.$(OBJEXT) $(am__objects_1)
 libbitcoin_wallet_a_OBJECTS = $(am_libbitcoin_wallet_a_OBJECTS)
 qt_libbitcoinqt_a_AR = $(AR) $(ARFLAGS)
 qt_libbitcoinqt_a_LIBADD =
@@ -563,17 +565,15 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" \
 LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 libbitcoinconsensus_la_DEPENDENCIES =  \
-	$(am__DEPENDENCIES_1) \
-	$(am__append_13)
+	$(am__DEPENDENCIES_1)
 am__libbitcoinconsensus_la_SOURCES_DIST = crypto/hmac_sha512.cpp \
 	crypto/ripemd160.cpp crypto/sha1.cpp crypto/sha256.cpp \
 	crypto/sha512.cpp eccryptoverify.cpp ecwrapper.cpp hash.cpp \
 	primitives/transaction.cpp pubkey.cpp \
 	script/bitcoinconsensus.cpp script/interpreter.cpp \
 	script/script.cpp uint256.cpp utilstrencodings.cpp \
-	compat/glibc_compat.cpp compat/glibcxx_compat.cpp
-#am__objects_9 = compat/libbitcoinconsensus_la-glibc_compat.lo \
-#	compat/libbitcoinconsensus_la-glibcxx_compat.lo
+	compat/glibc_compat.cpp
+#am__objects_9 = compat/libbitcoinconsensus_la-glibc_compat.lo
 am_libbitcoinconsensus_la_OBJECTS = crypto/libbitcoinconsensus_la-hmac_sha512.lo \
 	crypto/libbitcoinconsensus_la-ripemd160.lo \
 	crypto/libbitcoinconsensus_la-sha1.lo \
@@ -657,7 +657,7 @@ am_qt_lycancoin_qt_OBJECTS =  \
 	$(am__objects_13) $(am__objects_15)
 qt_lycancoin_qt_OBJECTS = $(am_qt_lycancoin_qt_OBJECTS)
 qt_lycancoin_qt_DEPENDENCIES = qt/libbitcoinqt.a \
-	$(LIBBITCOIN_SERVER) $(am__append_20) \
+	$(LIBBITCOIN_SERVER) $(am__append_19) \
 	$(LIBBITCOIN_CLI) $(LIBBITCOIN_COMMON) \
 	$(LIBBITCOIN_UTIL) $(LIBBITCOIN_CRYPTO) \
 	$(LIBBITCOIN_UNIVALUE) $(am__DEPENDENCIES_2) \
@@ -1033,13 +1033,13 @@ CC = gcc
 CCACHE = 
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
-CLIENT_VERSION_BUILD = 11
+CLIENT_VERSION_BUILD = 12
 CLIENT_VERSION_IS_RELEASE = true
 CLIENT_VERSION_MAJOR = 1
 CLIENT_VERSION_MINOR = 1
 CLIENT_VERSION_REVISION = 2
 COMPARISON_TOOL_REORG_TESTS = 0
-COPYRIGHT_YEAR = 2021
+COPYRIGHT_YEAR = 2022
 CPP = gcc -E
 CPPFLAGS = -I/home/lycan/lycancoin-release/db4/include/ -DHAVE_BUILD_INFO -D__STDC_FORMAT_MACROS  -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2
 CRYPTO_CFLAGS = 
@@ -1245,7 +1245,7 @@ LIBSECP256K1 = secp256k1/libsecp256k1.la
 EXTRA_LIBRARIES = crypto/libbitcoin_crypto.a libbitcoin_util.a \
 	libbitcoin_common.a univalue/libbitcoin_univalue.a \
 	libbitcoin_server.a libbitcoin_cli.a $(am__append_5) \
-	$(am__append_15)
+	$(am__append_14)
 lib_LTLIBRARIES = libbitcoinconsensus.la
 #LIBBITCOIN_CONSENSUS = 
 LIBBITCOIN_CONSENSUS = libbitcoinconsensus.la
@@ -1253,7 +1253,6 @@ LIBBITCOIN_CONSENSUS = libbitcoinconsensus.la
 BITCOIN_CORE_H = \
   addrman.h \
   alert.h \
-  allocators.h \
   amount.h \
   base58.h \
   bignum.h \
@@ -1270,8 +1269,7 @@ BITCOIN_CORE_H = \
   compat.h \
   compressor.h \
   core_io.h \
-  crypter.h \
-  db.h \
+  wallet/db.h \
   eccryptoverify.h \
   ecwrapper.h \
   hash.h \
@@ -1305,6 +1303,10 @@ BITCOIN_CORE_H = \
   scrypt.h \
   serialize.h \
   streams.h \
+  support/allocators/secure.h \
+  support/allocators/zeroafterfree.h \
+  support/cleanse.h \
+  support/pagelocker.h \
   sync.h \
   threadsafety.h \
   timedata.h \
@@ -1319,9 +1321,10 @@ BITCOIN_CORE_H = \
   utilstrencodings.h \
   utiltime.h \
   version.h \
-  walletdb.h \
-  wallet.h \
-  wallet_ismine.h \
+  wallet/crypter.h \
+  wallet/walletdb.h \
+  wallet/wallet.h \
+  wallet/wallet_ismine.h \
   compat/byteswap.h \
   compat/endian.h \
   compat/sanity.h
@@ -1373,13 +1376,13 @@ libbitcoin_server_a_SOURCES = \
 # when wallet enabled
 libbitcoin_wallet_a_CPPFLAGS = $(BITCOIN_INCLUDES)
 libbitcoin_wallet_a_SOURCES = \
-  db.cpp \
-  crypter.cpp \
-  rpcdump.cpp \
-  rpcwallet.cpp \
-  wallet.cpp \
-  wallet_ismine.cpp \
-  walletdb.cpp \
+  wallet/crypter.cpp \
+  wallet/db.cpp \
+  wallet/rpcdump.cpp \
+  wallet/rpcwallet.cpp \
+  wallet/wallet.cpp \
+  wallet/wallet_ismine.cpp \
+  wallet/walletdb.cpp \
   $(BITCOIN_CORE_H)
 
 
@@ -1412,7 +1415,6 @@ univalue_libbitcoin_univalue_a_SOURCES = \
 # common: shared between lycancoind, and lycancoin-qt and non-server tools
 libbitcoin_common_a_CPPFLAGS = $(BITCOIN_INCLUDES)
 libbitcoin_common_a_SOURCES = \
-  allocators.cpp \
   arith_uint256.cpp \
   amount.cpp \
   base58.cpp \
@@ -1444,11 +1446,12 @@ libbitcoin_common_a_SOURCES = \
 # This library *must* be included to make sure that the glibc
 # backward-compatibility objects and their sanity checks are linked.
 libbitcoin_util_a_CPPFLAGS = $(BITCOIN_INCLUDES)
-libbitcoin_util_a_SOURCES = chainparamsbase.cpp clientversion.cpp \
-	compat/glibc_sanity.cpp compat/glibcxx_sanity.cpp \
-	compat/strnlen.cpp random.cpp rpcprotocol.cpp sync.cpp \
-	uint256.cpp util.cpp utilmoneystr.cpp utilstrencodings.cpp \
-	utiltime.cpp $(BITCOIN_CORE_H) $(am__append_8)
+libbitcoin_util_a_SOURCES = support/pagelocker.cpp chainparamsbase.cpp \
+	clientversion.cpp compat/glibc_sanity.cpp \
+	compat/glibcxx_sanity.cpp compat/strnlen.cpp random.cpp \
+	rpcprotocol.cpp support/cleanse.cpp sync.cpp uint256.cpp \
+	util.cpp utilmoneystr.cpp utilstrencodings.cpp utiltime.cpp \
+	$(BITCOIN_CORE_H) $(am__append_8)
 
 # cli: shared between lycancoin-cli and lycancoin-qt
 libbitcoin_cli_a_CPPFLAGS = $(BITCOIN_INCLUDES)
@@ -1501,12 +1504,12 @@ libbitcoinconsensus_la_SOURCES =  \
 	script/script.cpp uint256.cpp \
 	utilstrencodings.cpp $(am__append_12)
 libbitcoinconsensus_la_LDFLAGS = -no-undefined $(RELDFLAGS)
-libbitcoinconsensus_la_LIBADD =  \
-	$(CRYPTO_LIBS) $(am__append_13)
+libbitcoinconsensus_la_LIBADD = $(CRYPTO_LIBS)
 libbitcoinconsensus_la_CPPFLAGS = $(CRYPTO_CFLAGS) -I$(builddir)/obj -DBUILD_BITCOIN_INTERNAL
+
 #
 CLEANFILES = leveldb/libleveldb.a leveldb/libmemenv.a *.gcda *.gcno \
-	$(am__append_21)
+	$(am__append_20)
 DISTCLEANFILES = obj/build.h
 EXTRA_DIST = leveldb
 
@@ -1769,7 +1772,7 @@ BITCOIN_QT_CPP = qt/bitcoinaddressvalidator.cpp \
 	qt/qvaluecombobox.cpp qt/rpcconsole.cpp \
 	qt/scicon.cpp qt/splashscreen.cpp \
 	qt/trafficgraphwidget.cpp qt/utilitydialog.cpp \
-	$(am__append_16) $(am__append_17)
+	$(am__append_15) $(am__append_16)
 RES_IMAGES = \
   qt/res/images/splash.png
 
@@ -1796,9 +1799,9 @@ qt_lycancoin_qt_CPPFLAGS = $(BITCOIN_INCLUDES) $(BITCOIN_QT_INCLUDES) \
   $(QT_INCLUDES) $(PROTOBUF_CFLAGS) $(QR_CFLAGS)
 
 qt_lycancoin_qt_SOURCES = qt/bitcoin.cpp \
-	$(am__append_18) $(am__append_19)
+	$(am__append_17) $(am__append_18)
 qt_lycancoin_qt_LDADD = qt/libbitcoinqt.a \
-	$(LIBBITCOIN_SERVER) $(am__append_20) \
+	$(LIBBITCOIN_SERVER) $(am__append_19) \
 	$(LIBBITCOIN_CLI) $(LIBBITCOIN_COMMON) \
 	$(LIBBITCOIN_UTIL) $(LIBBITCOIN_CRYPTO) \
 	$(LIBBITCOIN_UNIVALUE) $(LIBLEVELDB) \
@@ -1915,6 +1918,14 @@ libbitcoin_server.a: $(libbitcoin_server_a_OBJECTS) $(libbitcoin_server_a_DEPEND
 	$(AM_V_at)-rm -f libbitcoin_server.a
 	$(AM_V_AR)$(libbitcoin_server_a_AR) libbitcoin_server.a $(libbitcoin_server_a_OBJECTS) $(libbitcoin_server_a_LIBADD)
 	$(AM_V_at)$(RANLIB) libbitcoin_server.a
+support/$(am__dirstamp):
+	@$(MKDIR_P) support
+	@: > support/$(am__dirstamp)
+support/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) support/$(DEPDIR)
+	@: > support/$(DEPDIR)/$(am__dirstamp)
+support/libbitcoin_util_a-pagelocker.$(OBJEXT):  \
+	support/$(am__dirstamp) support/$(DEPDIR)/$(am__dirstamp)
 compat/$(am__dirstamp):
 	@$(MKDIR_P) compat
 	@: > compat/$(am__dirstamp)
@@ -1927,6 +1938,8 @@ compat/libbitcoin_util_a-glibcxx_sanity.$(OBJEXT):  \
 	compat/$(am__dirstamp) compat/$(DEPDIR)/$(am__dirstamp)
 compat/libbitcoin_util_a-strnlen.$(OBJEXT): compat/$(am__dirstamp) \
 	compat/$(DEPDIR)/$(am__dirstamp)
+support/libbitcoin_util_a-cleanse.$(OBJEXT): support/$(am__dirstamp) \
+	support/$(DEPDIR)/$(am__dirstamp)
 compat/libbitcoin_util_a-glibc_compat.$(OBJEXT):  \
 	compat/$(am__dirstamp) compat/$(DEPDIR)/$(am__dirstamp)
 
@@ -1934,6 +1947,26 @@ libbitcoin_util.a: $(libbitcoin_util_a_OBJECTS) $(libbitcoin_util_a_DEPENDENCIES
 	$(AM_V_at)-rm -f libbitcoin_util.a
 	$(AM_V_AR)$(libbitcoin_util_a_AR) libbitcoin_util.a $(libbitcoin_util_a_OBJECTS) $(libbitcoin_util_a_LIBADD)
 	$(AM_V_at)$(RANLIB) libbitcoin_util.a
+wallet/$(am__dirstamp):
+	@$(MKDIR_P) wallet
+	@: > wallet/$(am__dirstamp)
+wallet/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) wallet/$(DEPDIR)
+	@: > wallet/$(DEPDIR)/$(am__dirstamp)
+wallet/libbitcoin_wallet_a-crypter.$(OBJEXT): wallet/$(am__dirstamp) \
+	wallet/$(DEPDIR)/$(am__dirstamp)
+wallet/libbitcoin_wallet_a-db.$(OBJEXT): wallet/$(am__dirstamp) \
+	wallet/$(DEPDIR)/$(am__dirstamp)
+wallet/libbitcoin_wallet_a-rpcdump.$(OBJEXT): wallet/$(am__dirstamp) \
+	wallet/$(DEPDIR)/$(am__dirstamp)
+wallet/libbitcoin_wallet_a-rpcwallet.$(OBJEXT):  \
+	wallet/$(am__dirstamp) wallet/$(DEPDIR)/$(am__dirstamp)
+wallet/libbitcoin_wallet_a-wallet.$(OBJEXT): wallet/$(am__dirstamp) \
+	wallet/$(DEPDIR)/$(am__dirstamp)
+wallet/libbitcoin_wallet_a-wallet_ismine.$(OBJEXT):  \
+	wallet/$(am__dirstamp) wallet/$(DEPDIR)/$(am__dirstamp)
+wallet/libbitcoin_wallet_a-walletdb.$(OBJEXT): wallet/$(am__dirstamp) \
+	wallet/$(DEPDIR)/$(am__dirstamp)
 
 libbitcoin_wallet.a: $(libbitcoin_wallet_a_OBJECTS) $(libbitcoin_wallet_a_DEPENDENCIES) $(EXTRA_libbitcoin_wallet_a_DEPENDENCIES) 
 	$(AM_V_at)-rm -f libbitcoin_wallet.a
@@ -2211,8 +2244,6 @@ script/libbitcoinconsensus_la-script.lo: script/$(am__dirstamp) \
 	script/$(DEPDIR)/$(am__dirstamp)
 compat/libbitcoinconsensus_la-glibc_compat.lo: compat/$(am__dirstamp) \
 	compat/$(DEPDIR)/$(am__dirstamp)
-compat/libbitcoinconsensus_la-glibcxx_compat.lo:  \
-	compat/$(am__dirstamp) compat/$(DEPDIR)/$(am__dirstamp)
 
 libbitcoinconsensus.la: $(libbitcoinconsensus_la_OBJECTS) $(libbitcoinconsensus_la_DEPENDENCIES) $(EXTRA_libbitcoinconsensus_la_DEPENDENCIES) 
 	$(AM_V_CXXLD)$(libbitcoinconsensus_la_LINK) $(am_libbitcoinconsensus_la_rpath) $(libbitcoinconsensus_la_OBJECTS) $(libbitcoinconsensus_la_LIBADD) $(LIBS)
@@ -2308,13 +2339,14 @@ mostlyclean-compile:
 	-rm -f qt/res/*.$(OBJEXT)
 	-rm -f script/*.$(OBJEXT)
 	-rm -f script/*.lo
+	-rm -f support/*.$(OBJEXT)
 	-rm -f univalue/*.$(OBJEXT)
+	-rm -f wallet/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
 
 include ./$(DEPDIR)/libbitcoin_cli_a-rpcclient.Po
-include ./$(DEPDIR)/libbitcoin_common_a-allocators.Po
 include ./$(DEPDIR)/libbitcoin_common_a-amount.Po
 include ./$(DEPDIR)/libbitcoin_common_a-arith_uint256.Po
 include ./$(DEPDIR)/libbitcoin_common_a-base58.Po
@@ -2365,13 +2397,6 @@ include ./$(DEPDIR)/libbitcoin_util_a-util.Po
 include ./$(DEPDIR)/libbitcoin_util_a-utilmoneystr.Po
 include ./$(DEPDIR)/libbitcoin_util_a-utilstrencodings.Po
 include ./$(DEPDIR)/libbitcoin_util_a-utiltime.Po
-include ./$(DEPDIR)/libbitcoin_wallet_a-crypter.Po
-include ./$(DEPDIR)/libbitcoin_wallet_a-db.Po
-include ./$(DEPDIR)/libbitcoin_wallet_a-rpcdump.Po
-include ./$(DEPDIR)/libbitcoin_wallet_a-rpcwallet.Po
-include ./$(DEPDIR)/libbitcoin_wallet_a-wallet.Po
-include ./$(DEPDIR)/libbitcoin_wallet_a-wallet_ismine.Po
-include ./$(DEPDIR)/libbitcoin_wallet_a-walletdb.Po
 include ./$(DEPDIR)/libbitcoinconsensus_la-eccryptoverify.Plo
 include ./$(DEPDIR)/libbitcoinconsensus_la-ecwrapper.Plo
 include ./$(DEPDIR)/libbitcoinconsensus_la-hash.Plo
@@ -2386,7 +2411,6 @@ include compat/$(DEPDIR)/libbitcoin_util_a-glibc_sanity.Po
 include compat/$(DEPDIR)/libbitcoin_util_a-glibcxx_sanity.Po
 include compat/$(DEPDIR)/libbitcoin_util_a-strnlen.Po
 include compat/$(DEPDIR)/libbitcoinconsensus_la-glibc_compat.Plo
-include compat/$(DEPDIR)/libbitcoinconsensus_la-glibcxx_compat.Plo
 include crypto/$(DEPDIR)/crypto_libbitcoin_crypto_a-hmac_sha256.Po
 include crypto/$(DEPDIR)/crypto_libbitcoin_crypto_a-hmac_sha512.Po
 include crypto/$(DEPDIR)/crypto_libbitcoin_crypto_a-ripemd160.Po
@@ -2507,9 +2531,18 @@ include script/$(DEPDIR)/libbitcoin_server_a-sigcache.Po
 include script/$(DEPDIR)/libbitcoinconsensus_la-bitcoinconsensus.Plo
 include script/$(DEPDIR)/libbitcoinconsensus_la-interpreter.Plo
 include script/$(DEPDIR)/libbitcoinconsensus_la-script.Plo
+include support/$(DEPDIR)/libbitcoin_util_a-cleanse.Po
+include support/$(DEPDIR)/libbitcoin_util_a-pagelocker.Po
 include univalue/$(DEPDIR)/univalue.Po
 include univalue/$(DEPDIR)/univalue_read.Po
 include univalue/$(DEPDIR)/univalue_write.Po
+include wallet/$(DEPDIR)/libbitcoin_wallet_a-crypter.Po
+include wallet/$(DEPDIR)/libbitcoin_wallet_a-db.Po
+include wallet/$(DEPDIR)/libbitcoin_wallet_a-rpcdump.Po
+include wallet/$(DEPDIR)/libbitcoin_wallet_a-rpcwallet.Po
+include wallet/$(DEPDIR)/libbitcoin_wallet_a-wallet.Po
+include wallet/$(DEPDIR)/libbitcoin_wallet_a-wallet_ismine.Po
+include wallet/$(DEPDIR)/libbitcoin_wallet_a-walletdb.Po
 
 .cc.o:
 	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -2632,20 +2665,6 @@ libbitcoin_cli_a-rpcclient.obj: rpcclient.cpp
 #	$(AM_V_CXX)source='rpcclient.cpp' object='libbitcoin_cli_a-rpcclient.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_cli_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_cli_a-rpcclient.obj `if test -f 'rpcclient.cpp'; then $(CYGPATH_W) 'rpcclient.cpp'; else $(CYGPATH_W) '$(srcdir)/rpcclient.cpp'; fi`
-
-libbitcoin_common_a-allocators.o: allocators.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_common_a-allocators.o -MD -MP -MF $(DEPDIR)/libbitcoin_common_a-allocators.Tpo -c -o libbitcoin_common_a-allocators.o `test -f 'allocators.cpp' || echo '$(srcdir)/'`allocators.cpp
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_common_a-allocators.Tpo $(DEPDIR)/libbitcoin_common_a-allocators.Po
-#	$(AM_V_CXX)source='allocators.cpp' object='libbitcoin_common_a-allocators.o' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_common_a-allocators.o `test -f 'allocators.cpp' || echo '$(srcdir)/'`allocators.cpp
-
-libbitcoin_common_a-allocators.obj: allocators.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_common_a-allocators.obj -MD -MP -MF $(DEPDIR)/libbitcoin_common_a-allocators.Tpo -c -o libbitcoin_common_a-allocators.obj `if test -f 'allocators.cpp'; then $(CYGPATH_W) 'allocators.cpp'; else $(CYGPATH_W) '$(srcdir)/allocators.cpp'; fi`
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_common_a-allocators.Tpo $(DEPDIR)/libbitcoin_common_a-allocators.Po
-#	$(AM_V_CXX)source='allocators.cpp' object='libbitcoin_common_a-allocators.obj' libtool=no \
-#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_common_a-allocators.obj `if test -f 'allocators.cpp'; then $(CYGPATH_W) 'allocators.cpp'; else $(CYGPATH_W) '$(srcdir)/allocators.cpp'; fi`
 
 libbitcoin_common_a-arith_uint256.o: arith_uint256.cpp
 	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_common_a-arith_uint256.o -MD -MP -MF $(DEPDIR)/libbitcoin_common_a-arith_uint256.Tpo -c -o libbitcoin_common_a-arith_uint256.o `test -f 'arith_uint256.cpp' || echo '$(srcdir)/'`arith_uint256.cpp
@@ -3319,6 +3338,20 @@ libbitcoin_server_a-txmempool.obj: txmempool.cpp
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_server_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_server_a-txmempool.obj `if test -f 'txmempool.cpp'; then $(CYGPATH_W) 'txmempool.cpp'; else $(CYGPATH_W) '$(srcdir)/txmempool.cpp'; fi`
 
+support/libbitcoin_util_a-pagelocker.o: support/pagelocker.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_util_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT support/libbitcoin_util_a-pagelocker.o -MD -MP -MF support/$(DEPDIR)/libbitcoin_util_a-pagelocker.Tpo -c -o support/libbitcoin_util_a-pagelocker.o `test -f 'support/pagelocker.cpp' || echo '$(srcdir)/'`support/pagelocker.cpp
+	$(AM_V_at)$(am__mv) support/$(DEPDIR)/libbitcoin_util_a-pagelocker.Tpo support/$(DEPDIR)/libbitcoin_util_a-pagelocker.Po
+#	$(AM_V_CXX)source='support/pagelocker.cpp' object='support/libbitcoin_util_a-pagelocker.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_util_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o support/libbitcoin_util_a-pagelocker.o `test -f 'support/pagelocker.cpp' || echo '$(srcdir)/'`support/pagelocker.cpp
+
+support/libbitcoin_util_a-pagelocker.obj: support/pagelocker.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_util_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT support/libbitcoin_util_a-pagelocker.obj -MD -MP -MF support/$(DEPDIR)/libbitcoin_util_a-pagelocker.Tpo -c -o support/libbitcoin_util_a-pagelocker.obj `if test -f 'support/pagelocker.cpp'; then $(CYGPATH_W) 'support/pagelocker.cpp'; else $(CYGPATH_W) '$(srcdir)/support/pagelocker.cpp'; fi`
+	$(AM_V_at)$(am__mv) support/$(DEPDIR)/libbitcoin_util_a-pagelocker.Tpo support/$(DEPDIR)/libbitcoin_util_a-pagelocker.Po
+#	$(AM_V_CXX)source='support/pagelocker.cpp' object='support/libbitcoin_util_a-pagelocker.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_util_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o support/libbitcoin_util_a-pagelocker.obj `if test -f 'support/pagelocker.cpp'; then $(CYGPATH_W) 'support/pagelocker.cpp'; else $(CYGPATH_W) '$(srcdir)/support/pagelocker.cpp'; fi`
+
 libbitcoin_util_a-chainparamsbase.o: chainparamsbase.cpp
 	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_util_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_util_a-chainparamsbase.o -MD -MP -MF $(DEPDIR)/libbitcoin_util_a-chainparamsbase.Tpo -c -o libbitcoin_util_a-chainparamsbase.o `test -f 'chainparamsbase.cpp' || echo '$(srcdir)/'`chainparamsbase.cpp
 	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_util_a-chainparamsbase.Tpo $(DEPDIR)/libbitcoin_util_a-chainparamsbase.Po
@@ -3416,6 +3449,20 @@ libbitcoin_util_a-rpcprotocol.obj: rpcprotocol.cpp
 #	$(AM_V_CXX)source='rpcprotocol.cpp' object='libbitcoin_util_a-rpcprotocol.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_util_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_util_a-rpcprotocol.obj `if test -f 'rpcprotocol.cpp'; then $(CYGPATH_W) 'rpcprotocol.cpp'; else $(CYGPATH_W) '$(srcdir)/rpcprotocol.cpp'; fi`
+
+support/libbitcoin_util_a-cleanse.o: support/cleanse.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_util_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT support/libbitcoin_util_a-cleanse.o -MD -MP -MF support/$(DEPDIR)/libbitcoin_util_a-cleanse.Tpo -c -o support/libbitcoin_util_a-cleanse.o `test -f 'support/cleanse.cpp' || echo '$(srcdir)/'`support/cleanse.cpp
+	$(AM_V_at)$(am__mv) support/$(DEPDIR)/libbitcoin_util_a-cleanse.Tpo support/$(DEPDIR)/libbitcoin_util_a-cleanse.Po
+#	$(AM_V_CXX)source='support/cleanse.cpp' object='support/libbitcoin_util_a-cleanse.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_util_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o support/libbitcoin_util_a-cleanse.o `test -f 'support/cleanse.cpp' || echo '$(srcdir)/'`support/cleanse.cpp
+
+support/libbitcoin_util_a-cleanse.obj: support/cleanse.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_util_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT support/libbitcoin_util_a-cleanse.obj -MD -MP -MF support/$(DEPDIR)/libbitcoin_util_a-cleanse.Tpo -c -o support/libbitcoin_util_a-cleanse.obj `if test -f 'support/cleanse.cpp'; then $(CYGPATH_W) 'support/cleanse.cpp'; else $(CYGPATH_W) '$(srcdir)/support/cleanse.cpp'; fi`
+	$(AM_V_at)$(am__mv) support/$(DEPDIR)/libbitcoin_util_a-cleanse.Tpo support/$(DEPDIR)/libbitcoin_util_a-cleanse.Po
+#	$(AM_V_CXX)source='support/cleanse.cpp' object='support/libbitcoin_util_a-cleanse.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_util_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o support/libbitcoin_util_a-cleanse.obj `if test -f 'support/cleanse.cpp'; then $(CYGPATH_W) 'support/cleanse.cpp'; else $(CYGPATH_W) '$(srcdir)/support/cleanse.cpp'; fi`
 
 libbitcoin_util_a-sync.o: sync.cpp
 	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_util_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_util_a-sync.o -MD -MP -MF $(DEPDIR)/libbitcoin_util_a-sync.Tpo -c -o libbitcoin_util_a-sync.o `test -f 'sync.cpp' || echo '$(srcdir)/'`sync.cpp
@@ -3515,103 +3562,103 @@ compat/libbitcoin_util_a-glibc_compat.obj: compat/glibc_compat.cpp
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_util_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o compat/libbitcoin_util_a-glibc_compat.obj `if test -f 'compat/glibc_compat.cpp'; then $(CYGPATH_W) 'compat/glibc_compat.cpp'; else $(CYGPATH_W) '$(srcdir)/compat/glibc_compat.cpp'; fi`
 
-libbitcoin_wallet_a-db.o: db.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_wallet_a-db.o -MD -MP -MF $(DEPDIR)/libbitcoin_wallet_a-db.Tpo -c -o libbitcoin_wallet_a-db.o `test -f 'db.cpp' || echo '$(srcdir)/'`db.cpp
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_wallet_a-db.Tpo $(DEPDIR)/libbitcoin_wallet_a-db.Po
-#	$(AM_V_CXX)source='db.cpp' object='libbitcoin_wallet_a-db.o' libtool=no \
+wallet/libbitcoin_wallet_a-crypter.o: wallet/crypter.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wallet/libbitcoin_wallet_a-crypter.o -MD -MP -MF wallet/$(DEPDIR)/libbitcoin_wallet_a-crypter.Tpo -c -o wallet/libbitcoin_wallet_a-crypter.o `test -f 'wallet/crypter.cpp' || echo '$(srcdir)/'`wallet/crypter.cpp
+	$(AM_V_at)$(am__mv) wallet/$(DEPDIR)/libbitcoin_wallet_a-crypter.Tpo wallet/$(DEPDIR)/libbitcoin_wallet_a-crypter.Po
+#	$(AM_V_CXX)source='wallet/crypter.cpp' object='wallet/libbitcoin_wallet_a-crypter.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_wallet_a-db.o `test -f 'db.cpp' || echo '$(srcdir)/'`db.cpp
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wallet/libbitcoin_wallet_a-crypter.o `test -f 'wallet/crypter.cpp' || echo '$(srcdir)/'`wallet/crypter.cpp
 
-libbitcoin_wallet_a-db.obj: db.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_wallet_a-db.obj -MD -MP -MF $(DEPDIR)/libbitcoin_wallet_a-db.Tpo -c -o libbitcoin_wallet_a-db.obj `if test -f 'db.cpp'; then $(CYGPATH_W) 'db.cpp'; else $(CYGPATH_W) '$(srcdir)/db.cpp'; fi`
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_wallet_a-db.Tpo $(DEPDIR)/libbitcoin_wallet_a-db.Po
-#	$(AM_V_CXX)source='db.cpp' object='libbitcoin_wallet_a-db.obj' libtool=no \
+wallet/libbitcoin_wallet_a-crypter.obj: wallet/crypter.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wallet/libbitcoin_wallet_a-crypter.obj -MD -MP -MF wallet/$(DEPDIR)/libbitcoin_wallet_a-crypter.Tpo -c -o wallet/libbitcoin_wallet_a-crypter.obj `if test -f 'wallet/crypter.cpp'; then $(CYGPATH_W) 'wallet/crypter.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet/crypter.cpp'; fi`
+	$(AM_V_at)$(am__mv) wallet/$(DEPDIR)/libbitcoin_wallet_a-crypter.Tpo wallet/$(DEPDIR)/libbitcoin_wallet_a-crypter.Po
+#	$(AM_V_CXX)source='wallet/crypter.cpp' object='wallet/libbitcoin_wallet_a-crypter.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_wallet_a-db.obj `if test -f 'db.cpp'; then $(CYGPATH_W) 'db.cpp'; else $(CYGPATH_W) '$(srcdir)/db.cpp'; fi`
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wallet/libbitcoin_wallet_a-crypter.obj `if test -f 'wallet/crypter.cpp'; then $(CYGPATH_W) 'wallet/crypter.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet/crypter.cpp'; fi`
 
-libbitcoin_wallet_a-crypter.o: crypter.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_wallet_a-crypter.o -MD -MP -MF $(DEPDIR)/libbitcoin_wallet_a-crypter.Tpo -c -o libbitcoin_wallet_a-crypter.o `test -f 'crypter.cpp' || echo '$(srcdir)/'`crypter.cpp
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_wallet_a-crypter.Tpo $(DEPDIR)/libbitcoin_wallet_a-crypter.Po
-#	$(AM_V_CXX)source='crypter.cpp' object='libbitcoin_wallet_a-crypter.o' libtool=no \
+wallet/libbitcoin_wallet_a-db.o: wallet/db.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wallet/libbitcoin_wallet_a-db.o -MD -MP -MF wallet/$(DEPDIR)/libbitcoin_wallet_a-db.Tpo -c -o wallet/libbitcoin_wallet_a-db.o `test -f 'wallet/db.cpp' || echo '$(srcdir)/'`wallet/db.cpp
+	$(AM_V_at)$(am__mv) wallet/$(DEPDIR)/libbitcoin_wallet_a-db.Tpo wallet/$(DEPDIR)/libbitcoin_wallet_a-db.Po
+#	$(AM_V_CXX)source='wallet/db.cpp' object='wallet/libbitcoin_wallet_a-db.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_wallet_a-crypter.o `test -f 'crypter.cpp' || echo '$(srcdir)/'`crypter.cpp
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wallet/libbitcoin_wallet_a-db.o `test -f 'wallet/db.cpp' || echo '$(srcdir)/'`wallet/db.cpp
 
-libbitcoin_wallet_a-crypter.obj: crypter.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_wallet_a-crypter.obj -MD -MP -MF $(DEPDIR)/libbitcoin_wallet_a-crypter.Tpo -c -o libbitcoin_wallet_a-crypter.obj `if test -f 'crypter.cpp'; then $(CYGPATH_W) 'crypter.cpp'; else $(CYGPATH_W) '$(srcdir)/crypter.cpp'; fi`
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_wallet_a-crypter.Tpo $(DEPDIR)/libbitcoin_wallet_a-crypter.Po
-#	$(AM_V_CXX)source='crypter.cpp' object='libbitcoin_wallet_a-crypter.obj' libtool=no \
+wallet/libbitcoin_wallet_a-db.obj: wallet/db.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wallet/libbitcoin_wallet_a-db.obj -MD -MP -MF wallet/$(DEPDIR)/libbitcoin_wallet_a-db.Tpo -c -o wallet/libbitcoin_wallet_a-db.obj `if test -f 'wallet/db.cpp'; then $(CYGPATH_W) 'wallet/db.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet/db.cpp'; fi`
+	$(AM_V_at)$(am__mv) wallet/$(DEPDIR)/libbitcoin_wallet_a-db.Tpo wallet/$(DEPDIR)/libbitcoin_wallet_a-db.Po
+#	$(AM_V_CXX)source='wallet/db.cpp' object='wallet/libbitcoin_wallet_a-db.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_wallet_a-crypter.obj `if test -f 'crypter.cpp'; then $(CYGPATH_W) 'crypter.cpp'; else $(CYGPATH_W) '$(srcdir)/crypter.cpp'; fi`
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wallet/libbitcoin_wallet_a-db.obj `if test -f 'wallet/db.cpp'; then $(CYGPATH_W) 'wallet/db.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet/db.cpp'; fi`
 
-libbitcoin_wallet_a-rpcdump.o: rpcdump.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_wallet_a-rpcdump.o -MD -MP -MF $(DEPDIR)/libbitcoin_wallet_a-rpcdump.Tpo -c -o libbitcoin_wallet_a-rpcdump.o `test -f 'rpcdump.cpp' || echo '$(srcdir)/'`rpcdump.cpp
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_wallet_a-rpcdump.Tpo $(DEPDIR)/libbitcoin_wallet_a-rpcdump.Po
-#	$(AM_V_CXX)source='rpcdump.cpp' object='libbitcoin_wallet_a-rpcdump.o' libtool=no \
+wallet/libbitcoin_wallet_a-rpcdump.o: wallet/rpcdump.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wallet/libbitcoin_wallet_a-rpcdump.o -MD -MP -MF wallet/$(DEPDIR)/libbitcoin_wallet_a-rpcdump.Tpo -c -o wallet/libbitcoin_wallet_a-rpcdump.o `test -f 'wallet/rpcdump.cpp' || echo '$(srcdir)/'`wallet/rpcdump.cpp
+	$(AM_V_at)$(am__mv) wallet/$(DEPDIR)/libbitcoin_wallet_a-rpcdump.Tpo wallet/$(DEPDIR)/libbitcoin_wallet_a-rpcdump.Po
+#	$(AM_V_CXX)source='wallet/rpcdump.cpp' object='wallet/libbitcoin_wallet_a-rpcdump.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_wallet_a-rpcdump.o `test -f 'rpcdump.cpp' || echo '$(srcdir)/'`rpcdump.cpp
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wallet/libbitcoin_wallet_a-rpcdump.o `test -f 'wallet/rpcdump.cpp' || echo '$(srcdir)/'`wallet/rpcdump.cpp
 
-libbitcoin_wallet_a-rpcdump.obj: rpcdump.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_wallet_a-rpcdump.obj -MD -MP -MF $(DEPDIR)/libbitcoin_wallet_a-rpcdump.Tpo -c -o libbitcoin_wallet_a-rpcdump.obj `if test -f 'rpcdump.cpp'; then $(CYGPATH_W) 'rpcdump.cpp'; else $(CYGPATH_W) '$(srcdir)/rpcdump.cpp'; fi`
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_wallet_a-rpcdump.Tpo $(DEPDIR)/libbitcoin_wallet_a-rpcdump.Po
-#	$(AM_V_CXX)source='rpcdump.cpp' object='libbitcoin_wallet_a-rpcdump.obj' libtool=no \
+wallet/libbitcoin_wallet_a-rpcdump.obj: wallet/rpcdump.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wallet/libbitcoin_wallet_a-rpcdump.obj -MD -MP -MF wallet/$(DEPDIR)/libbitcoin_wallet_a-rpcdump.Tpo -c -o wallet/libbitcoin_wallet_a-rpcdump.obj `if test -f 'wallet/rpcdump.cpp'; then $(CYGPATH_W) 'wallet/rpcdump.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet/rpcdump.cpp'; fi`
+	$(AM_V_at)$(am__mv) wallet/$(DEPDIR)/libbitcoin_wallet_a-rpcdump.Tpo wallet/$(DEPDIR)/libbitcoin_wallet_a-rpcdump.Po
+#	$(AM_V_CXX)source='wallet/rpcdump.cpp' object='wallet/libbitcoin_wallet_a-rpcdump.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_wallet_a-rpcdump.obj `if test -f 'rpcdump.cpp'; then $(CYGPATH_W) 'rpcdump.cpp'; else $(CYGPATH_W) '$(srcdir)/rpcdump.cpp'; fi`
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wallet/libbitcoin_wallet_a-rpcdump.obj `if test -f 'wallet/rpcdump.cpp'; then $(CYGPATH_W) 'wallet/rpcdump.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet/rpcdump.cpp'; fi`
 
-libbitcoin_wallet_a-rpcwallet.o: rpcwallet.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_wallet_a-rpcwallet.o -MD -MP -MF $(DEPDIR)/libbitcoin_wallet_a-rpcwallet.Tpo -c -o libbitcoin_wallet_a-rpcwallet.o `test -f 'rpcwallet.cpp' || echo '$(srcdir)/'`rpcwallet.cpp
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_wallet_a-rpcwallet.Tpo $(DEPDIR)/libbitcoin_wallet_a-rpcwallet.Po
-#	$(AM_V_CXX)source='rpcwallet.cpp' object='libbitcoin_wallet_a-rpcwallet.o' libtool=no \
+wallet/libbitcoin_wallet_a-rpcwallet.o: wallet/rpcwallet.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wallet/libbitcoin_wallet_a-rpcwallet.o -MD -MP -MF wallet/$(DEPDIR)/libbitcoin_wallet_a-rpcwallet.Tpo -c -o wallet/libbitcoin_wallet_a-rpcwallet.o `test -f 'wallet/rpcwallet.cpp' || echo '$(srcdir)/'`wallet/rpcwallet.cpp
+	$(AM_V_at)$(am__mv) wallet/$(DEPDIR)/libbitcoin_wallet_a-rpcwallet.Tpo wallet/$(DEPDIR)/libbitcoin_wallet_a-rpcwallet.Po
+#	$(AM_V_CXX)source='wallet/rpcwallet.cpp' object='wallet/libbitcoin_wallet_a-rpcwallet.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_wallet_a-rpcwallet.o `test -f 'rpcwallet.cpp' || echo '$(srcdir)/'`rpcwallet.cpp
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wallet/libbitcoin_wallet_a-rpcwallet.o `test -f 'wallet/rpcwallet.cpp' || echo '$(srcdir)/'`wallet/rpcwallet.cpp
 
-libbitcoin_wallet_a-rpcwallet.obj: rpcwallet.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_wallet_a-rpcwallet.obj -MD -MP -MF $(DEPDIR)/libbitcoin_wallet_a-rpcwallet.Tpo -c -o libbitcoin_wallet_a-rpcwallet.obj `if test -f 'rpcwallet.cpp'; then $(CYGPATH_W) 'rpcwallet.cpp'; else $(CYGPATH_W) '$(srcdir)/rpcwallet.cpp'; fi`
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_wallet_a-rpcwallet.Tpo $(DEPDIR)/libbitcoin_wallet_a-rpcwallet.Po
-#	$(AM_V_CXX)source='rpcwallet.cpp' object='libbitcoin_wallet_a-rpcwallet.obj' libtool=no \
+wallet/libbitcoin_wallet_a-rpcwallet.obj: wallet/rpcwallet.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wallet/libbitcoin_wallet_a-rpcwallet.obj -MD -MP -MF wallet/$(DEPDIR)/libbitcoin_wallet_a-rpcwallet.Tpo -c -o wallet/libbitcoin_wallet_a-rpcwallet.obj `if test -f 'wallet/rpcwallet.cpp'; then $(CYGPATH_W) 'wallet/rpcwallet.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet/rpcwallet.cpp'; fi`
+	$(AM_V_at)$(am__mv) wallet/$(DEPDIR)/libbitcoin_wallet_a-rpcwallet.Tpo wallet/$(DEPDIR)/libbitcoin_wallet_a-rpcwallet.Po
+#	$(AM_V_CXX)source='wallet/rpcwallet.cpp' object='wallet/libbitcoin_wallet_a-rpcwallet.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_wallet_a-rpcwallet.obj `if test -f 'rpcwallet.cpp'; then $(CYGPATH_W) 'rpcwallet.cpp'; else $(CYGPATH_W) '$(srcdir)/rpcwallet.cpp'; fi`
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wallet/libbitcoin_wallet_a-rpcwallet.obj `if test -f 'wallet/rpcwallet.cpp'; then $(CYGPATH_W) 'wallet/rpcwallet.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet/rpcwallet.cpp'; fi`
 
-libbitcoin_wallet_a-wallet.o: wallet.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_wallet_a-wallet.o -MD -MP -MF $(DEPDIR)/libbitcoin_wallet_a-wallet.Tpo -c -o libbitcoin_wallet_a-wallet.o `test -f 'wallet.cpp' || echo '$(srcdir)/'`wallet.cpp
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_wallet_a-wallet.Tpo $(DEPDIR)/libbitcoin_wallet_a-wallet.Po
-#	$(AM_V_CXX)source='wallet.cpp' object='libbitcoin_wallet_a-wallet.o' libtool=no \
+wallet/libbitcoin_wallet_a-wallet.o: wallet/wallet.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wallet/libbitcoin_wallet_a-wallet.o -MD -MP -MF wallet/$(DEPDIR)/libbitcoin_wallet_a-wallet.Tpo -c -o wallet/libbitcoin_wallet_a-wallet.o `test -f 'wallet/wallet.cpp' || echo '$(srcdir)/'`wallet/wallet.cpp
+	$(AM_V_at)$(am__mv) wallet/$(DEPDIR)/libbitcoin_wallet_a-wallet.Tpo wallet/$(DEPDIR)/libbitcoin_wallet_a-wallet.Po
+#	$(AM_V_CXX)source='wallet/wallet.cpp' object='wallet/libbitcoin_wallet_a-wallet.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_wallet_a-wallet.o `test -f 'wallet.cpp' || echo '$(srcdir)/'`wallet.cpp
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wallet/libbitcoin_wallet_a-wallet.o `test -f 'wallet/wallet.cpp' || echo '$(srcdir)/'`wallet/wallet.cpp
 
-libbitcoin_wallet_a-wallet.obj: wallet.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_wallet_a-wallet.obj -MD -MP -MF $(DEPDIR)/libbitcoin_wallet_a-wallet.Tpo -c -o libbitcoin_wallet_a-wallet.obj `if test -f 'wallet.cpp'; then $(CYGPATH_W) 'wallet.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet.cpp'; fi`
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_wallet_a-wallet.Tpo $(DEPDIR)/libbitcoin_wallet_a-wallet.Po
-#	$(AM_V_CXX)source='wallet.cpp' object='libbitcoin_wallet_a-wallet.obj' libtool=no \
+wallet/libbitcoin_wallet_a-wallet.obj: wallet/wallet.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wallet/libbitcoin_wallet_a-wallet.obj -MD -MP -MF wallet/$(DEPDIR)/libbitcoin_wallet_a-wallet.Tpo -c -o wallet/libbitcoin_wallet_a-wallet.obj `if test -f 'wallet/wallet.cpp'; then $(CYGPATH_W) 'wallet/wallet.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet/wallet.cpp'; fi`
+	$(AM_V_at)$(am__mv) wallet/$(DEPDIR)/libbitcoin_wallet_a-wallet.Tpo wallet/$(DEPDIR)/libbitcoin_wallet_a-wallet.Po
+#	$(AM_V_CXX)source='wallet/wallet.cpp' object='wallet/libbitcoin_wallet_a-wallet.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_wallet_a-wallet.obj `if test -f 'wallet.cpp'; then $(CYGPATH_W) 'wallet.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet.cpp'; fi`
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wallet/libbitcoin_wallet_a-wallet.obj `if test -f 'wallet/wallet.cpp'; then $(CYGPATH_W) 'wallet/wallet.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet/wallet.cpp'; fi`
 
-libbitcoin_wallet_a-wallet_ismine.o: wallet_ismine.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_wallet_a-wallet_ismine.o -MD -MP -MF $(DEPDIR)/libbitcoin_wallet_a-wallet_ismine.Tpo -c -o libbitcoin_wallet_a-wallet_ismine.o `test -f 'wallet_ismine.cpp' || echo '$(srcdir)/'`wallet_ismine.cpp
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_wallet_a-wallet_ismine.Tpo $(DEPDIR)/libbitcoin_wallet_a-wallet_ismine.Po
-#	$(AM_V_CXX)source='wallet_ismine.cpp' object='libbitcoin_wallet_a-wallet_ismine.o' libtool=no \
+wallet/libbitcoin_wallet_a-wallet_ismine.o: wallet/wallet_ismine.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wallet/libbitcoin_wallet_a-wallet_ismine.o -MD -MP -MF wallet/$(DEPDIR)/libbitcoin_wallet_a-wallet_ismine.Tpo -c -o wallet/libbitcoin_wallet_a-wallet_ismine.o `test -f 'wallet/wallet_ismine.cpp' || echo '$(srcdir)/'`wallet/wallet_ismine.cpp
+	$(AM_V_at)$(am__mv) wallet/$(DEPDIR)/libbitcoin_wallet_a-wallet_ismine.Tpo wallet/$(DEPDIR)/libbitcoin_wallet_a-wallet_ismine.Po
+#	$(AM_V_CXX)source='wallet/wallet_ismine.cpp' object='wallet/libbitcoin_wallet_a-wallet_ismine.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_wallet_a-wallet_ismine.o `test -f 'wallet_ismine.cpp' || echo '$(srcdir)/'`wallet_ismine.cpp
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wallet/libbitcoin_wallet_a-wallet_ismine.o `test -f 'wallet/wallet_ismine.cpp' || echo '$(srcdir)/'`wallet/wallet_ismine.cpp
 
-libbitcoin_wallet_a-wallet_ismine.obj: wallet_ismine.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_wallet_a-wallet_ismine.obj -MD -MP -MF $(DEPDIR)/libbitcoin_wallet_a-wallet_ismine.Tpo -c -o libbitcoin_wallet_a-wallet_ismine.obj `if test -f 'wallet_ismine.cpp'; then $(CYGPATH_W) 'wallet_ismine.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet_ismine.cpp'; fi`
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_wallet_a-wallet_ismine.Tpo $(DEPDIR)/libbitcoin_wallet_a-wallet_ismine.Po
-#	$(AM_V_CXX)source='wallet_ismine.cpp' object='libbitcoin_wallet_a-wallet_ismine.obj' libtool=no \
+wallet/libbitcoin_wallet_a-wallet_ismine.obj: wallet/wallet_ismine.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wallet/libbitcoin_wallet_a-wallet_ismine.obj -MD -MP -MF wallet/$(DEPDIR)/libbitcoin_wallet_a-wallet_ismine.Tpo -c -o wallet/libbitcoin_wallet_a-wallet_ismine.obj `if test -f 'wallet/wallet_ismine.cpp'; then $(CYGPATH_W) 'wallet/wallet_ismine.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet/wallet_ismine.cpp'; fi`
+	$(AM_V_at)$(am__mv) wallet/$(DEPDIR)/libbitcoin_wallet_a-wallet_ismine.Tpo wallet/$(DEPDIR)/libbitcoin_wallet_a-wallet_ismine.Po
+#	$(AM_V_CXX)source='wallet/wallet_ismine.cpp' object='wallet/libbitcoin_wallet_a-wallet_ismine.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_wallet_a-wallet_ismine.obj `if test -f 'wallet_ismine.cpp'; then $(CYGPATH_W) 'wallet_ismine.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet_ismine.cpp'; fi`
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wallet/libbitcoin_wallet_a-wallet_ismine.obj `if test -f 'wallet/wallet_ismine.cpp'; then $(CYGPATH_W) 'wallet/wallet_ismine.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet/wallet_ismine.cpp'; fi`
 
-libbitcoin_wallet_a-walletdb.o: walletdb.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_wallet_a-walletdb.o -MD -MP -MF $(DEPDIR)/libbitcoin_wallet_a-walletdb.Tpo -c -o libbitcoin_wallet_a-walletdb.o `test -f 'walletdb.cpp' || echo '$(srcdir)/'`walletdb.cpp
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_wallet_a-walletdb.Tpo $(DEPDIR)/libbitcoin_wallet_a-walletdb.Po
-#	$(AM_V_CXX)source='walletdb.cpp' object='libbitcoin_wallet_a-walletdb.o' libtool=no \
+wallet/libbitcoin_wallet_a-walletdb.o: wallet/walletdb.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wallet/libbitcoin_wallet_a-walletdb.o -MD -MP -MF wallet/$(DEPDIR)/libbitcoin_wallet_a-walletdb.Tpo -c -o wallet/libbitcoin_wallet_a-walletdb.o `test -f 'wallet/walletdb.cpp' || echo '$(srcdir)/'`wallet/walletdb.cpp
+	$(AM_V_at)$(am__mv) wallet/$(DEPDIR)/libbitcoin_wallet_a-walletdb.Tpo wallet/$(DEPDIR)/libbitcoin_wallet_a-walletdb.Po
+#	$(AM_V_CXX)source='wallet/walletdb.cpp' object='wallet/libbitcoin_wallet_a-walletdb.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_wallet_a-walletdb.o `test -f 'walletdb.cpp' || echo '$(srcdir)/'`walletdb.cpp
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wallet/libbitcoin_wallet_a-walletdb.o `test -f 'wallet/walletdb.cpp' || echo '$(srcdir)/'`wallet/walletdb.cpp
 
-libbitcoin_wallet_a-walletdb.obj: walletdb.cpp
-	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_wallet_a-walletdb.obj -MD -MP -MF $(DEPDIR)/libbitcoin_wallet_a-walletdb.Tpo -c -o libbitcoin_wallet_a-walletdb.obj `if test -f 'walletdb.cpp'; then $(CYGPATH_W) 'walletdb.cpp'; else $(CYGPATH_W) '$(srcdir)/walletdb.cpp'; fi`
-	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_wallet_a-walletdb.Tpo $(DEPDIR)/libbitcoin_wallet_a-walletdb.Po
-#	$(AM_V_CXX)source='walletdb.cpp' object='libbitcoin_wallet_a-walletdb.obj' libtool=no \
+wallet/libbitcoin_wallet_a-walletdb.obj: wallet/walletdb.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT wallet/libbitcoin_wallet_a-walletdb.obj -MD -MP -MF wallet/$(DEPDIR)/libbitcoin_wallet_a-walletdb.Tpo -c -o wallet/libbitcoin_wallet_a-walletdb.obj `if test -f 'wallet/walletdb.cpp'; then $(CYGPATH_W) 'wallet/walletdb.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet/walletdb.cpp'; fi`
+	$(AM_V_at)$(am__mv) wallet/$(DEPDIR)/libbitcoin_wallet_a-walletdb.Tpo wallet/$(DEPDIR)/libbitcoin_wallet_a-walletdb.Po
+#	$(AM_V_CXX)source='wallet/walletdb.cpp' object='wallet/libbitcoin_wallet_a-walletdb.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_wallet_a-walletdb.obj `if test -f 'walletdb.cpp'; then $(CYGPATH_W) 'walletdb.cpp'; else $(CYGPATH_W) '$(srcdir)/walletdb.cpp'; fi`
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_wallet_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o wallet/libbitcoin_wallet_a-walletdb.obj `if test -f 'wallet/walletdb.cpp'; then $(CYGPATH_W) 'wallet/walletdb.cpp'; else $(CYGPATH_W) '$(srcdir)/wallet/walletdb.cpp'; fi`
 
 qt/qt_libbitcoinqt_a-bitcoinaddressvalidator.o: qt/bitcoinaddressvalidator.cpp
 	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(qt_libbitcoinqt_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT qt/qt_libbitcoinqt_a-bitcoinaddressvalidator.o -MD -MP -MF qt/$(DEPDIR)/qt_libbitcoinqt_a-bitcoinaddressvalidator.Tpo -c -o qt/qt_libbitcoinqt_a-bitcoinaddressvalidator.o `test -f 'qt/bitcoinaddressvalidator.cpp' || echo '$(srcdir)/'`qt/bitcoinaddressvalidator.cpp
@@ -5041,13 +5088,6 @@ compat/libbitcoinconsensus_la-glibc_compat.lo: compat/glibc_compat.cpp
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoinconsensus_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o compat/libbitcoinconsensus_la-glibc_compat.lo `test -f 'compat/glibc_compat.cpp' || echo '$(srcdir)/'`compat/glibc_compat.cpp
 
-compat/libbitcoinconsensus_la-glibcxx_compat.lo: compat/glibcxx_compat.cpp
-	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoinconsensus_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT compat/libbitcoinconsensus_la-glibcxx_compat.lo -MD -MP -MF compat/$(DEPDIR)/libbitcoinconsensus_la-glibcxx_compat.Tpo -c -o compat/libbitcoinconsensus_la-glibcxx_compat.lo `test -f 'compat/glibcxx_compat.cpp' || echo '$(srcdir)/'`compat/glibcxx_compat.cpp
-	$(AM_V_at)$(am__mv) compat/$(DEPDIR)/libbitcoinconsensus_la-glibcxx_compat.Tpo compat/$(DEPDIR)/libbitcoinconsensus_la-glibcxx_compat.Plo
-#	$(AM_V_CXX)source='compat/glibcxx_compat.cpp' object='compat/libbitcoinconsensus_la-glibcxx_compat.lo' libtool=yes \
-#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoinconsensus_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o compat/libbitcoinconsensus_la-glibcxx_compat.lo `test -f 'compat/glibcxx_compat.cpp' || echo '$(srcdir)/'`compat/glibcxx_compat.cpp
-
 lycancoin_cli-bitcoin-cli.o: bitcoin-cli.cpp
 	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lycancoin_cli_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT lycancoin_cli-bitcoin-cli.o -MD -MP -MF $(DEPDIR)/lycancoin_cli-bitcoin-cli.Tpo -c -o lycancoin_cli-bitcoin-cli.o `test -f 'bitcoin-cli.cpp' || echo '$(srcdir)/'`bitcoin-cli.cpp
 	$(AM_V_at)$(am__mv) $(DEPDIR)/lycancoin_cli-bitcoin-cli.Tpo $(DEPDIR)/lycancoin_cli-bitcoin-cli.Po
@@ -5567,8 +5607,12 @@ distclean-generic:
 	-rm -f qt/res/$(am__dirstamp)
 	-rm -f script/$(DEPDIR)/$(am__dirstamp)
 	-rm -f script/$(am__dirstamp)
+	-rm -f support/$(DEPDIR)/$(am__dirstamp)
+	-rm -f support/$(am__dirstamp)
 	-rm -f univalue/$(DEPDIR)/$(am__dirstamp)
 	-rm -f univalue/$(am__dirstamp)
+	-rm -f wallet/$(DEPDIR)/$(am__dirstamp)
+	-rm -f wallet/$(am__dirstamp)
 	-test -z "$(DISTCLEANFILES)" || rm -f $(DISTCLEANFILES)
 
 maintainer-clean-generic:
@@ -5580,7 +5624,7 @@ clean-am: clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
 	clean-libtool clean-local mostlyclean-am
 
 distclean: distclean-recursive
-	-rm -rf ./$(DEPDIR) compat/$(DEPDIR) crypto/$(DEPDIR) primitives/$(DEPDIR) qt/$(DEPDIR) script/$(DEPDIR) univalue/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) compat/$(DEPDIR) crypto/$(DEPDIR) primitives/$(DEPDIR) qt/$(DEPDIR) script/$(DEPDIR) support/$(DEPDIR) univalue/$(DEPDIR) wallet/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -5626,7 +5670,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-recursive
-	-rm -rf ./$(DEPDIR) compat/$(DEPDIR) crypto/$(DEPDIR) primitives/$(DEPDIR) qt/$(DEPDIR) script/$(DEPDIR) univalue/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) compat/$(DEPDIR) crypto/$(DEPDIR) primitives/$(DEPDIR) qt/$(DEPDIR) script/$(DEPDIR) support/$(DEPDIR) univalue/$(DEPDIR) wallet/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

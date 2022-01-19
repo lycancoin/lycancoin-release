@@ -11,13 +11,12 @@
 #include "scicon.h"
 #include "transactiondesc.h"
 #include "transactionrecord.h"
-#include "walletmodel.h"
 
 #include "main.h"
 #include "sync.h"
 #include "uint256.h"
 #include "util.h"
-#include "wallet.h"
+#include "wallet/wallet.h"
 
 #include <QColor>
 #include <QDateTime>
@@ -516,6 +515,11 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
             return txAddressDecoration(rec);
         }
         break;
+    case Qt::DecorationRole:
+    {
+        QIcon icon = qvariant_cast<QIcon>(index.data(RawDecorationRole));
+        return TextColorIcon(icon);
+    }
     case Qt::DisplayRole:
         switch(index.column())
         {

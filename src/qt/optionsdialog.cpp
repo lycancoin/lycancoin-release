@@ -18,7 +18,7 @@
 #include "netbase.h"
 #include "txdb.h" // for -dbcache defaults
 #ifdef ENABLE_WALLET
-#include "wallet.h" // for CWallet::minTxFee
+#include "wallet/wallet.h" // for CWallet::minTxFee
 #endif
 
 #include <boost/thread.hpp>
@@ -36,7 +36,6 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     fProxyIpValid(true)
 {
     ui->setupUi(this);
-    GUIUtil::restoreWindowGeometry("nOptionsDialogWindow", this->size(), this);
 
     /* Main elements init */
     ui->databaseCache->setMinimum(nMinDbCache);
@@ -115,7 +114,6 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
 
 OptionsDialog::~OptionsDialog()
 {
-    GUIUtil::saveWindowGeometry("nOptionsDialogWindow", this);
     delete ui;
 }
 

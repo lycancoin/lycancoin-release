@@ -188,8 +188,8 @@ unsigned int static GetNextWorkRequired_V1(const CBlockIndex* pindexLast, const 
     if (pindexLast == NULL)
         return nProofOfWorkLimit;
 
-    // Only change once per interval
-    if ((pindexLast->nHeight+1) % Params().Interval() != 0)
+    // Only change once per difficulty adjustment interval
+    if ((pindexLast->nHeight+1) % Params().DifficultyAdjustmentInterval() != 0)
     {
         if (Params().AllowMinDifficultyBlocks())
         {
@@ -202,7 +202,7 @@ unsigned int static GetNextWorkRequired_V1(const CBlockIndex* pindexLast, const 
             {
                 // Return the last non-special-min-difficulty-rules-block
                 const CBlockIndex* pindex = pindexLast;
-                while (pindex->pprev && pindex->nHeight % Params().Interval() != 0 && pindex->nBits == nProofOfWorkLimit)
+                while (pindex->pprev && pindex->nHeight % Params().DifficultyAdjustmentInterval() != 0 && pindex->nBits == nProofOfWorkLimit)
                     pindex = pindex->pprev;
                 return pindex->nBits;
             }
@@ -212,11 +212,11 @@ unsigned int static GetNextWorkRequired_V1(const CBlockIndex* pindexLast, const 
 
     // Lycancoin: This fixes an issue where a 51% attack can change difficulty at will.
     // Go back the full period unless it's the first retarget after genesis. Code courtesy of Art Forz
-    int blockstogoback = Params().Interval()-1;
-    if ((pindexLast->nHeight+1) != Params().Interval())
-       blockstogoback = Params().Interval();
+    int blockstogoback = Params().DifficultyAdjustmentInterval()-1;
+    if ((pindexLast->nHeight+1) != Params().DifficultyAdjustmentInterval())
+       blockstogoback = Params().DifficultyAdjustmentInterval();
     if (pindexLast->nHeight > COINFIX1_BLOCK) {
-       blockstogoback = nReTargetHistoryFact * Params().Interval();
+       blockstogoback = nReTargetHistoryFact * Params().DifficultyAdjustmentInterval();
     }
 
     // Go back by what we want to be nReTargetHistoryFact*nInterval blocks
@@ -225,13 +225,19 @@ unsigned int static GetNextWorkRequired_V1(const CBlockIndex* pindexLast, const 
         pindexFirst = pindexFirst->pprev;
     assert(pindexFirst);
 
+    return CalculateNextWorkRequired(pindexLast, pindexFirst->GetBlockTime());
+}
+
+unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nFirstBlockTime)
+{
     // Limit adjustment step
-    int64_t nActualTimespan = 0;
+    // int64_t nActualTimespan = 0;
+    int64_t nActualTimespan = pindexLast->GetBlockTime() - nFirstBlockTime;
     if (pindexLast->nHeight > COINFIX1_BLOCK)
         // obtain average actual timespan
-        nActualTimespan = (pindexLast->GetBlockTime() - pindexFirst->GetBlockTime())/nReTargetHistoryFact;
+        nActualTimespan = (pindexLast->GetBlockTime() - nFirstBlockTime)/nReTargetHistoryFact;
     else
-        nActualTimespan = pindexLast->GetBlockTime() - pindexFirst->GetBlockTime();
+        nActualTimespan = pindexLast->GetBlockTime() - nFirstBlockTime;
     LogPrintf("  nActualTimespan = %d before bounds\n", nActualTimespan);
     if (nActualTimespan < Params().TargetTimespan()/4)
         nActualTimespan = Params().TargetTimespan()/4;
@@ -282,9 +288,6 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits)
     bool fNegative;
     bool fOverflow;
     arith_uint256 bnTarget;
-    
-    if (Params().SkipProofOfWorkCheck())
-       return true;
     
     bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
 

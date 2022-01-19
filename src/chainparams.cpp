@@ -60,6 +60,7 @@ static Checkpoints::MapCheckpoints mapCheckpoints =
         (    140000, uint256S("0xf9d5d85ca836627ba4d4463427182a11e25502b505c91124d587e1284b024d79"))
         (   1380000, uint256S("0x6a3eb7216bf241846f8f370d391673e422ab3352821284fb4b75b8cf0d67071d"))
         (   1415377, uint256S("0xcfa3542981322d81c02a03e0a75569dbe9d85944083c5592ae9efefc27425f38"))
+        (   1570900, uint256S("0x8b39517eab83db0718c51489cc15ffa92e54cd0893ad144dbca406f03e85997d"))
         ;
 
 static const Checkpoints::CCheckpointData data = {
@@ -161,7 +162,6 @@ public:
         fAllowMinDifficultyBlocks = false;
         fRequireStandard = true;
         fMineBlocksOnDemand = false;
-        fSkipProofOfWorkCheck = false;
         fTestnetToBeDeprecatedFieldRPC = false;
     }
 
@@ -270,50 +270,7 @@ public:
 };
 static CRegTestParams regTestParams;
 
-//
-// Unit test
-//
-class CUnitTestParams : public CMainParams, public CModifiableParams {
-public:
-    CUnitTestParams() {
-        strNetworkID = "unittest";
-        nDefaultPort = 18445;
-        vFixedSeeds.clear();
-        vSeeds.clear();  // Regtest mode doesn't have any DNS seeds.
-
-        fRequireRPCPassword = false;
-        fMiningRequiresPeers = false;
-        fDefaultCheckMemPool = true;
-        fAllowMinDifficultyBlocks = false;
-        fMineBlocksOnDemand = true;
-    }
-
-    const Checkpoints::CCheckpointData& Checkpoints() const 
-    {
-        // UnitTest share the same checkpoints as MAIN
-        return data;
-    }
-    
-    // Published setters to allow changing values in unit test cases
-    virtual void setSubsidyHalvingInterval(int anSubsidyHalvingInterval)  { nSubsidyHalvingInterval=anSubsidyHalvingInterval; }
-    virtual void setEnforceBlockUpgradeMajority(int anEnforceBlockUpgradeMajority)  { nEnforceBlockUpgradeMajority=anEnforceBlockUpgradeMajority; }
-    virtual void setRejectBlockOutdatedMajority(int anRejectBlockOutdatedMajority)  { nRejectBlockOutdatedMajority=anRejectBlockOutdatedMajority; }
-    virtual void setToCheckBlockUpgradeMajority(int anToCheckBlockUpgradeMajority)  { nToCheckBlockUpgradeMajority=anToCheckBlockUpgradeMajority; }
-    virtual void setDefaultCheckMemPool(bool afDefaultCheckMemPool)  { fDefaultCheckMemPool=afDefaultCheckMemPool; }
-    virtual void setAllowMinDifficultyBlocks(bool afAllowMinDifficultyBlocks) {  fAllowMinDifficultyBlocks=afAllowMinDifficultyBlocks; }
-    virtual void setSkipProofOfWorkCheck(bool afSkipProofOfWorkCheck) { fSkipProofOfWorkCheck = afSkipProofOfWorkCheck; }
-};
-static CUnitTestParams unitTestParams;
-
-
 static CChainParams *pCurrentParams = 0;
-
-CModifiableParams *ModifiableParams()
-{
-   assert(pCurrentParams);
-   assert(pCurrentParams==&unitTestParams);
-   return (CModifiableParams*)&unitTestParams;
-}
 
 const CChainParams &Params() {
     assert(pCurrentParams);
@@ -328,8 +285,6 @@ CChainParams &Params(CBaseChainParams::Network network) {
             return testNetParams;
         case CBaseChainParams::REGTEST:
             return regTestParams;
-        case CBaseChainParams::UNITTEST:
-            return unitTestParams;
         default:
             assert(false && "Unimplemented network");
             return mainParams;

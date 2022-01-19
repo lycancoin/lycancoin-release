@@ -36,7 +36,6 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     fProxyIpValid(true)
 {
     ui->setupUi(this);
-    GUIUtil::restoreWindowGeometry("nOptionsDialogWindow", this->size(), this);
 
     /* Main elements init */
     ui->databaseCache->setMinimum(nMinDbCache);
@@ -115,7 +114,6 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
 
 OptionsDialog::~OptionsDialog()
 {
-    GUIUtil::saveWindowGeometry("nOptionsDialogWindow", this);
     delete ui;
 }
 
@@ -251,15 +249,6 @@ void OptionsDialog::showRestartWarning(bool fPersistent)
 void OptionsDialog::clearStatusLabel()
 {
     ui->statusLabel->clear();
-}
-
-void OptionsDialog::updateDisplayUnit()
-{
-    if(model)
-    {
-        /* Update transactionFee with the current unit */
-        ui->transactionFee->setDisplayUnit(model->getDisplayUnit());
-    }
 }
 
 void OptionsDialog::doProxyIpChecks(QValidatedLineEdit *pUiProxyIp, int nProxyPort)

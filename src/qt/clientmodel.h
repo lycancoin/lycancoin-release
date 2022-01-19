@@ -2,6 +2,7 @@
 #define CLIENTMODEL_H
 
 #include <QObject>
+#include <QDateTime>
 
 class AddressTableModel;
 class OptionsModel;
@@ -11,7 +12,6 @@ class TransactionTableModel;
 class CWallet;
 
 QT_BEGIN_NAMESPACE
-class QDateTime;
 class QTimer;
 QT_END_NAMESPACE
 
@@ -44,7 +44,6 @@ public:
     //! Return number of connections, default is in- and outbound (total)
     int getNumConnections(unsigned int flags = CONNECTIONS_ALL) const;
     int getNumBlocks() const;
-    int getNumBlocksAtStartup();
     
     quint64 getTotalBytesRecv() const;
     quint64 getTotalBytesSent() const;
@@ -70,10 +69,9 @@ private:
     PeerTableModel *peerTableModel;
 
     int cachedNumBlocks;
+    QDateTime cachedBlockDate;
     bool cachedReindexing;
     bool cachedImporting;
-
-    int numBlocksAtStartup;
 
     QTimer *pollTimer;
 
@@ -82,7 +80,7 @@ private:
 
 signals:
     void numConnectionsChanged(int count);
-    void numBlocksChanged(int count);
+    void numBlocksChanged(int count, const QDateTime& blockDate);
     void alertsChanged(const QString &warnings);
     void bytesChanged(quint64 totalBytesIn, quint64 totalBytesOut);
 

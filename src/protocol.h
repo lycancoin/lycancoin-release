@@ -30,21 +30,23 @@
 class CMessageHeader
 {
     public:
-        CMessageHeader();
-        CMessageHeader(const char* pszCommand, unsigned int nMessageSizeIn);
+    typedef unsigned char MessageStartChars[MESSAGE_START_SIZE];
 
-        std::string GetCommand() const;
-        bool IsValid() const;
+    CMessageHeader(const MessageStartChars& pchMessageStartIn);
+    CMessageHeader(const MessageStartChars& pchMessageStartIn, const char* pszCommand, unsigned int nMessageSizeIn);
 
-        ADD_SERIALIZE_METHODS;
+    std::string GetCommand() const;
+    bool IsValid(const MessageStartChars& messageStart) const;
 
-        template <typename Stream, typename Operation>
-        inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
-            READWRITE(FLATDATA(pchMessageStart));
-            READWRITE(FLATDATA(pchCommand));
-            READWRITE(nMessageSize);
-            READWRITE(nChecksum);
-        }
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(FLATDATA(pchMessageStart));
+        READWRITE(FLATDATA(pchCommand));
+        READWRITE(nMessageSize);
+        READWRITE(nChecksum);
+    }
 
     // TODO: make private (improves encapsulation)
     public:
