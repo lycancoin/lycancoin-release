@@ -3,8 +3,8 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef __CRYPTER_H__
-#define __CRYPTER_H__
+#ifndef BITCOIN_WALLET_CRYPTER_H
+#define BITCOIN_WALLET_CRYPTER_H
 
 #include "serialize.h"
 #include "keystore.h"
@@ -193,4 +193,4 @@ public:
     boost::signals2::signal<void (CCryptoKeyStore* wallet)> NotifyStatusChanged;
 };
 
-#endif
+#endif // BITCOIN_WALLET_CRYPTER_H

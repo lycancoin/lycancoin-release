@@ -26,6 +26,16 @@
 #include <vector>
 
 #include <boost/filesystem/path.hpp>
+#include <boost/signals2/signal.hpp>
+#include <boost/thread/exceptions.hpp>
+
+/** Signals for translation. */
+class CTranslationInterface
+{
+public:
+    /** Translate a message to the native language of the user. */
+    boost::signals2::signal<std::string (const char* psz)> Translate;
+};
 
 // Align by increasing pointer, must have extra space at end of buffer
 template <size_t nBytes, typename T>
@@ -41,8 +51,6 @@ T* alignup(T* p)
     return u.ptr;
 }
 
-#include <boost/thread/exceptions.hpp>
-
 extern std::map<std::string, std::string> mapArgs;
 extern std::map<std::string, std::vector<std::string> > mapMultiArgs;
 extern bool fDebug;
@@ -53,6 +61,17 @@ extern std::string strMiscWarning;
 extern bool fLogTimestamps;
 extern bool fLogIPs;
 extern volatile bool fReopenDebugLog;
+extern CTranslationInterface translationInterface;
+
+/**
+ * Translation function: Call Translate signal on UI interface, which returns a boost::optional result.
+ * If no translation slot is registered, nothing is returned, and simply return the input.
+ */
+inline std::string _(const char* psz)
+{
+    boost::optional<std::string> rv = translationInterface.Translate(psz);
+    return rv ? (*rv) : psz;
+}
 
 void SetupEnvironment();
 

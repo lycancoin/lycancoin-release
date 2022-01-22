@@ -21,9 +21,6 @@
 ////////////////////////////////////////////////
 
 /*
- 
- 
- 
 CCriticalSection mutex;
     boost::recursive_mutex mutex;
 LOCK(mutex);
@@ -37,11 +34,7 @@ ENTER_CRITICAL_SECTION(mutex); // no RAII
     mutex.lock();
 LEAVE_CRITICAL_SECTION(mutex); // no RAII
     mutex.unlock();
- 
- 
- 
  */
-
 
 
 ///////////////////////////////
@@ -50,8 +43,10 @@ LEAVE_CRITICAL_SECTION(mutex); // no RAII
 //                           //
 ///////////////////////////////
 
-// Template mixin that adds -Wthread-safety locking annotations to a
-// subset of the mutex API.
+/**
+ * Template mixin that adds -Wthread-safety locking
+ * annotations to a subset of the mutex API.
+ */
 template <typename PARENT>
 class LOCKABLE AnnotatedMixin : public PARENT
 {
@@ -72,8 +67,10 @@ public:
     }
 };
 
-/** Wrapped boost mutex: supports recursive locking, but no waiting  */
-// TODO: We should move away from using the recursive lock by default.
+/**
+ * Wrapped boost mutex: supports recursive locking, but no waiting
+ * TODO: We should move away from using the recursive lock by default.
+ */
 typedef AnnotatedMixin<boost::recursive_mutex> CCriticalSection;
 
 /** Wrapped boost mutex: supports waiting but not recursive locking */

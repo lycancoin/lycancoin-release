@@ -729,14 +729,14 @@ LSSharedFileListItemRef findStartupItemInList(LSSharedFileListRef list, CFURLRef
         CFURLRef currentItemURL = NULL;
         
 #if defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= 10100
-	if(&LSSharedFileListItemCopyResolvedURL)
-	    currentItemURL = LSSharedFileListItemCopyResolvedURL(item, resolutionFlags, NULL);
+    if(&LSSharedFileListItemCopyResolvedURL)
+        currentItemURL = LSSharedFileListItemCopyResolvedURL(item, resolutionFlags, NULL);
 #if defined(MAC_OS_X_VERSION_MIN_REQUIRED) && MAC_OS_X_VERSION_MIN_REQUIRED < 10100
-	else
-	    LSSharedFileListItemResolve(item, resolutionFlags, &currentItemURL, NULL);
+    else
+        LSSharedFileListItemResolve(item, resolutionFlags, &currentItemURL, NULL);
 #endif
 #else
-	LSSharedFileListItemResolve(item, resolutionFlags, &currentItemURL, NULL);
+     LSSharedFileListItemResolve(item, resolutionFlags, &currentItemURL, NULL);
 #endif
         
         if(currentItemURL && CFEqual(currentItemURL, findUrl)) {
@@ -866,10 +866,13 @@ QString formatServicesStr(uint64_t mask)
             switch (check)
             {
             case NODE_NETWORK:
-                strList.append(QObject::tr("NETWORK"));
+                strList.append("NETWORK");
+                break;
+            case NODE_GETUTXO:
+                strList.append("GETUTXO");
                 break;
             default:
-                strList.append(QString("%1[%2]").arg(QObject::tr("UNKNOWN")).arg(check));
+                strList.append(QString("%1[%2]").arg("UNKNOWN").arg(check));
             }
         }
     }

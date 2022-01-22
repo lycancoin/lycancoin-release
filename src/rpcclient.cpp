@@ -8,7 +8,6 @@
 
 #include "rpcprotocol.h"
 #include "util.h"
-#include "ui_interface.h"
 
 #include <stdint.h>
 
@@ -77,6 +76,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "sendrawtransaction", 1 },
     { "gettxout", 1 },
     { "gettxout", 2 },
+    { "gettxoutproof", 0 },    
     { "lockunspent", 0 },
     { "lockunspent", 1 },
     { "importprivkey", 2 },

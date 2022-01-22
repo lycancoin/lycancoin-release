@@ -9,14 +9,16 @@
 #include "rpcserver.h" //Legacy support for Lycancoin solo mining
 #include "amount.h"
 #include "chainparams.h"
+#include "consensus/consensus.h"
 #include "main.h"
 #include "init.h"
-#include "net.h"
 #include "main.h"
 #include "miner.h"
+#include "net.h"
 #include "pow.h"
 #include "core_io.h"
 #include "util.h"
+#include "validationinterface.h"
 #include "timedata.h"
 #ifdef ENABLE_WALLET
 #include "wallet/db.h"
@@ -73,7 +75,7 @@ Value GetNetworkHashPS(int lookup, int height) {
         return 0;
     // If lookup is -1, then use blocks since last difficulty change.
     if (lookup <= 0)
-        lookup = pb->nHeight % Params().DifficultyAdjustmentInterval() + 1;
+        lookup = pb->nHeight % Params().GetConsensus().DifficultyAdjustmentInterval() + 1;
     // If lookup is larger than chain, then set it to chain length.
     if (lookup > pb->nHeight)
         lookup = pb->nHeight;
@@ -165,7 +167,8 @@ Value setgenerate(const Array& params, bool fHelp)
         
     if (pwalletMain == NULL)
         throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Method not found (disabled)");
-
+    if (Params().MineBlocksOnDemand())
+        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Use the generate method instead of setgenerate on this network");
 
     bool fGenerate = true;
     if (params.size() > 0)
@@ -206,7 +209,7 @@ Value setgenerate(const Array& params, bool fHelp)
                 LOCK(cs_main);
                 IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
             }
-            while (!CheckProofOfWork(pblock->GetHash(), pblock->nBits)) {
+            while (!CheckProofOfWork(pblock->GetHash(), pblock->nBits, Params().GetConsensus())) {
                 // Yes, there is a chance every nonce could fail to satisfy the -regtest
                 // target -- 1 in 2^(2^32). That ain't gonna happen.
                 ++pblock->nNonce;
@@ -511,7 +514,7 @@ Value getwork(const Array& params, bool fHelp)
         CBlock* pblock = &pblocktemplate->block; // pointer for convenience
 
         // Update nTime
-        UpdateTime(pblock, pindexPrev);
+        UpdateTime(pblock, Params().GetConsensus(), pindexPrev);
         pblock->nNonce = 0;
 
         // Update nExtraNonce
@@ -818,7 +821,7 @@ Value getblocktemplate(const Array& params, bool fHelp)
     CBlock* pblock = &pblocktemplate->block; // pointer for convenience
 
     // Update nTime
-    UpdateTime(pblock, pindexPrev);
+    UpdateTime(pblock, Params().GetConsensus(), pindexPrev);
     pblock->nNonce = 0;
 
     static const Array aCaps = boost::assign::list_of("proposal");
@@ -933,14 +936,19 @@ Value submitblock(const Array& params, bool fHelp)
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block decode failed");
 
     uint256 hash = block.GetHash();
-    BlockMap::iterator mi = mapBlockIndex.find(hash);
-    if (mi != mapBlockIndex.end()) {
-        CBlockIndex *pindex = mi->second;
-        if (pindex->IsValid(BLOCK_VALID_SCRIPTS))
-            return "duplicate";
-        if (pindex->nStatus & BLOCK_FAILED_MASK)
-            return "duplicate-invalid";
-        // Otherwise, we might only have the header - process the block before returning
+    bool fBlockPresent = false;
+    {
+        LOCK(cs_main);
+        BlockMap::iterator mi = mapBlockIndex.find(hash);
+        if (mi != mapBlockIndex.end()) {
+            CBlockIndex *pindex = mi->second;
+            if (pindex->IsValid(BLOCK_VALID_SCRIPTS))
+                return "duplicate";
+            if (pindex->nStatus & BLOCK_FAILED_MASK)
+                return "duplicate-invalid";
+            // Otherwise, we might only have the header - process the block before returning
+            fBlockPresent = true;
+        }
     }
 
     CValidationState state;
@@ -948,7 +956,7 @@ Value submitblock(const Array& params, bool fHelp)
     RegisterValidationInterface(&sc);
     bool fAccepted = ProcessNewBlock(state, NULL, &block);
     UnregisterValidationInterface(&sc);
-    if (mi != mapBlockIndex.end())
+    if (fBlockPresent)
     {
         if (fAccepted && !sc.found)
             return "duplicate-inconclusive";

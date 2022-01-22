@@ -101,6 +101,7 @@ NodeId nLastNodeId = 0;
 CCriticalSection cs_nLastNodeId;
 
 static CSemaphore *semOutbound = NULL;
+boost::condition_variable messageHandlerCondition;
 
 // Signals for message handling
 static CNodeSignals g_signals;
@@ -140,6 +141,27 @@ bool GetLocal(CService& addr, const CNetAddr *paddrPeer)
         }
     }
     return nBestScore >= 0;
+}
+
+//! Convert the pnSeeds6 array into usable address objects.
+static std::vector<CAddress> convertSeed6(const std::vector<SeedSpec6> &vSeedsIn)
+{
+    // It'll only connect to one or two seed nodes because once it connects,
+    // it'll get a pile of addresses with newer timestamps.
+    // Seed nodes are given a random 'last seen time' of between one and two
+    // weeks ago.
+    const int64_t nOneWeek = 7*24*60*60;
+    std::vector<CAddress> vSeedsOut;
+    vSeedsOut.reserve(vSeedsIn.size());
+    for (std::vector<SeedSpec6>::const_iterator i(vSeedsIn.begin()); i != vSeedsIn.end(); ++i)
+    {
+        struct in6_addr ip;
+        memcpy(&ip, i->addr, sizeof(ip));
+        CAddress addr(CService(ip, i->port));
+        addr.nTime = GetTime() - GetRand(nOneWeek) - nOneWeek;
+        vSeedsOut.push_back(addr);
+    }
+    return vSeedsOut;
 }
 
 // get best local address for a particular peer as a CAddress
@@ -586,8 +608,10 @@ bool CNode::ReceiveMsgBytes(const char *pch, unsigned int nBytes)
         pch += handled;
         nBytes -= handled;
         
-        if (msg.complete())
+        if (msg.complete()) {
             msg.nTime = GetTimeMicros();
+            messageHandlerCondition.notify_one();
+        }
     }
 
     return true;
@@ -1257,7 +1281,7 @@ void ThreadOpenConnections()
             static bool done = false;
             if (!done) {
                 LogPrintf("Adding fixed seed nodes as DNS doesn't seem to be available.\n");
-                addrman.Add(Params().FixedSeeds(), CNetAddr("127.0.0.1"));
+                addrman.Add(convertSeed6(Params().FixedSeeds()), CNetAddr("127.0.0.1"));
                 done = true;
             }
         }
@@ -1286,8 +1310,7 @@ void ThreadOpenConnections()
         int nTries = 0;
         while (true)
         {
-            // use an nUnkBias between 10 (no outgoing connections) and 90 (8 outgoing connections)
-            CAddress addr = addrman.Select(10 + min(nOutbound,8)*10);
+            CAddrInfo addr = addrman.Select();
 
             // if we selected an invalid address, restart
             if (!addr.IsValid() || setConnected.count(addr.GetGroup()) || IsLocal(addr))
@@ -1422,6 +1445,9 @@ bool OpenNetworkConnection(const CAddress& addrConnect, CSemaphoreGrant *grantOu
 
 void ThreadMessageHandler()
 {
+    boost::mutex condition_mutex;
+    boost::unique_lock<boost::mutex> lock(condition_mutex);
+    
     SetThreadPriority(THREAD_PRIORITY_BELOW_NORMAL);
     while (true)
     {
@@ -1468,7 +1494,7 @@ void ThreadMessageHandler()
             {
                 TRY_LOCK(pnode->cs_vSend, lockSend);
                 if (lockSend)
-                    g_signals.SendMessages(pnode, pnode == pnodeTrickle);
+                    g_signals.SendMessages(pnode, pnode == pnodeTrickle || pnode->fWhitelisted);
             }
             boost::this_thread::interruption_point();
         }
@@ -1480,7 +1506,7 @@ void ThreadMessageHandler()
         }
 
         if (fSleep)
-            MilliSleep(100);
+            messageHandlerCondition.timed_wait(lock, boost::posix_time::microsec_clock::universal_time() + boost::posix_time::milliseconds(100));
     }
 }
 
@@ -1945,7 +1971,10 @@ bool CAddrDB::Read(CAddrMan& addr)
 unsigned int ReceiveFloodSize() { return 1000*GetArg("-maxreceivebuffer", 5*1000); }
 unsigned int SendBufferSize() { return 1000*GetArg("-maxsendbuffer", 1*1000); }
 
-CNode::CNode(SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn, bool fInboundIn) : ssSend(SER_NETWORK, INIT_PROTO_VERSION), setAddrKnown(5000)
+CNode::CNode(SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn, bool fInboundIn) :
+    ssSend(SER_NETWORK, INIT_PROTO_VERSION),
+    addrKnown(5000, 0.001, insecure_rand()),
+    setInventoryKnown(SendBufferSize() / 1000)
 {
     nServices = 0;
     hSocket = hSocketIn;
@@ -1974,7 +2003,6 @@ CNode::CNode(SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn, bool fIn
     nStartingHeight = -1;
     fGetAddr = false;
     fRelayTxes = false;
-    setInventoryKnown.max_size(SendBufferSize() / 1000);
     pfilter = new CBloomFilter();
     nPingNonceSent = 0;
     nPingUsecStart = 0;

@@ -398,8 +398,7 @@ void RPCConsole::setNumConnections(int count)
 void RPCConsole::setNumBlocks(int count, const QDateTime& blockDate)
 {
     ui->numberOfBlocks->setText(QString::number(count));
-    if(clientModel)
-        ui->lastBlockTime->setText(clientModel->getLastBlockDate().toString());
+    ui->lastBlockTime->setText(blockDate.toString());
 }
 
 void RPCConsole::on_lineEdit_returnPressed()

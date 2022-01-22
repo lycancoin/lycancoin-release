@@ -99,7 +99,6 @@ public:
     std::string name;
     rpcfn_type actor;
     bool okSafeMode;
-    bool reqWallet;
 };
 
 /**
@@ -212,6 +211,7 @@ extern json_spirit::Value getwalletinfo(const json_spirit::Array& params, bool f
 extern json_spirit::Value getblockchaininfo(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value getnetworkinfo(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value setmocktime(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value resendwallettransactions(const json_spirit::Array& params, bool fHelp);
 
 extern json_spirit::Value getrawtransaction(const json_spirit::Array& params, bool fHelp); // in rcprawtransaction.cpp
 extern json_spirit::Value listunspent(const json_spirit::Array& params, bool fHelp);
@@ -222,6 +222,8 @@ extern json_spirit::Value decoderawtransaction(const json_spirit::Array& params,
 extern json_spirit::Value decodescript(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value signrawtransaction(const json_spirit::Array& params, bool fHelp);
 extern json_spirit::Value sendrawtransaction(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value gettxoutproof(const json_spirit::Array& params, bool fHelp);
+extern json_spirit::Value verifytxoutproof(const json_spirit::Array& params, bool fHelp);
 
 extern json_spirit::Value getblockcount(const json_spirit::Array& params, bool fHelp); // in rpcblockchain.cpp
 extern json_spirit::Value getbestblockhash(const json_spirit::Array& params, bool fHelp);

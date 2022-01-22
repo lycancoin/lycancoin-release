@@ -9,10 +9,12 @@
 #include "init.h"
 #include "keystore.h"
 #include "main.h"
+#include "merkleblock.h"
 #include "main.h"
 #include "net.h"
 #include "rpcserver.h"
 #include "script/script.h"
+#include "script/script_error.h"
 #include "script/standard.h"
 #include "script/sign.h"
 #include "uint256.h"
@@ -202,111 +204,118 @@ Value getrawtransaction(const Array& params, bool fHelp)
     return result;
 }
 
-#ifdef ENABLE_WALLET
-Value listunspent(const Array& params, bool fHelp)
+Value gettxoutproof(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() > 3)
+    if (fHelp || (params.size() != 1 && params.size() != 2))
         throw runtime_error(
-            "listunspent ( minconf maxconf  [\"address\",...] )\n"
-            "\nReturns array of unspent transaction outputs\n"
-            "with between minconf and maxconf (inclusive) confirmations.\n"
-            "Optionally filter to only include txouts paid to specified addresses.\n"
-            "Results are an array of Objects, each of which has:\n"
-            "{txid, vout, scriptPubKey, amount, confirmations}\n"
+            "gettxoutproof [\"txid\",...] ( blockhash )\n"
+            "\nReturns a hex-encoded proof that \"txid\" was included in a block.\n"
+            "\nNOTE: By default this function only works sometimes. This is when there is an\n"
+            "unspent output in the utxo for this transaction. To make it always work,\n"
+            "you need to maintain a transaction index, using the -txindex command line option or\n"
+            "specify the block in which the transaction is included in manually (by blockhash).\n"
+            "\nReturn the raw transaction data.\n"
             "\nArguments:\n"
-            "1. minconf          (numeric, optional, default=1) The minimum confirmations to filter\n"
-            "2. maxconf          (numeric, optional, default=9999999) The maximum confirmations to filter\n"
-            "3. \"addresses\"    (string) A json array of lycancoin addresses to filter\n"
+            "1. \"txids\"       (string) A json array of txids to filter\n"
             "    [\n"
-            "      \"address\"   (string) lycancoin address\n"
+            "      \"txid\"     (string) A transaction hash\n"
             "      ,...\n"
             "    ]\n"
-            "\nResult\n"
-            "[                   (array of json object)\n"
-            "  {\n"
-            "    \"txid\" : \"txid\",        (string) the transaction id \n"
-            "    \"vout\" : n,               (numeric) the vout value\n"
-            "    \"address\" : \"address\",  (string) the lycancoin address\n"
-            "    \"account\" : \"account\",  (string) DEPRECATED. The associated account, or \"\" for the default account\n"
-            "    \"scriptPubKey\" : \"key\", (string) the script key\n"
-            "    \"amount\" : x.xxx,         (numeric) the transaction amount in lyc\n"
-            "    \"confirmations\" : n       (numeric) The number of confirmations\n"
-            "  }\n"
-            "  ,...\n"
-            "]\n"
-
-            "\nExamples\n"
-            + HelpExampleCli("listunspent", "")
-            + HelpExampleCli("listunspent", "6 9999999 \"[\\\"LQHhoZafBCSs6Zj7wJmq2p8s58Tg1hzPXF\\\",\\\"LQHhoZafBCSs6Zj7wJmq2p8s58Tg1hzPXF\\\"]\"")
-            + HelpExampleRpc("listunspent", "6, 9999999 \"[\\\"LQHhoZafBCSs6Zj7wJmq2p8s58Tg1hzPXF\\\",\\\"LQHhoZafBCSs6Zj7wJmq2p8s58Tg1hzPXF\\\"]\"")
+            "2. \"block hash\"  (string, optional) If specified, looks for txid in the block with this hash\n"
+            "\nResult:\n"
+            "\"data\"           (string) A string that is a serialized, hex-encoded data for the proof.\n"
         );
 
-    RPCTypeCheck(params, boost::assign::list_of(int_type)(int_type)(array_type));
-
-    int nMinDepth = 1;
-    if (params.size() > 0)
-        nMinDepth = params[0].get_int();
-
-    int nMaxDepth = 9999999;
-    if (params.size() > 1)
-        nMaxDepth = params[1].get_int();
-        
-    set<CBitcoinAddress> setAddress;
-    if (params.size() > 2)
-    {
-        Array inputs = params[2].get_array();
-        BOOST_FOREACH(Value& input, inputs)
-        {
-            CBitcoinAddress address(input.get_str());
-            if (!address.IsValid())
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Lycancoin address: ")+input.get_str());
-            if (setAddress.count(address))
-                throw JSONRPCError(RPC_INVALID_PARAMETER, string("Invalid parameter, duplicated address: ")+input.get_str());
-           setAddress.insert(address);
-        }
-    }        
-
-    Array results;
-    vector<COutput> vecOutputs;
-    LOCK2(cs_main, pwalletMain->cs_wallet);
-    pwalletMain->AvailableCoins(vecOutputs, false);
-    BOOST_FOREACH(const COutput& out, vecOutputs)
-    {
-        if (out.nDepth < nMinDepth || out.nDepth > nMaxDepth)
-            continue;
-            
-        if(setAddress.size())
-        {
-            CTxDestination address;
-            if(!ExtractDestination(out.tx->vout[out.i].scriptPubKey, address))
-                continue;
-
-            if (!setAddress.count(address))
-                continue;
-        }
-
-        CAmount nValue = out.tx->vout[out.i].nValue;
-        const CScript& pk = out.tx->vout[out.i].scriptPubKey;
-        Object entry;
-        entry.push_back(Pair("txid", out.tx->GetHash().GetHex()));
-        entry.push_back(Pair("vout", out.i));
-        CTxDestination address;
-        if (ExtractDestination(out.tx->vout[out.i].scriptPubKey, address))
-        {
-            entry.push_back(Pair("address", CBitcoinAddress(address).ToString()));
-            if (pwalletMain->mapAddressBook.count(address))
-                entry.push_back(Pair("account", pwalletMain->mapAddressBook[address].name));
-        }
-        entry.push_back(Pair("scriptPubKey", HexStr(pk.begin(), pk.end())));
-        entry.push_back(Pair("amount",ValueFromAmount(nValue)));
-        entry.push_back(Pair("confirmations",out.nDepth));
-        entry.push_back(Pair("spendable", out.fSpendable));
-        results.push_back(entry);
+    set<uint256> setTxids;
+    uint256 oneTxid;
+    Array txids = params[0].get_array();
+    BOOST_FOREACH(Value& txid, txids) {
+        if (txid.get_str().length() != 64 || !IsHex(txid.get_str()))
+            throw JSONRPCError(RPC_INVALID_PARAMETER, string("Invalid txid ")+txid.get_str());
+        uint256 hash(uint256S(txid.get_str()));
+        if (setTxids.count(hash))
+            throw JSONRPCError(RPC_INVALID_PARAMETER, string("Invalid parameter, duplicated txid: ")+txid.get_str());
+       setTxids.insert(hash);
+       oneTxid = hash;
     }
 
-    return results;
+    LOCK(cs_main);
+
+    CBlockIndex* pblockindex = NULL;
+
+    uint256 hashBlock;
+    if (params.size() > 1)
+    {
+        hashBlock = uint256S(params[1].get_str());
+        if (!mapBlockIndex.count(hashBlock))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
+        pblockindex = mapBlockIndex[hashBlock];
+    } else {
+        CCoins coins;
+        if (pcoinsTip->GetCoins(oneTxid, coins) && coins.nHeight > 0 && coins.nHeight <= chainActive.Height())
+            pblockindex = chainActive[coins.nHeight];
+    }
+
+    if (pblockindex == NULL)
+    {
+        CTransaction tx;
+        if (!GetTransaction(oneTxid, tx, hashBlock, false) || hashBlock.IsNull())
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Transaction not yet in block");
+        if (!mapBlockIndex.count(hashBlock))
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Transaction index corrupt");
+        pblockindex = mapBlockIndex[hashBlock];
+    }
+
+    CBlock block;
+    if(!ReadBlockFromDisk(block, pblockindex))
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Can't read block from disk");
+
+    unsigned int ntxFound = 0;
+    BOOST_FOREACH(const CTransaction&tx, block.vtx)
+        if (setTxids.count(tx.GetHash()))
+            ntxFound++;
+    if (ntxFound != setTxids.size())
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "(Not all) transactions not found in specified block");
+
+    CDataStream ssMB(SER_NETWORK, PROTOCOL_VERSION);
+    CMerkleBlock mb(block, setTxids);
+    ssMB << mb;
+    std::string strHex = HexStr(ssMB.begin(), ssMB.end());
+    return strHex;
 }
-#endif
+
+Value verifytxoutproof(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "verifytxoutproof \"proof\"\n"
+            "\nVerifies that a proof points to a transaction in a block, returning the transaction it commits to\n"
+            "and throwing an RPC error if the block is not in our best chain\n"
+            "\nArguments:\n"
+            "1. \"proof\"    (string, required) The hex-encoded proof generated by gettxoutproof\n"
+            "\nResult:\n"
+            "[\"txid\"]      (array, strings) The txid(s) which the proof commits to, or empty array if the proof is invalid\n"
+        );
+
+    CDataStream ssMB(ParseHexV(params[0], "proof"), SER_NETWORK, PROTOCOL_VERSION);
+    CMerkleBlock merkleBlock;
+    ssMB >> merkleBlock;
+
+    Array res;
+
+    vector<uint256> vMatch;
+    if (merkleBlock.txn.ExtractMatches(vMatch) != merkleBlock.header.hashMerkleRoot)
+        return res;
+
+    LOCK(cs_main);
+
+    if (!mapBlockIndex.count(merkleBlock.header.GetHash()) || !chainActive.Contains(mapBlockIndex[merkleBlock.header.GetHash()]))
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found in chain");
+
+    BOOST_FOREACH(const uint256& hash, vMatch)
+        res.push_back(hash.GetHex());
+    return res;
+}
 
 Value createrawtransaction(const Array& params, bool fHelp)
 {
@@ -501,6 +510,18 @@ Value decodescript(const Array& params, bool fHelp)
     return r;
 }
 
+/** Pushes a JSON object for script verification or signing errors to vErrorsRet. */
+static void TxInErrorToJSON(const CTxIn& txin, Array& vErrorsRet, const std::string& strMessage)
+{
+    Object entry;
+    entry.push_back(Pair("txid", txin.prevout.hash.ToString()));
+    entry.push_back(Pair("vout", (uint64_t)txin.prevout.n));
+    entry.push_back(Pair("scriptSig", HexStr(txin.scriptSig.begin(), txin.scriptSig.end())));
+    entry.push_back(Pair("sequence", (uint64_t)txin.nSequence));
+    entry.push_back(Pair("error", strMessage));
+    vErrorsRet.push_back(entry);
+}
+
 Value signrawtransaction(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() < 1 || params.size() > 4)
@@ -542,8 +563,18 @@ Value signrawtransaction(const Array& params, bool fHelp)
 
             "\nResult:\n"
             "{\n"
-            "  \"hex\": \"value\",   (string) The raw transaction with signature(s) (hex-encoded string)\n"
-            "  \"complete\": n       (numeric) if transaction has a complete set of signature (0 if not)\n"
+            "  \"hex\" : \"value\",           (string) The hex-encoded raw transaction with signature(s)\n"
+            "  \"complete\" : true|false,   (boolean) If the transaction has a complete set of signatures\n"
+            "  \"errors\" : [                 (json array of objects) Script verification errors (if there are any)\n"
+            "    {\n"
+            "      \"txid\" : \"hash\",           (string) The hash of the referenced, previous transaction\n"
+            "      \"vout\" : n,                (numeric) The index of the output to spent and used as input\n"
+            "      \"scriptSig\" : \"hex\",       (string) The hex-encoded signature script\n"
+            "      \"sequence\" : n,            (numeric) Script sequence number\n"
+            "      \"error\" : \"text\"           (string) Verification or signing error related to the input\n"
+            "    }\n"
+            "    ,...\n"
+            "  ]\n"
             "}\n"
 
             "\nExamples:\n"
@@ -579,7 +610,6 @@ Value signrawtransaction(const Array& params, bool fHelp)
     // mergedTx will end up with all the signatures; it
     // starts as a clone of the rawtx:
     CMutableTransaction mergedTx(txVariants[0]);
-    bool fComplete = true;
 
     // Fetch previous transactions (inputs):
     CCoinsView viewDummy;
@@ -705,12 +735,15 @@ Value signrawtransaction(const Array& params, bool fHelp)
      
     bool fHashSingle = ((nHashType & ~SIGHASH_ANYONECANPAY) == SIGHASH_SINGLE);    
 
+    // Script verification errors
+    Array vErrors;
+
     // Sign what we can:
     for (unsigned int i = 0; i < mergedTx.vin.size(); i++) {
         CTxIn& txin = mergedTx.vin[i];
         const CCoins* coins = view.AccessCoins(txin.prevout.hash);
         if (coins == NULL || !coins->IsAvailable(txin.prevout.n)) {
-            fComplete = false;
+            TxInErrorToJSON(txin, vErrors, "Input not found or already spent");
             continue;
         }
         const CScript& prevPubKey = coins->vout[txin.prevout.n].scriptPubKey;
@@ -725,13 +758,19 @@ Value signrawtransaction(const Array& params, bool fHelp)
         {
             txin.scriptSig = CombineSignatures(prevPubKey, mergedTx, i, txin.scriptSig, txv.vin[i].scriptSig);
         }
-        if (!VerifyScript(txin.scriptSig, prevPubKey, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker(&mergedTx, i)))
-            fComplete = false;
+        ScriptError serror = SCRIPT_ERR_OK;
+        if (!VerifyScript(txin.scriptSig, prevPubKey, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker(&mergedTx, i), &serror)) {
+            TxInErrorToJSON(txin, vErrors, ScriptErrorString(serror));
+        }
     }
-
+    bool fComplete = vErrors.empty();
+    
     Object result;
     result.push_back(Pair("hex", EncodeHexTx(mergedTx)));
     result.push_back(Pair("complete", fComplete));
+    if (!vErrors.empty()) {
+        result.push_back(Pair("errors", vErrors));
+    }
 
     return result;
 }
@@ -779,11 +818,16 @@ Value sendrawtransaction(const Array& params, bool fHelp)
     if (!fHaveMempool && !fHaveChain) {
         // push to local node and sync with wallets
         CValidationState state;
-        if (!AcceptToMemoryPool(mempool, state, tx, false, NULL, !fOverrideFees)) {
-            if(state.IsInvalid())
+        bool fMissingInputs;
+        if (!AcceptToMemoryPool(mempool, state, tx, false, &fMissingInputs, !fOverrideFees)) {
+            if (state.IsInvalid()) {
                 throw JSONRPCError(RPC_TRANSACTION_REJECTED, strprintf("%i: %s", state.GetRejectCode(), state.GetRejectReason()));
-            else
+            } else {
+                if (fMissingInputs) {
+                    throw JSONRPCError(RPC_TRANSACTION_ERROR, "Missing inputs");
+                }
                 throw JSONRPCError(RPC_TRANSACTION_ERROR, state.GetRejectReason());
+            }        
         }
     } else if (fHaveChain) {
         throw JSONRPCError(RPC_TRANSACTION_ALREADY_IN_CHAIN, "transaction already in block chain");

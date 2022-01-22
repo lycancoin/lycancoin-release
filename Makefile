@@ -287,7 +287,7 @@ CC = gcc
 CCACHE = 
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
-CLIENT_VERSION_BUILD = 12
+CLIENT_VERSION_BUILD = 13
 CLIENT_VERSION_IS_RELEASE = true
 CLIENT_VERSION_MAJOR = 1
 CLIENT_VERSION_MINOR = 1
@@ -368,7 +368,7 @@ OBJEXT = o
 OTOOL = 
 OTOOL64 = 
 PACKAGE = lycancoin
-PACKAGE_BUGREPORT = lycancoin.org
+PACKAGE_BUGREPORT = https://github.com/lycancoin/lycancoin-release
 PACKAGE_NAME = Lycancoin Core
 PACKAGE_STRING = Lycancoin Core 1.1.2
 PACKAGE_TARNAME = lycancoin
@@ -1045,8 +1045,9 @@ $(BITCOIN_WIN_INSTALLER): all-recursive
 	STRIPPROG="$(STRIP)" $(INSTALL_STRIP_PROGRAM) $(BITCOIND_BIN) $(top_builddir)/release
 	STRIPPROG="$(STRIP)" $(INSTALL_STRIP_PROGRAM) $(BITCOIN_QT_BIN) $(top_builddir)/release
 	STRIPPROG="$(STRIP)" $(INSTALL_STRIP_PROGRAM) $(BITCOIN_CLI_BIN) $(top_builddir)/release
-	@test -f $(MAKENSIS) && $(MAKENSIS) $(top_builddir)/share/setup.nsi || \
+	@test -f $(MAKENSIS) && $(MAKENSIS) -V2 $(top_builddir)/share/setup.nsi || \
 	  echo error: could not build $@
+	@echo built $@
 
 $(if $(findstring src/,$(MAKECMDGOALS)),$(MAKECMDGOALS), none): FORCE
 	$(MAKE) -C src $(patsubst src/%,%,$@)

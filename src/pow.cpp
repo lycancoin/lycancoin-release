@@ -7,7 +7,6 @@
 
 #include "arith_uint256.h"
 #include "chain.h"
-#include "chainparams.h"
 #include "primitives/block.h"
 #include "main.h" //Necessary for KGW - Move later
 #include "uint256.h"
@@ -25,7 +24,8 @@ static const CBigNum bnProofOfWorkLimit(uint256S("00000fffffffffffffffffffffffff
 static const int64_t nReTargetHistoryFact = 4; // look at 4 times the retarget
                                              // interval into the block history
 
-unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBlockHeader *pblock, uint64_t TargetBlocksSpacingSeconds, uint64_t PastBlocksMin, uint64_t PastBlocksMax) {
+unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBlockHeader *pblock, uint64_t TargetBlocksSpacingSeconds, uint64_t PastBlocksMin, uint64_t PastBlocksMax, const Consensus::Params& params)
+{
     const CBlockIndex  *BlockLastSolved				= pindexLast;
     const CBlockIndex  *BlockReading				= pindexLast;
     const CBlockHeader *BlockCreating				= pblock;
@@ -40,7 +40,7 @@ unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBloc
     double				EventHorizonDeviationFast;
     double				EventHorizonDeviationSlow;
 
-    if (BlockLastSolved == NULL || BlockLastSolved->nHeight == 0 || (uint64_t)BlockLastSolved->nHeight < PastBlocksMin) { return Params().bnProofOfWorkLimit.GetCompact(); }
+    if (BlockLastSolved == NULL || BlockLastSolved->nHeight == 0 || (uint64_t)BlockLastSolved->nHeight < PastBlocksMin) { return UintToArith256(params.powLimit).GetCompact(); }
 
 	 int64_t LatestBlockTime = BlockLastSolved->GetBlockTime();
 
@@ -104,10 +104,10 @@ unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBloc
 
 //Initial DigiShield Implementation compatible with code
 
-unsigned int static DigiShield(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
+unsigned int static DigiShield(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
 
- unsigned int nProofOfWorkLimit = bnProofOfWorkLimit.GetCompact();
+ unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
 
  int blockstogoback = 0;
 
@@ -134,6 +134,9 @@ unsigned int static DigiShield(const CBlockIndex* pindexLast, const CBlockHeader
  const CBlockIndex* pindexFirst = pindexLast;
  for (int i = 0; pindexFirst && i < blockstogoback; i++)
  			pindexFirst = pindexFirst->pprev;
+ //int nHeightFirst = pindexLast->nHeight - (params.DifficultyAdjustmentInterval()-1);
+ //assert(nHeightFirst >= 0);
+ //const CBlockIndex* pindexFirst = pindexLast->GetAncestor(nHeightFirst);
  assert(pindexFirst);
 
  // Limit adjustment step
@@ -144,7 +147,7 @@ unsigned int static DigiShield(const CBlockIndex* pindexLast, const CBlockHeader
  if (nActualTimespan > (retargetTimespan + (retargetTimespan/2)) ) nActualTimespan = (retargetTimespan + (retargetTimespan/2));
 
  // Retarget
-
+   const arith_uint256 bnPowLimit = UintToArith256(params.powLimit);
 	arith_uint256 bnNew;
 	arith_uint256 bnBefore;
 	bnNew.SetCompact(pindexLast->nBits);
@@ -152,8 +155,8 @@ unsigned int static DigiShield(const CBlockIndex* pindexLast, const CBlockHeader
 	bnNew *= nActualTimespan;
 	bnNew /= retargetTimespan;
 	
-	if (bnNew > Params().ProofOfWorkLimit())
- 		bnNew = Params().ProofOfWorkLimit();	
+   if (bnNew > bnPowLimit)
+       bnNew = bnPowLimit;	
 
 	// debug print
 	LogPrintf("DigiShield RETARGET \n");
@@ -167,7 +170,7 @@ unsigned int static DigiShield(const CBlockIndex* pindexLast, const CBlockHeader
 //End DigiShield Core Code
 
 
-unsigned int static GetNextWorkRequired_V2(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
+unsigned int static GetNextWorkRequired_V2(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
     static const int64_t	BlocksTargetSpacing			= 2.5 * 60; // 2.5 minute
     unsigned int		TimeDaySeconds				= 60 * 60 * 24;
@@ -176,33 +179,33 @@ unsigned int static GetNextWorkRequired_V2(const CBlockIndex* pindexLast, const 
     uint64_t				PastBlocksMin				= PastSecondsMin / BlocksTargetSpacing;
     uint64_t				PastBlocksMax				= PastSecondsMax / BlocksTargetSpacing;
 
-    return KimotoGravityWell(pindexLast, pblock, BlocksTargetSpacing, PastBlocksMin, PastBlocksMax);
+    return KimotoGravityWell(pindexLast, pblock, BlocksTargetSpacing, PastBlocksMin, PastBlocksMax, params);
 }
 
 
-unsigned int static GetNextWorkRequired_V1(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
+unsigned int static GetNextWorkRequired_V1(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
-    unsigned int nProofOfWorkLimit = Params().ProofOfWorkLimit().GetCompact();
+    unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
 
     // Genesis block
     if (pindexLast == NULL)
         return nProofOfWorkLimit;
 
     // Only change once per difficulty adjustment interval
-    if ((pindexLast->nHeight+1) % Params().DifficultyAdjustmentInterval() != 0)
+    if ((pindexLast->nHeight+1) % params.DifficultyAdjustmentInterval() != 0)
     {
-        if (Params().AllowMinDifficultyBlocks())
+        if (params.fPowAllowMinDifficultyBlocks)
         {
         	   // Special difficulty rule for testnet:
             // If the new block's timestamp is more than 2* 10 minutes
             // then allow mining of a min-difficulty block.
-            if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + Params().TargetSpacing()*2)
+            if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPowTargetSpacing*2)
                 return nProofOfWorkLimit;
             else
             {
                 // Return the last non-special-min-difficulty-rules-block
                 const CBlockIndex* pindex = pindexLast;
-                while (pindex->pprev && pindex->nHeight % Params().DifficultyAdjustmentInterval() != 0 && pindex->nBits == nProofOfWorkLimit)
+                while (pindex->pprev && pindex->nHeight % params.DifficultyAdjustmentInterval() != 0 && pindex->nBits == nProofOfWorkLimit)
                     pindex = pindex->pprev;
                 return pindex->nBits;
             }
@@ -212,11 +215,11 @@ unsigned int static GetNextWorkRequired_V1(const CBlockIndex* pindexLast, const 
 
     // Lycancoin: This fixes an issue where a 51% attack can change difficulty at will.
     // Go back the full period unless it's the first retarget after genesis. Code courtesy of Art Forz
-    int blockstogoback = Params().DifficultyAdjustmentInterval()-1;
-    if ((pindexLast->nHeight+1) != Params().DifficultyAdjustmentInterval())
-       blockstogoback = Params().DifficultyAdjustmentInterval();
+    int blockstogoback = params.DifficultyAdjustmentInterval()-1;
+    if ((pindexLast->nHeight+1) != params.DifficultyAdjustmentInterval())
+       blockstogoback = params.DifficultyAdjustmentInterval();
     if (pindexLast->nHeight > COINFIX1_BLOCK) {
-       blockstogoback = nReTargetHistoryFact * Params().DifficultyAdjustmentInterval();
+       blockstogoback = nReTargetHistoryFact * params.DifficultyAdjustmentInterval();
     }
 
     // Go back by what we want to be nReTargetHistoryFact*nInterval blocks
@@ -225,13 +228,12 @@ unsigned int static GetNextWorkRequired_V1(const CBlockIndex* pindexLast, const 
         pindexFirst = pindexFirst->pprev;
     assert(pindexFirst);
 
-    return CalculateNextWorkRequired(pindexLast, pindexFirst->GetBlockTime());
+    return CalculateNextWorkRequired(pindexLast, pindexFirst->GetBlockTime(), params);
 }
 
-unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nFirstBlockTime)
+unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nFirstBlockTime, const Consensus::Params& params)
 {
     // Limit adjustment step
-    // int64_t nActualTimespan = 0;
     int64_t nActualTimespan = pindexLast->GetBlockTime() - nFirstBlockTime;
     if (pindexLast->nHeight > COINFIX1_BLOCK)
         // obtain average actual timespan
@@ -239,35 +241,36 @@ unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nF
     else
         nActualTimespan = pindexLast->GetBlockTime() - nFirstBlockTime;
     LogPrintf("  nActualTimespan = %d before bounds\n", nActualTimespan);
-    if (nActualTimespan < Params().TargetTimespan()/4)
-        nActualTimespan = Params().TargetTimespan()/4;
-    if (nActualTimespan > Params().TargetTimespan()*4)
-        nActualTimespan = Params().TargetTimespan()*4;
+    if (nActualTimespan < params.nPowTargetTimespan/4)
+        nActualTimespan = params.nPowTargetTimespan/4;
+    if (nActualTimespan > params.nPowTargetTimespan*4)
+        nActualTimespan = params.nPowTargetTimespan*4;
 
     // Retarget
+    const arith_uint256 bnPowLimit = UintToArith256(params.powLimit);
     arith_uint256 bnNew;
     arith_uint256 bnOld;
     bnNew.SetCompact(pindexLast->nBits);
     bnOld = bnNew;
     bnNew *= nActualTimespan;
-    bnNew /= Params().TargetTimespan();
+    bnNew /= params.nPowTargetTimespan;
 
-    if (bnNew > Params().ProofOfWorkLimit())
-        bnNew = Params().ProofOfWorkLimit();
+    if (bnNew > bnPowLimit)
+        bnNew = bnPowLimit;
 
     /// debug print
     LogPrintf("GetNextWorkRequired RETARGET\n");
-    LogPrintf("nTargetTimespan = %d   nActualTimespan = %d\n", Params().TargetTimespan(), nActualTimespan);
+    LogPrintf("nTargetTimespan = %d   nActualTimespan = %d\n", params.nPowTargetTimespan, nActualTimespan);
     LogPrintf("Before: %08x  %s\n", pindexLast->nBits, bnOld.ToString());
     LogPrintf("After:  %08x  %s\n", bnNew.GetCompact(), bnNew.ToString());
 
     return bnNew.GetCompact();
 }
 
-unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
+unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
     int DiffMode = 1;
-    if (Params().AllowMinDifficultyBlocks()) {
+    if (params.fPowAllowMinDifficultyBlocks) {
         if (pindexLast->nHeight+1 >= FIX_RETARGET_HEIGHT){ DiffMode=2; }
     }
     else 
@@ -276,14 +279,14 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
         else if (pindexLast->nHeight+1 >= 1569800) { DiffMode = 3; }
     }
 
-    if		(DiffMode == 1) { return GetNextWorkRequired_V1(pindexLast, pblock); }
-    else if	(DiffMode == 2) { return GetNextWorkRequired_V2(pindexLast, pblock); }
-    else if (DiffMode == 3) { return DigiShield(pindexLast, pblock); }
-    return DigiShield(pindexLast, pblock);
-   // return GetNextWorkRequired_V2(pindexLast, pblock);
+    if		(DiffMode == 1) { return GetNextWorkRequired_V1(pindexLast, pblock, params); }
+    else if	(DiffMode == 2) { return GetNextWorkRequired_V2(pindexLast, pblock, params); }
+    else if (DiffMode == 3) { return DigiShield(pindexLast, pblock, params); }
+    return DigiShield(pindexLast, pblock, params);
+
 }
 
-bool CheckProofOfWork(uint256 hash, unsigned int nBits)
+bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params& params)
 {
     bool fNegative;
     bool fOverflow;
@@ -292,7 +295,7 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits)
     bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
 
     // Check range
-    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > Params().ProofOfWorkLimit())
+    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > UintToArith256(params.powLimit))
         return error("CheckProofOfWork() : nBits below minimum work");
 
     // Check proof of work matches claimed amount
@@ -315,4 +318,21 @@ arith_uint256 GetBlockProof(const CBlockIndex& block)
     // as bnTarget+1, it is equal to ((2**256 - bnTarget - 1) / (bnTarget+1)) + 1,
     // or ~bnTarget / (nTarget+1) + 1.
     return (~bnTarget / (bnTarget + 1)) + 1;
+}
+
+int64_t GetBlockProofEquivalentTime(const CBlockIndex& to, const CBlockIndex& from, const CBlockIndex& tip, const Consensus::Params& params)
+{
+    arith_uint256 r;
+    int sign = 1;
+    if (to.nChainWork > from.nChainWork) {
+        r = to.nChainWork - from.nChainWork;
+    } else {
+        r = from.nChainWork - to.nChainWork;
+        sign = -1;
+    }
+    r = r * arith_uint256(params.nPowTargetSpacing) / GetBlockProof(tip);
+    if (r.bits() > 63) {
+        return sign * std::numeric_limits<int64_t>::max();
+    }
+    return sign * r.GetLow64();
 }

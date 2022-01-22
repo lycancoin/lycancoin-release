@@ -249,8 +249,9 @@ am_libbitcoin_server_a_OBJECTS =  \
 	script/libbitcoin_server_a-sigcache.$(OBJEXT) \
 	libbitcoin_server_a-timedata.$(OBJEXT) \
 	libbitcoin_server_a-txdb.$(OBJEXT) \
-	libbitcoin_server_a-txmempool.$(OBJEXT) $(am__objects_1) \
-	$(am__objects_1)
+	libbitcoin_server_a-txmempool.$(OBJEXT) \
+	libbitcoin_server_a-validationinterface.$(OBJEXT) \
+	$(am__objects_1) $(am__objects_1)
 libbitcoin_server_a_OBJECTS = $(am_libbitcoin_server_a_OBJECTS)
 libbitcoin_util_a_AR = $(AR) $(ARFLAGS)
 libbitcoin_util_a_LIBADD =
@@ -262,21 +263,23 @@ am__libbitcoin_util_a_SOURCES_DIST = support/pagelocker.cpp \
 	addrman.h alert.h amount.h base58.h bignum.h bloom.h chain.h \
 	chainparamsbase.h chainparams.h chainparamsseeds.h \
 	checkpoints.h checkqueue.h clientversion.h coincontrol.h \
-	coins.h compat.h compressor.h core_io.h wallet/db.h \
-	eccryptoverify.h ecwrapper.h hash.h init.h key.h keystore.h \
-	leveldbwrapper.h limitedmap.h main.h merkleblock.h miner.h \
-	mruset.h netbase.h net.h noui.h pow.h primitives/block.h \
-	primitives/transaction.h protocol.h pubkey.h random.h \
-	rpcclient.h rpcprotocol.h rpcserver.h script/interpreter.h \
-	script/script_error.h script/script.h script/sigcache.h \
-	script/sign.h script/standard.h scrypt.h serialize.h streams.h \
+	coins.h compat.h compressor.h consensus/consensus.h \
+	consensus/params.h core_io.h wallet/db.h eccryptoverify.h \
+	ecwrapper.h hash.h init.h key.h keystore.h leveldbwrapper.h \
+	limitedmap.h main.h merkleblock.h miner.h mruset.h netbase.h \
+	net.h noui.h pow.h primitives/block.h primitives/transaction.h \
+	protocol.h pubkey.h random.h rpcclient.h rpcprotocol.h \
+	rpcserver.h script/interpreter.h script/script_error.h \
+	script/script.h script/sigcache.h script/sign.h \
+	script/standard.h scrypt.h serialize.h streams.h \
 	support/allocators/secure.h support/allocators/zeroafterfree.h \
 	support/cleanse.h support/pagelocker.h sync.h threadsafety.h \
 	timedata.h tinyformat.h txdb.h txmempool.h ui_interface.h \
 	uint256.h undo.h util.h utilmoneystr.h utilstrencodings.h \
-	utiltime.h version.h wallet/crypter.h wallet/walletdb.h \
-	wallet/wallet.h wallet/wallet_ismine.h compat/byteswap.h \
-	compat/endian.h compat/sanity.h compat/glibc_compat.cpp
+	utiltime.h validationinterface.h version.h wallet/crypter.h \
+	wallet/walletdb.h wallet/wallet.h wallet/wallet_ismine.h \
+	compat/byteswap.h compat/endian.h compat/sanity.h \
+	compat/glibc_compat.cpp
 #am__objects_2 = compat/libbitcoin_util_a-glibc_compat.$(OBJEXT)
 am_libbitcoin_util_a_OBJECTS =  \
 	support/libbitcoin_util_a-pagelocker.$(OBJEXT) \
@@ -1033,7 +1036,7 @@ CC = gcc
 CCACHE = 
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
-CLIENT_VERSION_BUILD = 12
+CLIENT_VERSION_BUILD = 13
 CLIENT_VERSION_IS_RELEASE = true
 CLIENT_VERSION_MAJOR = 1
 CLIENT_VERSION_MINOR = 1
@@ -1114,7 +1117,7 @@ OBJEXT = o
 OTOOL = 
 OTOOL64 = 
 PACKAGE = lycancoin
-PACKAGE_BUGREPORT = lycancoin.org
+PACKAGE_BUGREPORT = https://github.com/lycancoin/lycancoin-release
 PACKAGE_NAME = Lycancoin Core
 PACKAGE_STRING = Lycancoin Core 1.1.2
 PACKAGE_TARNAME = lycancoin
@@ -1268,6 +1271,8 @@ BITCOIN_CORE_H = \
   coins.h \
   compat.h \
   compressor.h \
+  consensus/consensus.h \
+  consensus/params.h \
   core_io.h \
   wallet/db.h \
   eccryptoverify.h \
@@ -1320,6 +1325,7 @@ BITCOIN_CORE_H = \
   utilmoneystr.h \
   utilstrencodings.h \
   utiltime.h \
+  validationinterface.h \
   version.h \
   wallet/crypter.h \
   wallet/walletdb.h \
@@ -1368,6 +1374,7 @@ libbitcoin_server_a_SOURCES = \
   timedata.cpp \
   txdb.cpp \
   txmempool.cpp \
+  validationinterface.cpp \
   $(JSON_H) \
   $(BITCOIN_CORE_H)
 
@@ -2387,6 +2394,7 @@ include ./$(DEPDIR)/libbitcoin_server_a-rpcserver.Po
 include ./$(DEPDIR)/libbitcoin_server_a-timedata.Po
 include ./$(DEPDIR)/libbitcoin_server_a-txdb.Po
 include ./$(DEPDIR)/libbitcoin_server_a-txmempool.Po
+include ./$(DEPDIR)/libbitcoin_server_a-validationinterface.Po
 include ./$(DEPDIR)/libbitcoin_util_a-chainparamsbase.Po
 include ./$(DEPDIR)/libbitcoin_util_a-clientversion.Po
 include ./$(DEPDIR)/libbitcoin_util_a-random.Po
@@ -3337,6 +3345,20 @@ libbitcoin_server_a-txmempool.obj: txmempool.cpp
 #	$(AM_V_CXX)source='txmempool.cpp' object='libbitcoin_server_a-txmempool.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_server_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_server_a-txmempool.obj `if test -f 'txmempool.cpp'; then $(CYGPATH_W) 'txmempool.cpp'; else $(CYGPATH_W) '$(srcdir)/txmempool.cpp'; fi`
+
+libbitcoin_server_a-validationinterface.o: validationinterface.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_server_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_server_a-validationinterface.o -MD -MP -MF $(DEPDIR)/libbitcoin_server_a-validationinterface.Tpo -c -o libbitcoin_server_a-validationinterface.o `test -f 'validationinterface.cpp' || echo '$(srcdir)/'`validationinterface.cpp
+	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_server_a-validationinterface.Tpo $(DEPDIR)/libbitcoin_server_a-validationinterface.Po
+#	$(AM_V_CXX)source='validationinterface.cpp' object='libbitcoin_server_a-validationinterface.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_server_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_server_a-validationinterface.o `test -f 'validationinterface.cpp' || echo '$(srcdir)/'`validationinterface.cpp
+
+libbitcoin_server_a-validationinterface.obj: validationinterface.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_server_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_server_a-validationinterface.obj -MD -MP -MF $(DEPDIR)/libbitcoin_server_a-validationinterface.Tpo -c -o libbitcoin_server_a-validationinterface.obj `if test -f 'validationinterface.cpp'; then $(CYGPATH_W) 'validationinterface.cpp'; else $(CYGPATH_W) '$(srcdir)/validationinterface.cpp'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_server_a-validationinterface.Tpo $(DEPDIR)/libbitcoin_server_a-validationinterface.Po
+#	$(AM_V_CXX)source='validationinterface.cpp' object='libbitcoin_server_a-validationinterface.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_server_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_server_a-validationinterface.obj `if test -f 'validationinterface.cpp'; then $(CYGPATH_W) 'validationinterface.cpp'; else $(CYGPATH_W) '$(srcdir)/validationinterface.cpp'; fi`
 
 support/libbitcoin_util_a-pagelocker.o: support/pagelocker.cpp
 	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_util_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT support/libbitcoin_util_a-pagelocker.o -MD -MP -MF support/$(DEPDIR)/libbitcoin_util_a-pagelocker.Tpo -c -o support/libbitcoin_util_a-pagelocker.o `test -f 'support/pagelocker.cpp' || echo '$(srcdir)/'`support/pagelocker.cpp

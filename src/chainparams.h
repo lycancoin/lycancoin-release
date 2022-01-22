@@ -7,11 +7,12 @@
 #define BITCOIN_CHAIN_PARAMS_H
 
 //#include "bignum.h" //required for KGW
+#include "arith_uint256.h"
 #include "chainparamsbase.h"
 #include "checkpoints.h"
+#include "consensus/params.h"
 #include "primitives/block.h"
 #include "protocol.h"
-#include "arith_uint256.h"
 
 #include <vector>
 
@@ -19,6 +20,12 @@ struct CDNSSeedData {
     std::string name, host;
     CDNSSeedData(const std::string &strName, const std::string &strHost) : name(strName), host(strHost) {}
 };
+
+struct SeedSpec6 {
+    uint8_t addr[16];
+    uint16_t port;
+};
+
 
 /**
  * CChainParams defines various tweakable parameters of a given instance of the
@@ -40,16 +47,14 @@ public:
         MAX_BASE58_TYPES
     };
 
-    const uint256& HashGenesisBlock() const { return hashGenesisBlock; }
+    const Consensus::Params& GetConsensus() const { return consensus; }
     const CMessageHeader::MessageStartChars& MessageStart() const { return pchMessageStart; }
     const std::vector<unsigned char>& AlertKey() const { return vAlertPubKey; }
     int GetDefaultPort() const { return nDefaultPort; }
-    const arith_uint256& ProofOfWorkLimit() const { return bnProofOfWorkLimit; }
-    int SubsidyHalvingInterval() const { return nSubsidyHalvingInterval; }
-    /* Used to check majorities for block version upgrade */
-    int EnforceBlockUpgradeMajority() const { return nEnforceBlockUpgradeMajority; }
-    int RejectBlockOutdatedMajority() const { return nRejectBlockOutdatedMajority; }
-    int ToCheckBlockUpgradeMajority() const { return nToCheckBlockUpgradeMajority; }
+    int SubsidyHalvingInterval() const { return consensus.nSubsidyHalvingInterval; }
+    int EnforceBlockUpgradeMajority() const { return consensus.nMajorityEnforceBlockUpgrade; }
+    int RejectBlockOutdatedMajority() const { return consensus.nMajorityRejectBlockOutdated; }
+    int ToCheckBlockUpgradeMajority() const { return consensus.nMajorityWindow; }
 
     /* Used if GenerateBitcoins is called with a negative number of threads */
     int DefaultMinerThreads() const { return nMinerThreads; }
@@ -57,53 +62,40 @@ public:
     bool RequireRPCPassword() const { return fRequireRPCPassword; }
     /* Make miner wait to have peers to avoid wasting work */
     bool MiningRequiresPeers() const { return fMiningRequiresPeers; }
-    /* Default value for -checkmempool argument */
-    bool DefaultCheckMemPool() const { return fDefaultCheckMemPool; }
-    /* Allow mining of a min-difficulty block */
-    bool AllowMinDifficultyBlocks() const { return fAllowMinDifficultyBlocks; }
+    /** Default value for -checkmempool and -checkblockindex argument */
+    bool DefaultConsistencyChecks() const { return fDefaultConsistencyChecks; }
     /* Make standard checks */
     bool RequireStandard() const { return fRequireStandard; }
-    int64_t TargetTimespan() const { return nTargetTimespan; }
-    int64_t TargetSpacing() const { return nTargetSpacing; }
-    //int64_t Interval() const { return nTargetTimespan / nTargetSpacing; }
-    int64_t DifficultyAdjustmentInterval() const { return nTargetTimespan / nTargetSpacing; }    
-    /* Make miner stop after a block is found. In RPC, don't return
-     * until nGenProcLimit blocks are generated */
+    int64_t PruneAfterHeight() const { return nPruneAfterHeight; }
+    /** Make miner stop after a block is found. In RPC, don't return until nGenProcLimit blocks are generated */
     bool MineBlocksOnDemand() const { return fMineBlocksOnDemand; }
-    /* In the future use NetworkIDString() for RPC fields */
+    /** In the future use NetworkIDString() for RPC fields */
     bool TestnetToBeDeprecatedFieldRPC() const { return fTestnetToBeDeprecatedFieldRPC; }
     /* Return the BIP70 network string (main, test or regtest) */
     std::string NetworkIDString() const { return strNetworkID; }
     const std::vector<CDNSSeedData>& DNSSeeds() const { return vSeeds; }
     const std::vector<unsigned char>& Base58Prefix(Base58Type type) const { return base58Prefixes[type]; }
-    const std::vector<CAddress>& FixedSeeds() const { return vFixedSeeds; }
+    const std::vector<SeedSpec6>& FixedSeeds() const { return vFixedSeeds; }
     virtual const Checkpoints::CCheckpointData& Checkpoints() const = 0;
-    arith_uint256 bnProofOfWorkLimit;
 
 protected:
     CChainParams() {}
 
-    uint256 hashGenesisBlock;
+    Consensus::Params consensus;
     CMessageHeader::MessageStartChars pchMessageStart;
     // Raw pub key bytes for the broadcast alert signing key.
     std::vector<unsigned char> vAlertPubKey;
     int nDefaultPort;
-    int nSubsidyHalvingInterval;
-    int nEnforceBlockUpgradeMajority;
-    int nRejectBlockOutdatedMajority;
-    int nToCheckBlockUpgradeMajority;
-    int64_t nTargetTimespan;
-    int64_t nTargetSpacing;
     int nMinerThreads;
+    uint64_t nPruneAfterHeight;
     std::vector<CDNSSeedData> vSeeds;
     std::vector<unsigned char> base58Prefixes[MAX_BASE58_TYPES];
     std::string strNetworkID;
     CBlock genesis;
-    std::vector<CAddress> vFixedSeeds;
+    std::vector<SeedSpec6> vFixedSeeds;
     bool fRequireRPCPassword;
     bool fMiningRequiresPeers;
-    bool fDefaultCheckMemPool;
-    bool fAllowMinDifficultyBlocks;
+    bool fDefaultConsistencyChecks;
     bool fRequireStandard;
     bool fMineBlocksOnDemand;
     bool fTestnetToBeDeprecatedFieldRPC;
